@@ -27,11 +27,17 @@ export async function proxy(request: NextRequest) {
 
   const code = request.nextUrl.searchParams.get("code");
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.searchParams.delete("code");
-    return NextResponse.redirect(url);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      url.searchParams.delete("code");
+      const redirectResponse = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+        redirectResponse.cookies.set(name, value);
+      });
+      return redirectResponse;
+    }
   }
 
   const {
@@ -47,7 +53,11 @@ export async function proxy(request: NextRequest) {
   if (user && request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+      redirectResponse.cookies.set(name, value);
+    });
+    return redirectResponse;
   }
 
   return supabaseResponse;
