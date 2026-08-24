@@ -6,7 +6,7 @@ import type { Transaction } from "@/lib/types";
 
 interface Props { transactions: Transaction[] }
 
-const COLORS = ["#6b8e23", "#8b6914", "#2d5016", "#c0392b", "#1565c0", "#f39c12", "#6c3483"];
+const COLORS = ["#1a1a2e", "#3a7d44", "#c0392b", "#2563eb", "#d4a017", "#7c3aed", "#0891b2"];
 
 export default function Charts({ transactions }: Props) {
   const { t } = useLang();
@@ -23,37 +23,39 @@ export default function Charts({ transactions }: Props) {
   if (categoryData.length === 0 && monthlyData.length === 0) return null;
 
   return (
-    <div className="nature-grid animate-in" style={{ animationDelay: "0.15s" }}>
+    <div className="grid-2 animate-in" style={{ animationDelay: "0.08s" }}>
       {categoryData.length > 0 && (
-        <div className="forest-card p-6">
-          <h3 className="section-header mb-4" style={{ color: "#2d5016" }}>
-            <span className="text-xl">📊</span> {t.category_chart}
+        <div className="card p-5">
+          <h3 className="sec mb-3" style={{ color: "var(--text)" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+            {t.category_chart}
           </h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={220}>
             <PieChart>
-              <Pie data={categoryData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={4} dataKey="value" stroke="none">
+              <Pie data={categoryData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value" stroke="none">
                 {categoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v) => `฿${Number(v).toLocaleString("th-TH")}`}
-                contentStyle={{ background: "#fffef9", border: "2px solid #d4c5a0", borderRadius: "16px", boxShadow: "0 4px 16px rgba(45,80,22,0.15)", fontFamily: "K2D", fontSize: "14px" }} />
-              <Legend wrapperStyle={{ fontFamily: "K2D", fontSize: "13px" }} />
+                contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px", fontFamily: "K2D", fontSize: "12px" }} />
+              <Legend wrapperStyle={{ fontFamily: "K2D", fontSize: "11px" }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
       )}
 
       {monthlyData.length > 0 && (
-        <div className="forest-card p-6">
-          <h3 className="section-header mb-4" style={{ color: "#2d5016" }}>
-            <span className="text-xl">📈</span> {t.monthly_chart}
+        <div className="card p-5">
+          <h3 className="sec mb-3" style={{ color: "var(--text)" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>
+            {t.monthly_chart}
           </h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={220}>
             <BarChart data={monthlyData}>
-              <XAxis dataKey="name" tick={{ fontSize: 12, fontFamily: "K2D" }} stroke="#b8a88a" />
-              <YAxis tick={{ fontSize: 12, fontFamily: "K2D" }} stroke="#b8a88a" />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fontFamily: "K2D" }} stroke="var(--border)" />
+              <YAxis tick={{ fontSize: 11, fontFamily: "K2D" }} stroke="var(--border)" />
               <Tooltip formatter={(v) => `฿${Number(v).toLocaleString("th-TH")}`}
-                contentStyle={{ background: "#fffef9", border: "2px solid #d4c5a0", borderRadius: "16px", boxShadow: "0 4px 16px rgba(45,80,22,0.15)", fontFamily: "K2D", fontSize: "14px" }} />
-              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px", fontFamily: "K2D", fontSize: "12px" }} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {monthlyData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>
             </BarChart>

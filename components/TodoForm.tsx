@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
+import { Plus, Save } from "lucide-react";
 
 interface Props { onSaved: () => void; }
 
@@ -25,54 +26,45 @@ export default function TodoForm({ onSaved }: Props) {
     setLoading(false); onSaved();
   };
 
-  const PRIORITY_CONFIG = {
-    low: { icon: "🌱", label: lang === "th" ? "ต่ำ" : "Low", bg: "linear-gradient(135deg, #27ae60, #2ecc71)" },
-    medium: { icon: "🌿", label: lang === "th" ? "กลาง" : "Med", bg: "linear-gradient(135deg, #f39c12, #f1c40f)" },
-    high: { icon: "🔥", label: lang === "th" ? "สูง" : "High", bg: "linear-gradient(135deg, #c0392b, #e74c3c)" },
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="forest-card p-6 space-y-5 animate-in">
-      <h3 className="section-header" style={{ color: "#2d5016" }}>
-        <span className="text-xl">📋</span> {lang === "th" ? "เพิ่มงานใหม่" : "Add New Task"}
+    <form onSubmit={handleSubmit} className="card p-5 space-y-4 animate-in">
+      <h3 className="sec" style={{ color: "var(--text)" }}>
+        <Plus className="w-4 h-4" style={{ color: "var(--green)" }} />
+        {lang === "th" ? "เพิ่มงานใหม่" : "Add New Task"}
       </h3>
 
       <div>
-        <label className="block font-pixel text-sm font-semibold mb-2" style={{ color: "#5c3d0e" }}>
-          🎯 {lang === "th" ? "ชื่องาน" : "Task Title"}
-        </label>
+        <label className="block font-pixel text-xs font-semibold mb-1" style={{ color: "var(--text-muted)" }}>{lang === "th" ? "ชื่องาน" : "Task"}</label>
         <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
-          className="forest-input" placeholder={lang === "th" ? "ทำอะไร..." : "What to do..."} />
+          className="input" placeholder={lang === "th" ? "ทำอะไร..." : "What to do..."} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block font-pixel text-sm font-semibold mb-2" style={{ color: "#5c3d0e" }}>
-            🚩 {lang === "th" ? "ความสำคัญ" : "Priority"}
-          </label>
-          <div className="flex gap-2">
+          <label className="block font-pixel text-xs font-semibold mb-1" style={{ color: "var(--text-muted)" }}>{lang === "th" ? "ความสำคัญ" : "Priority"}</label>
+          <div className="flex gap-1.5">
             {(["low", "medium", "high"] as const).map((p) => (
-              <button key={p} type="button" onClick={() => setPriority(p)}
-                className="flex-1 py-3 rounded-2xl font-pixel text-sm font-bold flex items-center justify-center gap-1.5 transition-all"
+              <button key={p} type="button" onClick={() => setPriority(p)} className="type-btn text-xs"
                 style={priority === p
-                  ? { background: PRIORITY_CONFIG[p].bg, color: "white", border: "2px solid rgba(0,0,0,0.15)", boxShadow: "0 3px 0 rgba(0,0,0,0.2), 0 6px 12px rgba(0,0,0,0.15)" }
-                  : { background: "#f5f0e0", border: "2px solid #d4c5a0", color: "#8b7355" }
+                  ? p === "high" ? { background: "var(--red-bg)", borderColor: "var(--red)", color: "var(--red)" }
+                  : p === "medium" ? { background: "var(--yellow-bg)", borderColor: "var(--yellow)", color: "var(--yellow)" }
+                  : { background: "var(--green-bg)", borderColor: "var(--green)", color: "var(--green)" }
+                  : {}
                 }>
-                <span>{PRIORITY_CONFIG[p].icon}</span> {PRIORITY_CONFIG[p].label}
+                {p === "low" ? (lang === "th" ? "ต่ำ" : "Low") : p === "medium" ? (lang === "th" ? "กลาง" : "Med") : (lang === "th" ? "สูง" : "High")}
               </button>
             ))}
           </div>
         </div>
         <div>
-          <label className="block font-pixel text-sm font-semibold mb-2" style={{ color: "#5c3d0e" }}>
-            📅 {t.date} <span className="font-normal" style={{ color: "#b8a88a" }}>({lang === "th" ? "ไม่บังคับ" : "optional"})</span>
-          </label>
-          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="forest-input" />
+          <label className="block font-pixel text-xs font-semibold mb-1" style={{ color: "var(--text-muted)" }}>{t.date}</label>
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" />
         </div>
       </div>
 
-      <button type="submit" disabled={loading} className="leaf-btn w-full flex items-center justify-center gap-2 font-pixel">
-        {loading ? "⏳" : "✅"} {loading ? t.loading : lang === "th" ? "เพิ่มงาน" : "Add Task"}
+      <button type="submit" disabled={loading} className="btn-green w-full flex items-center justify-center gap-2">
+        <Save className="w-3.5 h-3.5" />
+        {loading ? t.loading : lang === "th" ? "เพิ่มงาน" : "Add Task"}
       </button>
     </form>
   );
