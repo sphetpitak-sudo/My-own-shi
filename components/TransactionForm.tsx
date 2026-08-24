@@ -80,7 +80,7 @@ export default function TransactionForm({
 
   return (
     <form onSubmit={handleSubmit} className="pixel-card space-y-4">
-      <h3 className="font-pixel text-xs text-pixel-700 dark:text-pixel-300">
+      <h3 className="font-pixel text-base font-bold text-pixel-700 dark:text-pixel-300">
         {editing ? `✦ ${t.edit}` : `✦ ${t.add}`}
       </h3>
 
@@ -88,7 +88,7 @@ export default function TransactionForm({
         <button
           type="button"
           onClick={() => setType("expense")}
-          className={`flex-1 py-2 font-pixel text-[9px] uppercase border-2 transition-all ${
+          className={`flex-1 py-2 font-pixel text-sm font-semibold uppercase border-2 transition-all ${
             type === "expense"
               ? "border-red-500 bg-red-500 text-white shadow-[2px_2px_0px_0px] shadow-red-700"
               : "border-pixel-300 dark:border-pixel-700 bg-transparent text-pixel-500 hover:bg-pixel-100 dark:hover:bg-pixel-900"
@@ -99,7 +99,7 @@ export default function TransactionForm({
         <button
           type="button"
           onClick={() => setType("income")}
-          className={`flex-1 py-2 font-pixel text-[9px] uppercase border-2 transition-all ${
+          className={`flex-1 py-2 font-pixel text-sm font-semibold uppercase border-2 transition-all ${
             type === "income"
               ? "border-green-500 bg-green-500 text-white shadow-[2px_2px_0px_0px] shadow-green-700"
               : "border-pixel-300 dark:border-pixel-700 bg-transparent text-pixel-500 hover:bg-pixel-100 dark:hover:bg-pixel-900"
@@ -111,7 +111,7 @@ export default function TransactionForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
+          <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
             {t.amount}
           </label>
           <input
@@ -126,7 +126,7 @@ export default function TransactionForm({
           />
         </div>
         <div>
-          <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
+          <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
             {t.date}
           </label>
           <input
@@ -140,7 +140,7 @@ export default function TransactionForm({
       </div>
 
       <div>
-        <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
+        <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
           {t.category}
         </label>
         <select
@@ -157,7 +157,7 @@ export default function TransactionForm({
       </div>
 
       <div>
-        <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
+        <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
           {t.note}
         </label>
         <input
@@ -170,11 +170,11 @@ export default function TransactionForm({
       </div>
 
       <div className="flex gap-2">
-        <button type="submit" disabled={loading} className="pixel-btn flex-1">
+        <button type="submit" disabled={loading} className="pixel-btn flex-1 text-base">
           {loading ? `... ${t.loading}` : editing ? `✦ ${t.save}` : `✦ ${t.add}`}
         </button>
         {editing && (
-          <button type="button" onClick={onCancelEdit} className="pixel-btn-outline">
+          <button type="button" onClick={onCancelEdit} className="pixel-btn-outline text-base">
             {t.cancel}
           </button>
         )}

@@ -100,8 +100,8 @@ export default function Dashboard() {
       <header className="bg-white/80 dark:bg-pixel-950/80 backdrop-blur-sm border-b-2 border-pixel-200 dark:border-pixel-800 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-pixel text-pixel-500 text-sm">✦</span>
-            <h1 className="font-pixel text-[10px] md:text-xs text-pixel-800 dark:text-pixel-200">
+            <span className="font-pixel text-pixel-500 text-lg">✦</span>
+            <h1 className="font-pixel text-base md:text-lg font-bold text-pixel-800 dark:text-pixel-200">
               {lang === "th" ? "PIXEL FINANCE" : "PIXEL FINANCE"}
             </h1>
           </div>
@@ -110,7 +110,7 @@ export default function Dashboard() {
             <ThemeToggle />
             <button
               onClick={handleLogout}
-              className="px-3 py-1.5 font-pixel text-[9px] uppercase text-red-500 border-2 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+              className="px-3 py-1.5 font-pixel text-sm font-semibold text-red-500 border-2 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
             >
               {t.logout}
             </button>
@@ -158,7 +158,7 @@ export default function Dashboard() {
 
       <footer className="border-t-2 border-pixel-200 dark:border-pixel-800 py-6 mt-12">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <p className="font-pixel text-[7px] text-pixel-400 dark:text-pixel-600">
+          <p className="font-pixel text-xs text-pixel-400 dark:text-pixel-600">
             PIXEL FINANCE © 2024 ✦ MADE WITH ♥
           </p>
         </div>

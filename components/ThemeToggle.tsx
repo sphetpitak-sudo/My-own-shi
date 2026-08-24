@@ -8,7 +8,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="px-3 py-1.5 font-pixel text-[9px] uppercase tracking-wider border-2 border-pixel-300 dark:border-pixel-700 hover:bg-pixel-100 dark:hover:bg-pixel-900 transition-colors"
+      className="px-3 py-1.5 font-pixel text-sm font-semibold uppercase tracking-wider border-2 border-pixel-300 dark:border-pixel-700 hover:bg-pixel-100 dark:hover:bg-pixel-900 transition-colors"
     >
       {theme === "light" ? "🌙" : "☀️"}
     </button>

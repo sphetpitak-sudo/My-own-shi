@@ -15,15 +15,15 @@ export default function TransactionList({ transactions, onEdit, onDelete }: Prop
   if (transactions.length === 0) {
     return (
       <div className="pixel-card text-center py-12">
-        <p className="font-pixel text-[10px] text-pixel-400">✦ ✦ ✦</p>
-        <p className="font-pixel text-[9px] text-pixel-400 mt-3">{t.no_transactions}</p>
+        <p className="font-pixel text-lg text-pixel-400">✦ ✦ ✦</p>
+        <p className="font-pixel text-sm text-pixel-400 mt-3">{t.no_transactions}</p>
       </div>
     );
   }
 
   return (
     <div className="pixel-card">
-      <h3 className="font-pixel text-xs text-pixel-700 dark:text-pixel-300 mb-4">
+      <h3 className="font-pixel text-base font-bold text-pixel-700 dark:text-pixel-300 mb-4">
         ✦ {t.transaction_list}
       </h3>
       <div className="space-y-2">
@@ -37,23 +37,23 @@ export default function TransactionList({ transactions, onEdit, onDelete }: Prop
                 <span className="text-lg">
                   {tx.type === "income" ? "◈" : "◇"}
                 </span>
-                <span className="font-pixel text-[9px] text-pixel-700 dark:text-pixel-300 truncate">
+                <span className="font-pixel text-sm font-semibold text-pixel-700 dark:text-pixel-300 truncate">
                   {t[tx.category as keyof typeof t]}
                 </span>
                 {tx.note && (
-                  <span className="font-body text-sm text-pixel-400 truncate">
+                  <span className="font-pixel text-xs text-pixel-400 truncate">
                     ({tx.note})
                   </span>
                 )}
               </div>
-              <div className="font-body text-sm text-pixel-400 mt-1 ml-6">
+              <div className="font-pixel text-xs text-pixel-400 mt-1 ml-6">
                 {tx.date}
               </div>
             </div>
 
             <div className="flex items-center gap-3 ml-4">
               <span
-                className={`font-pixel text-[10px] whitespace-nowrap ${
+                className={`font-pixel text-sm font-bold whitespace-nowrap ${
                   tx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}
               >
@@ -62,13 +62,13 @@ export default function TransactionList({ transactions, onEdit, onDelete }: Prop
               </span>
               <button
                 onClick={() => onEdit(tx)}
-                className="font-pixel text-[8px] text-pixel-500 hover:text-pixel-700 dark:hover:text-pixel-300 border border-pixel-200 dark:border-pixel-700 px-2 py-1 hover:bg-pixel-100 dark:hover:bg-pixel-900 transition-colors"
+                className="font-pixel text-xs text-pixel-500 hover:text-pixel-700 dark:hover:text-pixel-300 border-2 border-pixel-200 dark:border-pixel-700 px-2 py-1 hover:bg-pixel-100 dark:hover:bg-pixel-900 transition-colors"
               >
                 ✎
               </button>
               <button
                 onClick={() => onDelete(tx.id)}
-                className="font-pixel text-[8px] text-red-400 hover:text-red-600 border border-pixel-200 dark:border-pixel-700 px-2 py-1 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                className="font-pixel text-xs text-red-400 hover:text-red-600 border-2 border-pixel-200 dark:border-pixel-700 px-2 py-1 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
               >
                 ✗
               </button>

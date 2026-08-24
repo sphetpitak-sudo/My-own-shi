@@ -65,7 +65,7 @@ export default function Charts({ transactions }: Props) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {categoryData.length > 0 && (
         <div className="pixel-card">
-          <h3 className="font-pixel text-[9px] text-pixel-700 dark:text-pixel-300 mb-3">
+          <h3 className="font-pixel text-sm font-bold text-pixel-700 dark:text-pixel-300 mb-3">
             ✦ {t.category_chart}
           </h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -89,12 +89,12 @@ export default function Charts({ transactions }: Props) {
                 contentStyle={{
                   border: "2px solid #bcd7ff",
                   boxShadow: "3px 3px 0px 0px #8ebfff",
-                  fontFamily: "VT323",
+                  fontFamily: "K2D",
                   fontSize: "16px",
                 }}
               />
               <Legend
-                wrapperStyle={{ fontFamily: "VT323", fontSize: "14px" }}
+                wrapperStyle={{ fontFamily: "K2D", fontSize: "14px" }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -103,18 +103,18 @@ export default function Charts({ transactions }: Props) {
 
       {monthlyData.length > 0 && (
         <div className="pixel-card">
-          <h3 className="font-pixel text-[9px] text-pixel-700 dark:text-pixel-300 mb-3">
+          <h3 className="font-pixel text-sm font-bold text-pixel-700 dark:text-pixel-300 mb-3">
             ✦ {t.monthly_chart}
           </h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={monthlyData}>
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 12, fontFamily: "VT323" }}
+                tick={{ fontSize: 12, fontFamily: "K2D" }}
                 stroke="#8ebfff"
               />
               <YAxis
-                tick={{ fontSize: 12, fontFamily: "VT323" }}
+                tick={{ fontSize: 12, fontFamily: "K2D" }}
                 stroke="#8ebfff"
               />
               <Tooltip
@@ -122,7 +122,7 @@ export default function Charts({ transactions }: Props) {
                 contentStyle={{
                   border: "2px solid #bcd7ff",
                   boxShadow: "3px 3px 0px 0px #8ebfff",
-                  fontFamily: "VT323",
+                  fontFamily: "K2D",
                   fontSize: "16px",
                 }}
               />

@@ -48,34 +48,34 @@ export default function AuthForm() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <p className="pixel-badge mb-3">{lang === "th" ? "✦ ยินดีต้อนรับ ✦" : "✦ Welcome ✦"}</p>
-          <h1 className="font-pixel text-xl md:text-2xl text-pixel-800 dark:text-pixel-200 leading-relaxed">
+          <h1 className="font-pixel text-2xl md:text-3xl font-bold text-pixel-800 dark:text-pixel-200 leading-relaxed">
             {t.app_name}
           </h1>
-          <div className="mt-2 text-pixel-400 font-pixel text-[8px]">
+          <div className="mt-2 text-pixel-400 font-pixel text-sm">
             ✦ ✦ ✦
           </div>
         </div>
 
         <div className="pixel-card">
-          <h2 className="font-pixel text-xs text-center mb-6 text-pixel-700 dark:text-pixel-300">
+          <h2 className="font-pixel text-lg font-bold text-center mb-6 text-pixel-700 dark:text-pixel-300">
             {isSignUp ? t.signup : t.login}
           </h2>
 
           {error && (
-            <div className="mb-4 p-3 border-2 border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-700 text-red-700 dark:text-red-300 font-pixel text-[9px]">
+            <div className="mb-4 p-3 border-2 border-red-400 bg-red-50 dark:bg-red-950 dark:border-red-700 text-red-700 dark:text-red-300 font-pixel text-sm">
               ✗ {error}
             </div>
           )}
 
           {message && (
-            <div className="mb-4 p-3 border-2 border-green-400 bg-green-50 dark:bg-green-950 dark:border-green-700 text-green-700 dark:text-green-300 font-pixel text-[9px]">
+            <div className="mb-4 p-3 border-2 border-green-400 bg-green-50 dark:bg-green-950 dark:border-green-700 text-green-700 dark:text-green-300 font-pixel text-sm">
               ✓ {message}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-pixel text-[9px] text-pixel-600 dark:text-pixel-400 mb-2 uppercase">
+              <label className="block font-pixel text-sm font-semibold text-pixel-600 dark:text-pixel-400 mb-2 uppercase">
                 {t.email}
               </label>
               <input
@@ -89,7 +89,7 @@ export default function AuthForm() {
             </div>
 
             <div>
-              <label className="block font-pixel text-[9px] text-pixel-600 dark:text-pixel-400 mb-2 uppercase">
+              <label className="block font-pixel text-sm font-semibold text-pixel-600 dark:text-pixel-400 mb-2 uppercase">
                 {t.password}
               </label>
               <input
@@ -104,7 +104,7 @@ export default function AuthForm() {
 
             {isSignUp && (
               <div>
-                <label className="block font-pixel text-[9px] text-pixel-600 dark:text-pixel-400 mb-2 uppercase">
+                <label className="block font-pixel text-sm font-semibold text-pixel-600 dark:text-pixel-400 mb-2 uppercase">
                   {t.confirm_password}
                 </label>
                 <input
@@ -121,7 +121,7 @@ export default function AuthForm() {
             <button
               type="submit"
               disabled={loading}
-              className="pixel-btn w-full"
+              className="pixel-btn w-full text-base"
             >
               {loading ? `... ${t.loading}` : isSignUp ? `✦ ${t.signup_button}` : `✦ ${t.login_button}`}
             </button>
@@ -138,9 +138,9 @@ export default function AuthForm() {
                   },
                 });
               }}
-              className="pixel-btn-outline w-full flex items-center justify-center gap-3"
+              className="pixel-btn-outline w-full flex items-center justify-center gap-3 text-base"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -151,7 +151,7 @@ export default function AuthForm() {
           </div>
 
           <div className="mt-6 text-center">
-            <span className="font-pixel text-[9px] text-pixel-400">
+            <span className="font-pixel text-sm text-pixel-400">
               {isSignUp ? t.login : t.signup}{" "}
             </span>
             <button
@@ -160,14 +160,14 @@ export default function AuthForm() {
                 setError("");
                 setMessage("");
               }}
-              className="font-pixel text-[9px] text-pixel-600 dark:text-pixel-400 hover:text-pixel-800 dark:hover:text-pixel-200 underline"
+              className="font-pixel text-sm font-semibold text-pixel-600 dark:text-pixel-400 hover:text-pixel-800 dark:hover:text-pixel-200 underline"
             >
               {isSignUp ? t.login_button : t.signup_button}
             </button>
           </div>
         </div>
 
-        <p className="text-center mt-6 font-pixel text-[7px] text-pixel-400 dark:text-pixel-600">
+        <p className="text-center mt-6 font-pixel text-xs text-pixel-400 dark:text-pixel-600">
           PIXEL FINANCE © 2024
         </p>
       </div>
