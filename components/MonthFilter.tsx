@@ -26,9 +26,9 @@ export default function MonthFilter({
       <select
         value={selectedMonth}
         onChange={(e) => onMonthChange(e.target.value)}
-        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+        className="pixel-select flex-1 sm:flex-none sm:w-auto"
       >
-        <option value="all">{t.all} {t.filter_month}</option>
+        <option value="all">✦ {t.all} {t.filter_month}</option>
         {months.map((m) => (
           <option key={m} value={m}>
             {m}
@@ -39,9 +39,9 @@ export default function MonthFilter({
       <select
         value={selectedCategory}
         onChange={(e) => onCategoryChange(e.target.value)}
-        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+        className="pixel-select flex-1 sm:flex-none sm:w-auto"
       >
-        <option value="all">{t.all} {t.filter_category}</option>
+        <option value="all">✦ {t.all} {t.filter_category}</option>
         {categories.map((c) => (
           <option key={c} value={c}>
             {t[c as keyof typeof t]}

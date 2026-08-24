@@ -1,1 +1,133 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-pixel-50: #eef5ff;
+  --color-pixel-100: #d9e8ff;
+  --color-pixel-200: #bcd7ff;
+  --color-pixel-300: #8ebfff;
+  --color-pixel-400: #599eff;
+  --color-pixel-500: #3378fc;
+  --color-pixel-600: #1d5af1;
+  --color-pixel-700: #1545de;
+  --color-pixel-800: #1838b4;
+  --color-pixel-900: #19338e;
+  --color-pixel-950: #142056;
+
+  --font-pixel: "Press Start 2P", monospace;
+  --font-body: "VT323", monospace;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-pixel-50);
+    color: var(--color-pixel-950);
+  }
+
+  .dark body {
+    background-color: #0c1529;
+    color: #d9e8ff;
+  }
+}
+
+@layer components {
+  .pixel-card {
+    @apply bg-white rounded-none border-2 border-pixel-300 shadow-[4px_4px_0px_0px] shadow-pixel-300 p-6;
+  }
+
+  .dark .pixel-card {
+    @apply bg-pixel-950 border-pixel-700 shadow-pixel-700;
+  }
+
+  .pixel-card-sm {
+    @apply bg-white rounded-none border-2 border-pixel-200 shadow-[3px_3px_0px_0px] shadow-pixel-200 p-4;
+  }
+
+  .dark .pixel-card-sm {
+    @apply bg-pixel-950 border-pixel-800 shadow-pixel-800;
+  }
+
+  .pixel-btn {
+    @apply px-4 py-2 font-pixel text-[10px] uppercase tracking-wider border-2 border-pixel-400 bg-pixel-400 text-white shadow-[3px_3px_0px_0px] shadow-pixel-600 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer;
+  }
+
+  .pixel-btn-outline {
+    @apply px-4 py-2 font-pixel text-[10px] uppercase tracking-wider border-2 border-pixel-400 bg-transparent text-pixel-600 shadow-[3px_3px_0px_0px] shadow-pixel-300 hover:bg-pixel-50 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer;
+  }
+
+  .dark .pixel-btn-outline {
+    @apply border-pixel-600 text-pixel-300 shadow-pixel-900 hover:bg-pixel-900;
+  }
+
+  .pixel-input {
+    @apply w-full px-4 py-2.5 border-2 border-pixel-300 bg-white text-pixel-950 font-body text-lg outline-none focus:border-pixel-500 focus:shadow-[2px_2px_0px_0px] focus:shadow-pixel-400 transition-all;
+  }
+
+  .dark .pixel-input {
+    @apply bg-pixel-950 border-pixel-700 text-pixel-100 focus:border-pixel-500 focus:shadow-pixel-700;
+  }
+
+  .pixel-select {
+    @apply w-full px-4 py-2.5 border-2 border-pixel-300 bg-white text-pixel-950 font-body text-lg outline-none focus:border-pixel-500 appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2319338e'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+
+  .dark .pixel-select {
+    @apply bg-pixel-950 border-pixel-700 text-pixel-100;
+  }
+
+  .pixel-divider {
+    @apply border-t-2 border-dashed border-pixel-200;
+  }
+
+  .dark .pixel-divider {
+    @apply border-pixel-700;
+  }
+
+  .pixel-badge {
+    @apply inline-block px-2 py-1 font-pixel text-[8px] uppercase border border-pixel-300 bg-pixel-100 text-pixel-700;
+  }
+
+  .dark .pixel-badge {
+    @apply border-pixel-700 bg-pixel-900 text-pixel-300;
+  }
+
+  .pixel-decorations {
+    background-image:
+      radial-gradient(circle, var(--color-pixel-200) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .dark .pixel-decorations {
+    background-image:
+      radial-gradient(circle, var(--color-pixel-800) 1px, transparent 1px);
+  }
+
+  .shimmer {
+    @apply animate-pulse bg-gradient-to-r from-pixel-100 via-pixel-200 to-pixel-100 bg-[length:200%_100%];
+    animation: shimmer 1.5s infinite;
+  }
+
+  .dark .shimmer {
+    @apply from-pixel-900 via-pixel-800 to-pixel-900;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .pixel-sparkle {
+    @apply inline-block;
+    animation: sparkle 2s ease-in-out infinite;
+  }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+}

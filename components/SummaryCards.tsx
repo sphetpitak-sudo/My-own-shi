@@ -12,36 +12,22 @@ export default function SummaryCards({ income, expense }: Props) {
   const balance = income - expense;
 
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <div className="bg-green-50 rounded-2xl p-4 text-center shadow-sm">
-        <p className="text-xs text-green-600 font-medium">{t.total_income}</p>
-        <p className="text-xl font-bold text-green-700 mt-1">
-          ฿{income.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="pixel-card-sm text-center">
+        <p className="font-pixel text-[8px] text-pixel-500 uppercase mb-2">{t.total_income}</p>
+        <p className="font-pixel text-sm text-green-600 dark:text-green-400">
+          +฿{income.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
         </p>
       </div>
-      <div className="bg-red-50 rounded-2xl p-4 text-center shadow-sm">
-        <p className="text-xs text-red-600 font-medium">{t.total_expense}</p>
-        <p className="text-xl font-bold text-red-700 mt-1">
-          ฿{expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+      <div className="pixel-card-sm text-center">
+        <p className="font-pixel text-[8px] text-pixel-500 uppercase mb-2">{t.total_expense}</p>
+        <p className="font-pixel text-sm text-red-600 dark:text-red-400">
+          -฿{expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
         </p>
       </div>
-      <div
-        className={`rounded-2xl p-4 text-center shadow-sm ${
-          balance >= 0 ? "bg-blue-50" : "bg-yellow-50"
-        }`}
-      >
-        <p
-          className={`text-xs font-medium ${
-            balance >= 0 ? "text-blue-600" : "text-yellow-600"
-          }`}
-        >
-          {t.balance}
-        </p>
-        <p
-          className={`text-xl font-bold mt-1 ${
-            balance >= 0 ? "text-blue-700" : "text-yellow-700"
-          }`}
-        >
+      <div className="pixel-card-sm text-center">
+        <p className="font-pixel text-[8px] text-pixel-500 uppercase mb-2">{t.balance}</p>
+        <p className={`font-pixel text-sm ${balance >= 0 ? "text-pixel-600 dark:text-pixel-300" : "text-yellow-600 dark:text-yellow-400"}`}>
           ฿{balance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
         </p>
       </div>

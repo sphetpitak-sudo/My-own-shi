@@ -14,62 +14,63 @@ export default function TransactionList({ transactions, onEdit, onDelete }: Prop
 
   if (transactions.length === 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 text-center text-gray-400">
-        {t.no_transactions}
+      <div className="pixel-card text-center py-12">
+        <p className="font-pixel text-[10px] text-pixel-400">✦ ✦ ✦</p>
+        <p className="font-pixel text-[9px] text-pixel-400 mt-3">{t.no_transactions}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-4">
-      <h3 className="text-lg font-semibold mb-3 px-2">{t.transaction_list}</h3>
+    <div className="pixel-card">
+      <h3 className="font-pixel text-xs text-pixel-700 dark:text-pixel-300 mb-4">
+        ✦ {t.transaction_list}
+      </h3>
       <div className="space-y-2">
         {transactions.map((tx) => (
           <div
             key={tx.id}
-            className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-between px-4 py-3 border-2 border-pixel-100 dark:border-pixel-800 hover:border-pixel-300 dark:hover:border-pixel-600 transition-colors"
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-lg">
-                  {tx.type === "income" ? "💰" : "💸"}
+                  {tx.type === "income" ? "◈" : "◇"}
                 </span>
-                <span className="font-medium text-sm truncate">
+                <span className="font-pixel text-[9px] text-pixel-700 dark:text-pixel-300 truncate">
                   {t[tx.category as keyof typeof t]}
                 </span>
                 {tx.note && (
-                  <span className="text-xs text-gray-400 truncate">
+                  <span className="font-body text-sm text-pixel-400 truncate">
                     ({tx.note})
                   </span>
                 )}
               </div>
-              <div className="text-xs text-gray-400 mt-0.5 ml-8">
+              <div className="font-body text-sm text-pixel-400 mt-1 ml-6">
                 {tx.date}
               </div>
             </div>
 
             <div className="flex items-center gap-3 ml-4">
               <span
-                className={`font-bold text-sm whitespace-nowrap ${
-                  tx.type === "income" ? "text-green-600" : "text-red-600"
+                className={`font-pixel text-[10px] whitespace-nowrap ${
+                  tx.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }`}
               >
                 {tx.type === "income" ? "+" : "-"}฿
-                {tx.amount.toLocaleString("th-TH", {
-                  minimumFractionDigits: 2,
-                })}
+                {tx.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
               </span>
               <button
                 onClick={() => onEdit(tx)}
-                className="text-xs text-blue-500 hover:text-blue-700"
+                className="font-pixel text-[8px] text-pixel-500 hover:text-pixel-700 dark:hover:text-pixel-300 border border-pixel-200 dark:border-pixel-700 px-2 py-1 hover:bg-pixel-100 dark:hover:bg-pixel-900 transition-colors"
               >
-                ✏️
+                ✎
               </button>
               <button
                 onClick={() => onDelete(tx.id)}
-                className="text-xs text-red-500 hover:text-red-700"
+                className="font-pixel text-[8px] text-red-400 hover:text-red-600 border border-pixel-200 dark:border-pixel-700 px-2 py-1 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
               >
-                🗑️
+                ✗
               </button>
             </div>
           </div>

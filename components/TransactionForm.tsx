@@ -26,7 +26,7 @@ export default function TransactionForm({
   editing,
   onCancelEdit,
 }: Props) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const supabase = createClient();
 
   const [type, setType] = useState<"income" | "expense">("expense");
@@ -79,22 +79,19 @@ export default function TransactionForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white rounded-2xl shadow-md p-6 space-y-4"
-    >
-      <h3 className="text-lg font-semibold">
-        {editing ? t.edit : t.add}
+    <form onSubmit={handleSubmit} className="pixel-card space-y-4">
+      <h3 className="font-pixel text-xs text-pixel-700 dark:text-pixel-300">
+        {editing ? `✦ ${t.edit}` : `✦ ${t.add}`}
       </h3>
 
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => setType("expense")}
-          className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+          className={`flex-1 py-2 font-pixel text-[9px] uppercase border-2 transition-all ${
             type === "expense"
-              ? "bg-red-500 text-white"
-              : "bg-gray-100 text-gray-600"
+              ? "border-red-500 bg-red-500 text-white shadow-[2px_2px_0px_0px] shadow-red-700"
+              : "border-pixel-300 dark:border-pixel-700 bg-transparent text-pixel-500 hover:bg-pixel-100 dark:hover:bg-pixel-900"
           }`}
         >
           {t.expense}
@@ -102,19 +99,19 @@ export default function TransactionForm({
         <button
           type="button"
           onClick={() => setType("income")}
-          className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+          className={`flex-1 py-2 font-pixel text-[9px] uppercase border-2 transition-all ${
             type === "income"
-              ? "bg-green-500 text-white"
-              : "bg-gray-100 text-gray-600"
+              ? "border-green-500 bg-green-500 text-white shadow-[2px_2px_0px_0px] shadow-green-700"
+              : "border-pixel-300 dark:border-pixel-700 bg-transparent text-pixel-500 hover:bg-pixel-100 dark:hover:bg-pixel-900"
           }`}
         >
           {t.income}
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
             {t.amount}
           </label>
           <input
@@ -124,11 +121,12 @@ export default function TransactionForm({
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="pixel-input"
+            placeholder="0.00"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
             {t.date}
           </label>
           <input
@@ -136,19 +134,19 @@ export default function TransactionForm({
             required
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="pixel-input"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
           {t.category}
         </label>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="pixel-select"
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
@@ -159,31 +157,24 @@ export default function TransactionForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block font-pixel text-[8px] text-pixel-500 uppercase mb-2">
           {t.note}
         </label>
         <input
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="pixel-input"
+          placeholder={lang === "th" ? "บันทึกเพิ่มเติม..." : "Optional note..."}
         />
       </div>
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {loading ? t.loading : t.save}
+        <button type="submit" disabled={loading} className="pixel-btn flex-1">
+          {loading ? `... ${t.loading}` : editing ? `✦ ${t.save}` : `✦ ${t.add}`}
         </button>
         {editing && (
-          <button
-            type="button"
-            onClick={onCancelEdit}
-            className="px-4 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
-          >
+          <button type="button" onClick={onCancelEdit} className="pixel-btn-outline">
             {t.cancel}
           </button>
         )}

@@ -20,13 +20,13 @@ interface Props {
 }
 
 const COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#3b82f6",
-  "#a855f7",
-  "#ec4899",
+  "#3378fc",
+  "#1d5af1",
+  "#1545de",
+  "#1838b4",
+  "#19338e",
+  "#142056",
+  "#599eff",
 ];
 
 export default function Charts({ transactions }: Props) {
@@ -64,8 +64,10 @@ export default function Charts({ transactions }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {categoryData.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-md p-4">
-          <h3 className="text-sm font-semibold mb-3">{t.category_chart}</h3>
+        <div className="pixel-card">
+          <h3 className="font-pixel text-[9px] text-pixel-700 dark:text-pixel-300 mb-3">
+            ✦ {t.category_chart}
+          </h3>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
@@ -76,6 +78,7 @@ export default function Charts({ transactions }: Props) {
                 outerRadius={80}
                 paddingAngle={3}
                 dataKey="value"
+                stroke="none"
               >
                 {categoryData.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -83,24 +86,47 @@ export default function Charts({ transactions }: Props) {
               </Pie>
               <Tooltip
                 formatter={(v) => `฿${Number(v).toLocaleString("th-TH")}`}
+                contentStyle={{
+                  border: "2px solid #bcd7ff",
+                  boxShadow: "3px 3px 0px 0px #8ebfff",
+                  fontFamily: "VT323",
+                  fontSize: "16px",
+                }}
               />
-              <Legend />
+              <Legend
+                wrapperStyle={{ fontFamily: "VT323", fontSize: "14px" }}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
       )}
 
       {monthlyData.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-md p-4">
-          <h3 className="text-sm font-semibold mb-3">{t.monthly_chart}</h3>
+        <div className="pixel-card">
+          <h3 className="font-pixel text-[9px] text-pixel-700 dark:text-pixel-300 mb-3">
+            ✦ {t.monthly_chart}
+          </h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={monthlyData}>
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 12, fontFamily: "VT323" }}
+                stroke="#8ebfff"
+              />
+              <YAxis
+                tick={{ fontSize: 12, fontFamily: "VT323" }}
+                stroke="#8ebfff"
+              />
               <Tooltip
                 formatter={(v) => `฿${Number(v).toLocaleString("th-TH")}`}
+                contentStyle={{
+                  border: "2px solid #bcd7ff",
+                  boxShadow: "3px 3px 0px 0px #8ebfff",
+                  fontFamily: "VT323",
+                  fontSize: "16px",
+                }}
               />
-              <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="value" fill="#3378fc" radius={[0, 0, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
