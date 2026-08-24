@@ -28,7 +28,9 @@ export default function AuthForm() {
       if (error) setError(error.message); else setMessage(t.signup_success);
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
+      if (error) { setError(error.message); setLoading(false); return; }
+      window.location.href = "/dashboard";
+      return;
     }
     setLoading(false);
   };
