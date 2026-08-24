@@ -1,16 +1,14 @@
 "use client";
 
 import { useTheme } from "@/lib/theme";
+import { Sun, Moon } from "lucide-react";
 
 export default function ThemeToggle() {
   const { theme, toggle } = useTheme();
-
   return (
-    <button
-      onClick={toggle}
-      className="px-3 py-1.5 font-pixel text-sm font-semibold uppercase tracking-wider border-2 border-pixel-300 dark:border-pixel-700 hover:bg-pixel-100 dark:hover:bg-pixel-900 transition-colors"
-    >
-      {theme === "light" ? "🌙" : "☀️"}
+    <button onClick={toggle}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 transition-all">
+      {theme === "light" ? <Moon className="w-4 h-4 text-indigo-500" /> : <Sun className="w-4 h-4 text-yellow-500" />}
     </button>
   );
 }

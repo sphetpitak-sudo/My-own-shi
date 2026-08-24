@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import type { Transaction } from "@/lib/types";
+import { Plus, ArrowDownLeft, ArrowUpRight, Calendar, Tag, FileText, Save, X } from "lucide-react";
 
 interface Props {
   onSaved: () => void;
@@ -11,24 +12,11 @@ interface Props {
   onCancelEdit: () => void;
 }
 
-const CATEGORIES = [
-  "food",
-  "transport",
-  "study",
-  "entertainment",
-  "salary",
-  "gift",
-  "other",
-];
+const CATEGORIES = ["food", "transport", "study", "entertainment", "salary", "gift", "other"];
 
-export default function TransactionForm({
-  onSaved,
-  editing,
-  onCancelEdit,
-}: Props) {
+export default function TransactionForm({ onSaved, editing, onCancelEdit }: Props) {
   const { t, lang } = useLang();
   const supabase = createClient();
-
   const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("food");
@@ -49,20 +37,10 @@ export default function TransactionForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const payload = {
-      user_id: user.id,
-      type,
-      amount: Number(amount),
-      category,
-      note,
-      date,
-    };
+    const payload = { user_id: user.id, type, amount: Number(amount), category, note, date };
 
     if (editing) {
       await supabase.from("transactions").update(payload).eq("id", editing.id);
@@ -70,112 +48,81 @@ export default function TransactionForm({
       await supabase.from("transactions").insert(payload);
     }
 
-    setAmount("");
-    setNote("");
-    setDate(new Date().toISOString().slice(0, 10));
+    setAmount(""); setNote(""); setDate(new Date().toISOString().slice(0, 10));
     if (editing) onCancelEdit();
     setLoading(false);
     onSaved();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="pixel-card space-y-4">
-      <h3 className="font-pixel text-base font-bold text-pixel-700 dark:text-pixel-300">
-        {editing ? `✦ ${t.edit}` : `✦ ${t.add}`}
+    <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5 animate-in" style={{ animationDelay: "0.1s" }}>
+      <h3 className="font-pixel text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+        <Plus className="w-5 h-5 text-blue-500" />
+        {editing ? t.edit : t.add}
       </h3>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setType("expense")}
-          className={`flex-1 py-2 font-pixel text-sm font-semibold uppercase border-2 transition-all ${
+      <div className="flex gap-3">
+        <button type="button" onClick={() => setType("expense")}
+          className={`flex-1 py-3 rounded-xl font-pixel text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
             type === "expense"
-              ? "border-red-500 bg-red-500 text-white shadow-[2px_2px_0px_0px] shadow-red-700"
-              : "border-pixel-300 dark:border-pixel-700 bg-transparent text-pixel-500 hover:bg-pixel-100 dark:hover:bg-pixel-900"
-          }`}
-        >
-          {t.expense}
+              ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+          }`}>
+          <ArrowUpRight className="w-4 h-4" /> {t.expense}
         </button>
-        <button
-          type="button"
-          onClick={() => setType("income")}
-          className={`flex-1 py-2 font-pixel text-sm font-semibold uppercase border-2 transition-all ${
+        <button type="button" onClick={() => setType("income")}
+          className={`flex-1 py-3 rounded-xl font-pixel text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
             type === "income"
-              ? "border-green-500 bg-green-500 text-white shadow-[2px_2px_0px_0px] shadow-green-700"
-              : "border-pixel-300 dark:border-pixel-700 bg-transparent text-pixel-500 hover:bg-pixel-100 dark:hover:bg-pixel-900"
-          }`}
-        >
-          {t.income}
+              ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+          }`}>
+          <ArrowDownLeft className="w-4 h-4" /> {t.income}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
-            {t.amount}
+          <label className="block font-pixel text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+            <span className="text-blue-500">฿</span> {t.amount}
           </label>
-          <input
-            type="number"
-            required
-            min="0.01"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="pixel-input"
-            placeholder="0.00"
-          />
+          <input type="number" required min="0.01" step="0.01" value={amount}
+            onChange={(e) => setAmount(e.target.value)} className="pixel-input" placeholder="0.00" />
         </div>
         <div>
-          <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
-            {t.date}
+          <label className="block font-pixel text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-blue-500" /> {t.date}
           </label>
-          <input
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="pixel-input"
-          />
+          <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="pixel-input" />
         </div>
       </div>
 
       <div>
-        <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
-          {t.category}
+        <label className="block font-pixel text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+          <Tag className="w-4 h-4 text-blue-500" /> {t.category}
         </label>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="pixel-select"
-        >
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className="pixel-select">
           {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {t[c as keyof typeof t]}
-            </option>
+            <option key={c} value={c}>{t[c as keyof typeof t]}</option>
           ))}
         </select>
       </div>
 
       <div>
-        <label className="block font-pixel text-sm font-semibold text-pixel-500 uppercase mb-2">
-          {t.note}
+        <label className="block font-pixel text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+          <FileText className="w-4 h-4 text-blue-500" /> {t.note}
         </label>
-        <input
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          className="pixel-input"
-          placeholder={lang === "th" ? "บันทึกเพิ่มเติม..." : "Optional note..."}
-        />
+        <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className="pixel-input"
+          placeholder={lang === "th" ? "บันทึกเพิ่มเติม..." : "Optional note..."} />
       </div>
 
-      <div className="flex gap-2">
-        <button type="submit" disabled={loading} className="pixel-btn flex-1 text-base">
-          {loading ? `... ${t.loading}` : editing ? `✦ ${t.save}` : `✦ ${t.add}`}
+      <div className="flex gap-3 pt-2">
+        <button type="submit" disabled={loading} className="gradient-btn flex-1 flex items-center justify-center gap-2 font-pixel">
+          <Save className="w-4 h-4" />
+          {loading ? t.loading : editing ? t.save : t.add}
         </button>
         {editing && (
-          <button type="button" onClick={onCancelEdit} className="pixel-btn-outline text-base">
-            {t.cancel}
+          <button type="button" onClick={onCancelEdit} className="outline-btn flex items-center gap-2 font-pixel">
+            <X className="w-4 h-4" /> {t.cancel}
           </button>
         )}
       </div>
