@@ -3,11 +3,10 @@
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useLang } from "@/lib/i18n";
 import type { Transaction } from "@/lib/types";
-import { BarChart3, PieChart as PieIcon } from "lucide-react";
 
 interface Props { transactions: Transaction[] }
 
-const COLORS = ["#0a7cff", "#6c5ce7", "#00b894", "#fdcb6e", "#e17055", "#d63031", "#0984e3"];
+const COLORS = ["#6b8e23", "#8b6914", "#2d5016", "#c0392b", "#1565c0", "#f39c12", "#6c3483"];
 
 export default function Charts({ transactions }: Props) {
   const { t } = useLang();
@@ -24,11 +23,11 @@ export default function Charts({ transactions }: Props) {
   if (categoryData.length === 0 && monthlyData.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in" style={{ animationDelay: "0.15s" }}>
+    <div className="nature-grid animate-in" style={{ animationDelay: "0.15s" }}>
       {categoryData.length > 0 && (
-        <div className="glass-card p-6">
-          <h3 className="font-pixel text-sm font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-            <PieIcon className="w-4 h-4 text-purple-500" /> {t.category_chart}
+        <div className="forest-card p-6">
+          <h3 className="section-header mb-4" style={{ color: "#2d5016" }}>
+            <span className="text-xl">📊</span> {t.category_chart}
           </h3>
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
@@ -36,7 +35,7 @@ export default function Charts({ transactions }: Props) {
                 {categoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v) => `฿${Number(v).toLocaleString("th-TH")}`}
-                contentStyle={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", fontFamily: "K2D", fontSize: "14px" }} />
+                contentStyle={{ background: "#fffef9", border: "2px solid #d4c5a0", borderRadius: "16px", boxShadow: "0 4px 16px rgba(45,80,22,0.15)", fontFamily: "K2D", fontSize: "14px" }} />
               <Legend wrapperStyle={{ fontFamily: "K2D", fontSize: "13px" }} />
             </PieChart>
           </ResponsiveContainer>
@@ -44,16 +43,16 @@ export default function Charts({ transactions }: Props) {
       )}
 
       {monthlyData.length > 0 && (
-        <div className="glass-card p-6">
-          <h3 className="font-pixel text-sm font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-blue-500" /> {t.monthly_chart}
+        <div className="forest-card p-6">
+          <h3 className="section-header mb-4" style={{ color: "#2d5016" }}>
+            <span className="text-xl">📈</span> {t.monthly_chart}
           </h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthlyData}>
-              <XAxis dataKey="name" tick={{ fontSize: 12, fontFamily: "K2D" }} stroke="#cbd5e1" />
-              <YAxis tick={{ fontSize: 12, fontFamily: "K2D" }} stroke="#cbd5e1" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fontFamily: "K2D" }} stroke="#b8a88a" />
+              <YAxis tick={{ fontSize: 12, fontFamily: "K2D" }} stroke="#b8a88a" />
               <Tooltip formatter={(v) => `฿${Number(v).toLocaleString("th-TH")}`}
-                contentStyle={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", fontFamily: "K2D", fontSize: "14px" }} />
+                contentStyle={{ background: "#fffef9", border: "2px solid #d4c5a0", borderRadius: "16px", boxShadow: "0 4px 16px rgba(45,80,22,0.15)", fontFamily: "K2D", fontSize: "14px" }} />
               <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                 {monthlyData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>
