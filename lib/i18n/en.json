@@ -57,5 +57,9 @@
   "password_changed": "Password changed successfully",
   "wrong_password": "Current password is incorrect",
   "email_label": "Email (cannot be changed)",
-  "user_id": "User ID"
+  "user_id": "User ID",
+  "set_password": "Set Password",
+  "set_password_sub": "You signed up with Google — set a password to also log in with email",
+  "change_password_sub": "Change your password to stay secure",
+  "password_set": "Password set successfully"
 }

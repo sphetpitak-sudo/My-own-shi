@@ -57,5 +57,9 @@
   "password_changed": "เปลี่ยนรหัสผ่านสำเร็จ",
   "wrong_password": "รหัสผ่านเดิมไม่ถูกต้อง",
   "email_label": "อีเมล (ไม่สามารถเปลี่ยนได้)",
-  "user_id": "User ID"
+  "user_id": "User ID",
+  "set_password": "ตั้งรหัสผ่าน",
+  "set_password_sub": "คุณสมัครด้วย Google — ตั้งรหัสผ่านเพื่อเข้าสู่ระบบด้วยอีเมลได้",
+  "change_password_sub": "เปลี่ยนรหัสผ่านเพื่อความปลอดภัย",
+  "password_set": "ตั้งรหัสผ่านสำเร็จ"
 }

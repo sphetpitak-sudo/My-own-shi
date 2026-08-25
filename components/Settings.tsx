@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import { User, Lock, Mail, Shield, Save, CheckCircle, AlertCircle, Hash } from "lucide-react";
+import { User, Lock, Mail, Shield, Save, CheckCircle, AlertCircle, Hash, KeyRound } from "lucide-react";
 
 export default function Settings() {
   const { t, lang } = useLang();
@@ -12,6 +12,8 @@ export default function Settings() {
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [hasPassword, setHasPassword] = useState(true);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -29,6 +31,8 @@ export default function Settings() {
         setEmail(user.email || "");
         setUserId(user.id);
         setDisplayName(user.user_metadata?.display_name || "");
+        const emailIdentity = user.identities?.find((i) => i.provider === "email");
+        setHasPassword(!!emailIdentity);
       }
     })();
   }, [supabase]);
@@ -62,14 +66,24 @@ export default function Settings() {
       return;
     }
 
+    if (hasPassword) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+      if (signInError) {
+        setPasswordMsg({ type: "error", text: t.wrong_password });
+        setPasswordLoading(false);
+        return;
+      }
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
-      setPasswordMsg({ type: "error", text: error.message === "Invalid login credentials" ? t.wrong_password : error.message });
+      setPasswordMsg({ type: "error", text: error.message });
     } else {
-      setPasswordMsg({ type: "success", text: t.password_changed });
+      setPasswordMsg({ type: "success", text: hasPassword ? t.password_changed : t.password_set });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
+      setHasPassword(true);
     }
     setPasswordLoading(false);
   };
@@ -127,8 +141,8 @@ export default function Settings() {
             <Shield size={18} style={{ color: "var(--amber)" }} />
           </div>
           <div>
-            <h3 className="text-[16px] font-bold">{t.security}</h3>
-            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{lang === "th" ? "เปลี่ยนรหัสผ่านเพื่อความปลอดภัย" : "Change your password to stay secure"}</p>
+            <h3 className="text-[16px] font-bold">{hasPassword ? t.security : t.set_password}</h3>
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{hasPassword ? t.change_password_sub : t.set_password_sub}</p>
           </div>
         </div>
 
@@ -141,8 +155,16 @@ export default function Settings() {
         )}
 
         <form onSubmit={handleChangePassword} className="space-y-4">
+          {hasPassword && (
+            <div className="field">
+              <label className="label flex items-center gap-1.5"><Lock size={12} /> {t.current_password}</label>
+              <input type="password" required minLength={6} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+                className="input" placeholder="••••••••" />
+            </div>
+          )}
+
           <div className="field">
-            <label className="label flex items-center gap-1.5"><Lock size={12} /> {t.new_password}</label>
+            <label className="label flex items-center gap-1.5"><KeyRound size={12} /> {t.new_password}</label>
             <input type="password" required minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
               className="input" placeholder="••••••••" />
           </div>
@@ -155,7 +177,7 @@ export default function Settings() {
 
           <button type="submit" disabled={passwordLoading} className="btn btn-primary w-full">
             <Lock size={15} />
-            {passwordLoading ? t.loading : t.change_password}
+            {passwordLoading ? t.loading : hasPassword ? t.change_password : t.set_password}
           </button>
         </form>
       </div>
