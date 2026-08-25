@@ -11,9 +11,10 @@ interface Props {
   onSaved: () => void;
   editing: Assignment | null;
   onCancelEdit: () => void;
+  template?: { title: string; description: string; priority: "low" | "medium" | "high"; estimatedMinutes: number } | null;
 }
 
-export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdit }: Props) {
+export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdit, template }: Props) {
   const { t, lang } = useLang();
   const supabase = createClient();
   const [title, setTitle] = useState("");
@@ -32,6 +33,13 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
       setDueDate(editing.due_date || "");
       setPriority(editing.priority);
       setEstimatedMinutes(editing.estimated_minutes ? String(editing.estimated_minutes) : "");
+    } else if (template) {
+      setTitle(template.title);
+      setDescription(template.description);
+      setSubjectId(null);
+      setDueDate("");
+      setPriority(template.priority);
+      setEstimatedMinutes(String(template.estimatedMinutes));
     } else {
       setTitle("");
       setDescription("");
@@ -40,7 +48,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
       setPriority("medium");
       setEstimatedMinutes("");
     }
-  }, [editing]);
+  }, [editing, template]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

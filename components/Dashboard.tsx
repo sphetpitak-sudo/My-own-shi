@@ -10,7 +10,6 @@ import StudyStreaks from "./StudyStreaks";
 import PomodoroTimer from "./PomodoroTimer";
 import AssignmentTemplates from "./AssignmentTemplates";
 import StudyCharts from "./StudyCharts";
-import GPACalculator from "./GPACalculator";
 import ExportCSV from "./ExportCSV";
 import SubjectForm from "./SubjectForm";
 import SubjectList from "./SubjectList";
@@ -43,6 +42,7 @@ function Shell() {
   const [loading, setLoading] = useState(true);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [editingSubject, setEditingSubject] = useState<{ id: string; name: string; color: string } | null>(null);
+  const [templateData, setTemplateData] = useState<{ title: string; description: string; priority: "low" | "medium" | "high"; estimatedMinutes: number } | null>(null);
 
   const fetchUser = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -225,10 +225,10 @@ function Shell() {
                     <PomodoroTimer />
                   </div>
                   <AssignmentTemplates onSelect={(tpl) => {
+                    setTemplateData(tpl);
                     setTab("tasks");
                     setTimeout(() => document.getElementById("assignment-form")?.scrollIntoView({ behavior: "smooth" }), 80);
                   }} />
-                  <GPACalculator />
                 </div>
               )}
 
@@ -256,8 +256,9 @@ function Shell() {
                 <div className="mt-5 space-y-4 tab-content">
                   <div className="flex items-center justify-between">
                     <div id="assignment-form" className="flex-1">
-                      <AssignmentForm subjects={subjects} onSaved={() => { fetchAssignments(); toast(editingAssignment ? t.assignment_updated : t.assignment_created, "success"); }}
-                        editing={editingAssignment} onCancelEdit={() => setEditingAssignment(null)} />
+                      <AssignmentForm subjects={subjects} onSaved={() => { fetchAssignments(); setTemplateData(null); toast(editingAssignment ? t.assignment_updated : t.assignment_created, "success"); }}
+                        editing={editingAssignment} onCancelEdit={() => { setEditingAssignment(null); setTemplateData(null); }}
+                        template={templateData} />
                     </div>
                   </div>
                   <div className="flex justify-end">
