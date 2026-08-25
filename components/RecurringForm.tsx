@@ -11,9 +11,9 @@ const CAT_ICONS: Record<string, typeof Utensils> = {
   salary: Banknote, gift: Gift, other: Box,
 };
 
-interface Props { onSaved: () => void; onClose?: () => void; }
+interface Props { onSaved: () => void; onClose?: () => void; toast: (msg: string, type?: "success" | "error" | "info") => void; }
 
-export default function RecurringForm({ onSaved, onClose }: Props) {
+export default function RecurringForm({ onSaved, onClose, toast }: Props) {
   const { t, lang } = useLang();
   const supabase = createClient();
   const [type, setType] = useState<"income" | "expense">("expense");
@@ -30,11 +30,19 @@ export default function RecurringForm({ onSaved, onClose }: Props) {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    await supabase.from("recurring_transactions").insert({
+    const payload: Record<string, unknown> = {
       user_id: user.id, type, amount: Number(amount), category, note,
-      frequency, skip_weekends: frequency === "daily" ? skipWeekends : false,
-      next_date: nextDate,
-    });
+      frequency, next_date: nextDate,
+    };
+    if (frequency === "daily" && skipWeekends) {
+      payload.skip_weekends = true;
+    }
+    const { error } = await supabase.from("recurring_transactions").insert(payload);
+    if (error) {
+      toast(`${lang === "th" ? "สร้างไม่สำเร็จ" : "Failed"}: ${error.message}`, "error");
+      setLoading(false);
+      return;
+    }
     setAmount(""); setNote(""); setLoading(false);
     onSaved();
   };

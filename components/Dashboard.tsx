@@ -284,7 +284,7 @@ function Shell() {
 
               {tab === "recurring" && (
                 <div className="mt-5 space-y-4">
-                  <RecurringForm onSaved={() => { fetchRecurring(); toast(t.recurring_created, "success"); }} />
+                  <RecurringForm onSaved={() => { fetchRecurring(); toast(t.recurring_created, "success"); }} toast={toast} />
                   <RecurringList items={recurringTx} onSaved={fetchRecurring} toast={toast} />
                 </div>
               )}
