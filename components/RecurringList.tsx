@@ -3,7 +3,7 @@
 import { useLang } from "@/lib/i18n";
 import type { RecurringTransaction } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
-import { Pause, Play, Trash2, Repeat, ArrowDownLeft, ArrowUpRight, CalendarClock, Utensils, Bus, BookOpen, Gamepad2, Banknote, Gift, Box } from "lucide-react";
+import { Pause, Play, Trash2, Repeat, ArrowDownLeft, ArrowUpRight, CalendarClock, CalendarOff, Utensils, Bus, BookOpen, Gamepad2, Banknote, Gift, Box } from "lucide-react";
 
 const CAT_ICONS: Record<string, typeof Utensils> = {
   food: Utensils, transport: Bus, study: BookOpen, entertainment: Gamepad2,
@@ -75,6 +75,12 @@ export default function RecurringList({ items, onSaved, toast }: Props) {
                   {item.next_date}
                 </span>
                 <span className="badge badge-blue text-[10px]">{FREQ_LABELS[item.frequency]?.[lang] || item.frequency}</span>
+                {item.skip_weekends && (
+                  <span className="badge text-[10px] flex items-center gap-1" style={{ background: "var(--amber-soft)", color: "var(--amber)" }}>
+                    <CalendarOff size={10} />
+                    {t.skip_weekends}
+                  </span>
+                )}
               </div>
             </div>
 

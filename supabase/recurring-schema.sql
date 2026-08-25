@@ -6,6 +6,7 @@ create table public.recurring_transactions (
   category text not null,
   note text default '',
   frequency text not null check (frequency in ('daily', 'weekly', 'monthly', 'yearly')),
+  skip_weekends boolean not null default false,
   next_date date not null,
   active boolean not null default true,
   created_at timestamptz default now()

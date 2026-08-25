@@ -36,6 +36,7 @@ export interface RecurringTransaction {
   category: string;
   note: string;
   frequency: "daily" | "weekly" | "monthly" | "yearly";
+  skip_weekends: boolean;
   next_date: string;
   active: boolean;
   created_at: string;

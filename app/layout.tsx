@@ -11,8 +11,8 @@ const k2d = K2D({
 });
 
 export const metadata: Metadata = {
-  title: "Pixel Finance",
-  description: "Track your income and expenses with retro style",
+  title: "Piggy",
+  description: "Track your income and expenses",
 };
 
 export default function RootLayout({

@@ -1,5 +1,5 @@
 {
-  "app_name": "Income & Expense Tracker",
+  "app_name": "Piggy",
   "login": "Log In",
   "signup": "Sign Up",
   "email": "Email",
@@ -62,6 +62,7 @@
   "set_password_sub": "You signed up with Google — set a password to also log in with email",
   "change_password_sub": "Change your password to stay secure",
   "password_set": "Password set successfully",
+  "skip_weekends": "Skip weekends",
   "savings_goals": "Savings Goals",
   "savings_sub": "Set targets and track your progress",
   "new_goal": "New Goal",
