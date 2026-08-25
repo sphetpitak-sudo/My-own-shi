@@ -82,7 +82,7 @@ export default function TransactionForm({ onSaved, editing, onCancelEdit, onCate
 
       <div className="field mb-4">
         <label className="label flex items-center gap-1.5"><Tag size={12} /> {t.category}</label>
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 chip-scroll sm:chip-scroll-none">
           {CATEGORIES.map((c) => {
             const Icon = CAT_ICONS[c];
             return (

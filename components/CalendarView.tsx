@@ -77,7 +77,7 @@ export default function CalendarView({ transactions, onEdit }: Props) {
         </div>
 
         {/* Day grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1 cal-grid">
           {days.map((day, i) => {
             if (day === null) return <div key={`empty-${i}`} />;
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -91,7 +91,7 @@ export default function CalendarView({ transactions, onEdit }: Props) {
               <button
                 key={day}
                 onClick={() => setSelectedDate(dateStr)}
-                className="relative flex flex-col items-center py-2 rounded-lg transition-all"
+                className="relative flex flex-col items-center py-2 rounded-lg transition-all cal-day"
                 style={{
                   background: isSelected ? "var(--primary)" : isToday ? "var(--blue-soft)" : "transparent",
                   color: isSelected ? "var(--text-invert)" : "var(--text)",
@@ -101,8 +101,8 @@ export default function CalendarView({ transactions, onEdit }: Props) {
                 <span className="text-[13px]">{day}</span>
                 {(hasIncome || hasExpense) && (
                   <div className="flex gap-0.5 mt-0.5">
-                    {hasIncome && <div className="w-1.5 h-1.5 rounded-full" style={{ background: isSelected ? "#fff" : "var(--green)" }} />}
-                    {hasExpense && <div className="w-1.5 h-1.5 rounded-full" style={{ background: isSelected ? "#fff" : "var(--red)" }} />}
+                    {hasIncome && <div className="w-1.5 h-1.5 rounded-full cal-dot" style={{ background: isSelected ? "#fff" : "var(--green)" }} />}
+                    {hasExpense && <div className="w-1.5 h-1.5 rounded-full cal-dot" style={{ background: isSelected ? "#fff" : "var(--red)" }} />}
                   </div>
                 )}
               </button>

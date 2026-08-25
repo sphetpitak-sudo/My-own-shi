@@ -21,7 +21,7 @@ import ThemeToggle from "./ThemeToggle";
 import {
   LayoutDashboard, Receipt, ListTodo, LogOut, Menu, X,
   TrendingUp, Wallet, Plus, Settings as SettingsIcon,
-  Target, Repeat, Calendar,
+  Target, Repeat, Calendar, MoreHorizontal,
 } from "lucide-react";
 import Settings from "./Settings";
 
@@ -33,6 +33,7 @@ function Shell() {
   const supabase = createClient();
   const [tab, setTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -212,7 +213,7 @@ function Shell() {
               <button className="btn btn-primary !py-2 !px-3.5 !text-[13px]"
                 onClick={() => { setTab("money"); setTimeout(() => document.getElementById("tx-form")?.scrollIntoView({ behavior: "smooth" }), 80); }}>
                 <Plus size={15} />
-                <span className="hidden sm:inline">{lang === "th" ? "เพิ่มรายการ" : "Add"}</span>
+                <span className="hidden sm:inline topbar-add-text">{lang === "th" ? "เพิ่มรายการ" : "Add"}</span>
               </button>
             )}
           </div>
@@ -316,12 +317,33 @@ function Shell() {
 
       {/* Bottom nav (mobile) */}
       <nav className="bottom-nav">
-        {NAV.map(({ key, label, icon: Icon }) => (
+        {NAV.filter(({ key }) => !["goals", "recurring"].includes(key)).map(({ key, label, icon: Icon }) => (
           <button key={key} className={`bottom-nav-item ${tab === key ? "active" : ""}`} onClick={() => setTab(key)}>
             <span className="nav-icon"><Icon size={19} /></span>
             {label}
           </button>
         ))}
+        <button
+          className={`bottom-nav-item ${["goals", "recurring"].includes(tab) ? "active" : ""}`}
+          onClick={() => setMoreOpen(!moreOpen)}
+        >
+          <span className="nav-icon"><MoreHorizontal size={19} /></span>
+          {lang === "th" ? "เพิ่มเติม" : "More"}
+        </button>
+        {moreOpen && (
+          <>
+            <div className="fixed inset-0 z-[99]" onClick={() => setMoreOpen(false)} />
+            <div className="bottom-more-menu">
+              {NAV.filter(({ key }) => ["goals", "recurring"].includes(key)).map(({ key, label, icon: Icon }) => (
+                <button key={key} className={`bottom-more-item ${tab === key ? "active" : ""}`}
+                  onClick={() => { setTab(key); setMoreOpen(false); }}>
+                  <Icon size={18} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </nav>
     </div>
   );

@@ -557,3 +557,119 @@ body {
   .page-title { font-size: 22px; }
   .content { padding: 20px 16px 96px; }
 }
+
+/* ============ MOBILE UI ============ */
+
+/* --- Bottom More menu --- */
+.bottom-more-menu {
+  position: fixed;
+  bottom: calc(56px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  padding: 6px;
+  min-width: 140px;
+  animation: fadeUp 0.15s var(--ease);
+}
+.bottom-more-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.12s var(--ease);
+  text-align: left;
+}
+.bottom-more-item:hover,
+.bottom-more-item.active { background: var(--bg); color: var(--text); }
+
+/* --- Mobile stat cards: compact --- */
+@media (max-width: 640px) {
+  .stat-card { padding: 14px; }
+  .stat-icon { width: 30px; height: 30px; margin-bottom: 10px; border-radius: 8px; }
+  .stat-value { font-size: 20px; }
+  .stat-label { font-size: 11px; }
+}
+
+/* --- Mobile list items: bigger touch targets --- */
+@media (max-width: 640px) {
+  .list-item { padding: 14px 14px; gap: 12px; }
+  .item-icon { width: 36px; height: 36px; border-radius: 10px; }
+}
+
+/* --- Mobile category chips: scrollable row --- */
+@media (max-width: 640px) {
+  .chip-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .chip-scroll::-webkit-scrollbar { display: none; }
+  .chip-scroll .chip {
+    flex-shrink: 0;
+    padding: 8px 10px;
+    min-width: 52px;
+  }
+}
+@media (min-width: 641px) {
+  .chip-scroll-none {
+    display: grid;
+  }
+}
+
+/* --- Mobile forms: better spacing --- */
+@media (max-width: 640px) {
+  .form-card { padding: 14px !important; }
+  .input { padding: 10px 12px; font-size: 16px; }
+  .select { padding: 10px 36px 10px 12px; font-size: 16px; }
+  .btn { padding: 10px 14px; font-size: 13px; }
+}
+
+/* --- Mobile calendar: compact --- */
+@media (max-width: 640px) {
+  .cal-grid { gap: 2px; }
+  .cal-day { height: 40px; font-size: 12px; }
+  .cal-dot { width: 4px; height: 4px; }
+}
+
+/* --- Mobile page header: tighter --- */
+@media (max-width: 640px) {
+  .page-header { margin-bottom: 16px; }
+  .page-sub { font-size: 12px; }
+}
+
+/* --- Mobile topbar: hide Add text, icon only --- */
+@media (max-width: 640px) {
+  .topbar-add-text { display: none; }
+}
+
+/* --- Mobile section titles --- */
+@media (max-width: 640px) {
+  .sec-title { font-size: 13px; }
+  .sec-sub { font-size: 11px; }
+}
+
+/* --- Mobile empty state --- */
+@media (max-width: 640px) {
+  .empty { padding: 32px 16px; }
+  .empty-icon { width: 44px; height: 44px; }
+}
+
+/* --- Mobile badge --- */
+@media (max-width: 640px) {
+  .badge { font-size: 10px; padding: 2px 7px; }
+}
