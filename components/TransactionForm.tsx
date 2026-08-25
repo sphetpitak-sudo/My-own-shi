@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import type { Transaction } from "@/lib/types";
-import { Plus, Save, X } from "lucide-react";
+import { Plus, Save, X, Utensils, Bus, BookOpen, Gamepad2, Banknote, Gift, Box, ArrowDownLeft, ArrowUpRight, CalendarDays, StickyNote, Tag } from "lucide-react";
 
 const CATEGORIES = ["food", "transport", "study", "entertainment", "salary", "gift", "other"];
 
-const CAT_ICONS: Record<string, string> = {
-  food: "🍖", transport: "🚌", study: "📚", entertainment: "🎮",
-  salary: "💰", gift: "🎁", other: "📦",
+const CAT_ICONS: Record<string, typeof Utensils> = {
+  food: Utensils, transport: Bus, study: BookOpen, entertainment: Gamepad2,
+  salary: Banknote, gift: Gift, other: Box,
 };
 
 interface Props { onSaved: () => void; editing: Transaction | null; onCancelEdit: () => void; }
@@ -60,40 +60,43 @@ export default function TransactionForm({ onSaved, editing, onCancelEdit }: Prop
       <h3 className="sec-title mb-4">{editing ? (lang === "th" ? "แก้ไขรายการ" : "Edit Transaction") : (lang === "th" ? "เพิ่มรายการใหม่" : "New Transaction")}</h3>
 
       <div className="segmented mb-5 w-full">
-        <button type="button" className={`segmented-item flex-1 ${type === "expense" ? "active" : ""}`} onClick={() => setType("expense")}>
-          {t.expense}
+        <button type="button" className={`segmented-item flex-1 flex items-center justify-center gap-1.5 ${type === "expense" ? "active" : ""}`} onClick={() => setType("expense")}>
+          <ArrowUpRight size={14} /> {t.expense}
         </button>
-        <button type="button" className={`segmented-item flex-1 ${type === "income" ? "active" : ""}`} onClick={() => setType("income")}>
-          {t.income}
+        <button type="button" className={`segmented-item flex-1 flex items-center justify-center gap-1.5 ${type === "income" ? "active" : ""}`} onClick={() => setType("income")}>
+          <ArrowDownLeft size={14} /> {t.income}
         </button>
       </div>
 
       <div className="grid-form gap-4 mb-4">
         <div className="field">
-          <label className="label">{t.amount}</label>
+          <label className="label flex items-center gap-1.5"><Tag size={12} /> {t.amount}</label>
           <input type="number" required min="0.01" step="0.01" value={amount}
             onChange={(e) => setAmount(e.target.value)} className="input" placeholder="0.00" />
         </div>
         <div className="field">
-          <label className="label">{t.date}</label>
+          <label className="label flex items-center gap-1.5"><CalendarDays size={12} /> {t.date}</label>
           <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="input" />
         </div>
       </div>
 
       <div className="field mb-4">
-        <label className="label">{t.category}</label>
+        <label className="label flex items-center gap-1.5"><Tag size={12} /> {t.category}</label>
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-          {CATEGORIES.map((c) => (
-            <button key={c} type="button" onClick={() => setCategory(c)} className={`chip ${category === c ? "on" : ""}`}>
-              <span className="text-[15px]">{CAT_ICONS[c]}</span>
-              <span>{t[c as keyof typeof t]}</span>
-            </button>
-          ))}
+          {CATEGORIES.map((c) => {
+            const Icon = CAT_ICONS[c];
+            return (
+              <button key={c} type="button" onClick={() => setCategory(c)} className={`chip ${category === c ? "on" : ""}`}>
+                <Icon size={16} />
+                <span>{t[c as keyof typeof t]}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <div className="field mb-5">
-        <label className="label">{t.note}</label>
+        <label className="label flex items-center gap-1.5"><StickyNote size={12} /> {t.note}</label>
         <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className="input" placeholder="Optional..." />
       </div>
 

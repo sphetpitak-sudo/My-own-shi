@@ -2,11 +2,11 @@
 
 import { useLang } from "@/lib/i18n";
 import type { Transaction } from "@/lib/types";
-import { Inbox, Pencil, Trash2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Inbox, Pencil, Trash2, ArrowDownLeft, ArrowUpRight, Utensils, Bus, BookOpen, Gamepad2, Banknote, Gift, Box } from "lucide-react";
 
-const CAT_ICONS: Record<string, string> = {
-  food: "🍖", transport: "🚌", study: "📚", entertainment: "🎮",
-  salary: "💰", gift: "🎁", other: "📦",
+const CAT_ICONS: Record<string, typeof Utensils> = {
+  food: Utensils, transport: Bus, study: BookOpen, entertainment: Gamepad2,
+  salary: Banknote, gift: Gift, other: Box,
 };
 
 interface Props {
@@ -36,33 +36,36 @@ export default function TransactionList({ transactions, onEdit, onDelete, compac
         <span className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>{transactions.length} {lang === "th" ? "รายการ" : "items"}</span>
       </div>
       <div className="px-3 pb-3">
-        {transactions.map((tx) => (
-          <div key={tx.id} className="list-item group">
-            <div className="item-icon" style={{ background: tx.type === "income" ? "var(--green-soft)" : "var(--red-soft)" }}>
-              {tx.type === "income"
-                ? <ArrowDownLeft size={17} style={{ color: "var(--green)" }} />
-                : <ArrowUpRight size={17} style={{ color: "var(--red)" }} />
-              }
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[14px]">{CAT_ICONS[tx.category]}</span>
-                <span className="font-semibold text-[14px] truncate">{t[tx.category as keyof typeof t]}</span>
+        {transactions.map((tx) => {
+          const CatIcon = CAT_ICONS[tx.category] || Box;
+          return (
+            <div key={tx.id} className="list-item group">
+              <div className="item-icon" style={{ background: tx.type === "income" ? "var(--green-soft)" : "var(--red-soft)" }}>
+                {tx.type === "income"
+                  ? <ArrowDownLeft size={17} style={{ color: "var(--green)" }} />
+                  : <ArrowUpRight size={17} style={{ color: "var(--red)" }} />
+                }
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{tx.date}</span>
-                {tx.note && <span className="text-[12px] truncate" style={{ color: "var(--text-muted)" }}>· {tx.note}</span>}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <CatIcon size={14} style={{ color: "var(--text-muted)" }} />
+                  <span className="font-semibold text-[14px] truncate">{t[tx.category as keyof typeof t]}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{tx.date}</span>
+                  {tx.note && <span className="text-[12px] truncate" style={{ color: "var(--text-muted)" }}>· {tx.note}</span>}
+                </div>
+              </div>
+              <span className="font-bold text-[14px] tabular-nums" style={{ color: tx.type === "income" ? "var(--green)" : "var(--red)" }}>
+                {tx.type === "income" ? "+" : "-"}฿{tx.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+              </span>
+              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => onEdit(tx)} className="icon-btn-sm"><Pencil size={14} /></button>
+                <button onClick={() => onDelete(tx.id)} className="icon-btn-sm danger"><Trash2 size={14} /></button>
               </div>
             </div>
-            <span className="font-bold text-[14px] tabular-nums" style={{ color: tx.type === "income" ? "var(--green)" : "var(--red)" }}>
-              {tx.type === "income" ? "+" : "-"}฿{tx.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-            </span>
-            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => onEdit(tx)} className="icon-btn-sm"><Pencil size={14} /></button>
-              <button onClick={() => onDelete(tx.id)} className="icon-btn-sm danger"><Trash2 size={14} /></button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
