@@ -4,24 +4,29 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import type { Transaction, Todo } from "@/lib/types";
-import LangToggle from "./LangToggle";
-import ThemeToggle from "./ThemeToggle";
+import { ToastProvider, useToast } from "./Toast";
 import SummaryCards from "./SummaryCards";
 import Charts from "./Charts";
-import MonthFilter from "./MonthFilter";
 import TransactionForm from "./TransactionForm";
 import TransactionList from "./TransactionList";
 import TodoForm from "./TodoForm";
 import TodoList from "./TodoList";
 import { SkeletonSummary, SkeletonChart, SkeletonList, SkeletonForm } from "./Skeleton";
-import { LogOut, DollarSign, FileText } from "lucide-react";
+import LangToggle from "./LangToggle";
+import ThemeToggle from "./ThemeToggle";
+import {
+  LayoutDashboard, Receipt, ListTodo, LogOut, Menu, X,
+  TrendingUp, Wallet, Plus,
+} from "lucide-react";
 
-type Tab = "money" | "todo";
+type Tab = "overview" | "money" | "todo";
 
-export default function Dashboard() {
+function Shell() {
   const { t, lang } = useLang();
+  const { toast } = useToast();
   const supabase = createClient();
-  const [tab, setTab] = useState<Tab>("money");
+  const [tab, setTab] = useState<Tab>("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -76,74 +81,169 @@ export default function Dashboard() {
   const totalExpense = filtered.filter((tx) => tx.type === "expense").reduce((s, tx) => s + Number(tx.amount), 0);
 
   const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = "/"; };
-  const handleDeleteTransaction = async (id: string) => { await supabase.from("transactions").delete().eq("id", id); fetchTransactions(); };
+
+  const handleDeleteTransaction = async (id: string) => {
+    await supabase.from("transactions").delete().eq("id", id);
+    toast(lang === "th" ? "ลบรายการแล้ว" : "Transaction deleted", "success");
+    fetchTransactions();
+  };
+
+  const NAV: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
+    { key: "overview", label: lang === "th" ? "ภาพรวม" : "Overview", icon: LayoutDashboard },
+    { key: "money", label: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", icon: Receipt },
+    { key: "todo", label: lang === "th" ? "งานที่ต้องทำ" : "Tasks", icon: ListTodo },
+  ];
+
+  const pendingTodos = todos.filter((t) => !t.completed).length;
+  const balance = totalIncome - totalExpense;
+
+  const titles: Record<Tab, { title: string; sub: string }> = {
+    overview: { title: lang === "th" ? "ภาพรวม" : "Overview", sub: lang === "th" ? "สรุปการเงินและงานของคุณ" : "Your money & tasks at a glance" },
+    money: { title: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", sub: lang === "th" ? "บันทึกและจัดการรายการการเงิน" : "Record and manage your transactions" },
+    todo: { title: lang === "th" ? "งานที่ต้องทำ" : "Tasks", sub: lang === "th" ? "จัดการงานของคุณให้เป็นระบบ" : "Stay organized, get things done" },
+  };
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(245,240,232,0.9)", borderBottom: "1px solid var(--border)" }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-pixel text-sm font-bold"
-              style={{ background: "var(--accent)", color: "white" }}>
-              S
-            </div>
-            <span className="font-pixel text-sm font-bold hidden sm:inline" style={{ color: "var(--text)" }}>Sherwood</span>
+    <div className="app-shell">
+      {/* Sidebar */}
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: "var(--text-invert)" }}>
+            <Wallet size={16} style={{ color: "var(--sidebar)" }} />
           </div>
-          <div className="flex items-center gap-2">
+          <span className="text-[15px] font-bold text-white tracking-tight">Fintrack</span>
+          <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)} style={{ color: "#8a867d" }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="sidebar-label">{lang === "th" ? "เมนู" : "Menu"}</div>
+        <nav className="flex flex-col gap-1">
+          {NAV.map(({ key, label, icon: Icon }) => (
+            <button key={key} className={`nav-item ${tab === key ? "active" : ""}`}
+              onClick={() => { setTab(key); setSidebarOpen(false); }}>
+              <span className="nav-icon"><Icon size={17} /></span>
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <button className="nav-item" onClick={handleLogout}>
+            <span className="nav-icon"><LogOut size={17} /></span>
+            {t.logout}
+          </button>
+        </div>
+      </aside>
+
+      {sidebarOpen && <div className="overlay lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Main */}
+      <div className="main-area">
+        {/* Topbar */}
+        <header className="sticky top-0 z-40 backdrop-blur-md"
+          style={{ background: "color-mix(in srgb, var(--bg) 82%, transparent)", borderBottom: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3 px-4 lg:px-10 py-3">
+            <button className="btn-icon lg:hidden" onClick={() => setSidebarOpen(true)}>
+              <Menu size={18} />
+            </button>
+            <div className="flex-1" />
             <LangToggle />
             <ThemeToggle />
-            <button onClick={handleLogout} className="p-1.5 rounded-lg transition-colors"
-              style={{ color: "var(--text-muted)" }}>
-              <LogOut className="w-4 h-4" />
+            <button className="btn btn-primary !py-2 !px-3.5 !text-[13px]"
+              onClick={() => { setTab("money"); setTimeout(() => document.getElementById("tx-form")?.scrollIntoView({ behavior: "smooth" }), 80); }}>
+              <Plus size={15} />
+              <span className="hidden sm:inline">{lang === "th" ? "เพิ่มรายการ" : "Add"}</span>
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-        {/* Title */}
-        <div className="animate-in">
-          <h1 className="font-pixel text-xl font-bold" style={{ color: "var(--text)" }}>
-            {lang === "th" ? "สวัสดี!" : "Hello!"} 👋
-          </h1>
-          <p className="font-pixel text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-            {lang === "th" ? "นี่คือภาพรวมการเงินของคุณ" : "Here's your financial overview"}
-          </p>
-        </div>
+        <main className="content">
+          {/* Page header */}
+          <div className="page-header mb-6 animate-in">
+            <div>
+              <h1 className="page-title">{titles[tab].title}</h1>
+              <p className="page-sub">{titles[tab].sub}</p>
+            </div>
+          </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 animate-in" style={{ animationDelay: "0.03s" }}>
-          <button onClick={() => setTab("money")} className="tab flex items-center gap-1.5"
-            style={tab === "money" ? { background: "var(--accent)", color: "white" } : {}}>
-            <DollarSign className="w-3.5 h-3.5" />
-            {lang === "th" ? "เงิน" : "Money"}
+          {loading ? (
+            <div className="space-y-4">
+              <SkeletonSummary />
+              {tab !== "todo" && <SkeletonChart />}
+              {tab === "money" && <SkeletonForm />}
+              <SkeletonList />
+            </div>
+          ) : (
+            <>
+              {/* Stats always visible */}
+              <SummaryCards income={totalIncome} expense={totalExpense} balance={balance} pendingTodos={pendingTodos} />
+
+              {tab === "overview" && (
+                <div className="mt-5 space-y-4">
+                  <div className="flex items-center justify-between animate-in d1">
+                    <div className="segmented">
+                      <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="select !py-2 !pl-3 !pr-9 !text-[13px] !w-auto">
+                        <option value="all">{lang === "th" ? "ทุกเดือน" : "All months"}</option>
+                        {months.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <button className="btn btn-ghost !py-2 !px-3.5 !text-[13px]" onClick={() => setTab("money")}>
+                      {lang === "th" ? "ดูทั้งหมด" : "View all"}
+                    </button>
+                  </div>
+                  <div className="animate-in d2"><Charts transactions={filtered} /></div>
+                  <div className="animate-in d3">
+                    <TransactionList transactions={filtered.slice(0, 6)} onEdit={(tx) => { setEditing(tx); setTab("money"); }} onDelete={handleDeleteTransaction} compact />
+                  </div>
+                </div>
+              )}
+
+              {tab === "money" && (
+                <div className="mt-5 space-y-4">
+                  <div id="tx-form" className="animate-in d1">
+                    <TransactionForm onSaved={() => { fetchTransactions(); toast(editing ? (lang === "th" ? "แก้ไขสำเร็จ" : "Updated") : (lang === "th" ? "บันทึกสำเร็จ" : "Saved")); }}
+                      editing={editing} onCancelEdit={() => setEditing(null)} />
+                  </div>
+                  <div className="animate-in d2"><Charts transactions={filtered} /></div>
+                  <div className="animate-in d3">
+                    <TransactionList transactions={filtered} onEdit={setEditing} onDelete={handleDeleteTransaction} />
+                  </div>
+                </div>
+              )}
+
+              {tab === "todo" && (
+                <div className="mt-5 space-y-4">
+                  <div className="animate-in d1">
+                    <TodoForm onSaved={() => { fetchTodos(); toast(lang === "th" ? "เพิ่มงานแล้ว" : "Task added"); }} />
+                  </div>
+                  <div className="animate-in d2">
+                    <TodoList todos={todos} onSaved={fetchTodos} />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* Bottom nav (mobile) */}
+      <nav className="bottom-nav">
+        {NAV.map(({ key, label, icon: Icon }) => (
+          <button key={key} className={`bottom-nav-item ${tab === key ? "active" : ""}`} onClick={() => setTab(key)}>
+            <span className="nav-icon"><Icon size={19} /></span>
+            {label}
           </button>
-          <button onClick={() => setTab("todo")} className="tab flex items-center gap-1.5"
-            style={tab === "todo" ? { background: "var(--accent)", color: "white" } : {}}>
-            <FileText className="w-3.5 h-3.5" />
-            {lang === "th" ? "งาน" : "Tasks"}
-          </button>
-        </div>
-
-        {loading ? (
-          <><SkeletonSummary /><SkeletonForm /><SkeletonChart /><SkeletonList /></>
-        ) : tab === "money" ? (
-          <>
-            <SummaryCards income={totalIncome} expense={totalExpense} />
-            <MonthFilter months={months} categories={categories} selectedMonth={selectedMonth} selectedCategory={selectedCategory}
-              onMonthChange={setSelectedMonth} onCategoryChange={setSelectedCategory} />
-            <TransactionForm onSaved={fetchTransactions} editing={editing} onCancelEdit={() => setEditing(null)} />
-            <Charts transactions={filtered} />
-            <TransactionList transactions={filtered} onEdit={setEditing} onDelete={handleDeleteTransaction} />
-          </>
-        ) : (
-          <>
-            <TodoForm onSaved={fetchTodos} />
-            <TodoList todos={todos} onSaved={fetchTodos} />
-          </>
-        )}
-      </main>
+        ))}
+      </nav>
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <ToastProvider>
+      <Shell />
+    </ToastProvider>
   );
 }

@@ -1,58 +1,42 @@
 "use client";
 
 import { useLang } from "@/lib/i18n";
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ListTodo, AlertCircle } from "lucide-react";
 
-interface Props { income: number; expense: number; }
+interface Props { income: number; expense: number; balance: number; pendingTodos: number; }
 
-export default function SummaryCards({ income, expense }: Props) {
+export default function SummaryCards({ income, expense, balance, pendingTodos }: Props) {
   const { t } = useLang();
-  const balance = income - expense;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-in">
-      <div className="stat">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--green-bg)" }}>
-            <TrendingUp className="w-3.5 h-3.5" style={{ color: "var(--green)" }} />
-          </div>
-          <span className="font-pixel text-xs font-semibold" style={{ color: "var(--text-muted)" }}>{t.total_income}</span>
+    <div className="grid-stats">
+      <div className="stat-card animate-in d1">
+        <div className="stat-icon" style={{ background: "var(--green-soft)" }}>
+          <TrendingUp size={17} style={{ color: "var(--green)" }} />
         </div>
-        <p className="font-pixel text-xl font-bold" style={{ color: "var(--green)" }}>
+        <div className="stat-label">{t.total_income}</div>
+        <div className="stat-value" style={{ color: "var(--green)" }}>
           +฿{income.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-        </p>
-        <div className="bar-track mt-3">
-          <div className="bar-fill" style={{ width: income + expense > 0 ? `${(income / (income + expense)) * 100}%` : "0%" }} />
         </div>
       </div>
 
-      <div className="stat">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--red-bg)" }}>
-            <TrendingDown className="w-3.5 h-3.5" style={{ color: "var(--red)" }} />
-          </div>
-          <span className="font-pixel text-xs font-semibold" style={{ color: "var(--text-muted)" }}>{t.total_expense}</span>
+      <div className="stat-card animate-in d2">
+        <div className="stat-icon" style={{ background: "var(--red-soft)" }}>
+          <TrendingDown size={17} style={{ color: "var(--red)" }} />
         </div>
-        <p className="font-pixel text-xl font-bold" style={{ color: "var(--red)" }}>
+        <div className="stat-label">{t.total_expense}</div>
+        <div className="stat-value" style={{ color: "var(--red)" }}>
           -฿{expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-        </p>
-        <div className="bar-track mt-3">
-          <div className="bar-fill red" style={{ width: income + expense > 0 ? `${(expense / (income + expense)) * 100}%` : "0%" }} />
         </div>
       </div>
 
-      <div className="stat">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--blue-bg)" }}>
-            <Wallet className="w-3.5 h-3.5" style={{ color: "var(--blue)" }} />
-          </div>
-          <span className="font-pixel text-xs font-semibold" style={{ color: "var(--text-muted)" }}>{t.balance}</span>
+      <div className="stat-card animate-in d3">
+        <div className="stat-icon" style={{ background: balance >= 0 ? "var(--green-soft)" : "var(--amber-soft)" }}>
+          <Wallet size={17} style={{ color: balance >= 0 ? "var(--green)" : "var(--amber)" }} />
         </div>
-        <p className="font-pixel text-xl font-bold" style={{ color: balance >= 0 ? "var(--green)" : "var(--red)" }}>
+        <div className="stat-label">{t.balance}</div>
+        <div className="stat-value" style={{ color: balance >= 0 ? "var(--green)" : "var(--red)" }}>
           ฿{balance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-        </p>
-        <div className="bar-track mt-3">
-          <div className="bar-fill yellow" style={{ width: income > 0 ? `${Math.min((balance / income) * 100, 100)}%` : "0%" }} />
         </div>
       </div>
     </div>

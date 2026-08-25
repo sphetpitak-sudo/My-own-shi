@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, Wallet } from "lucide-react";
 
 export default function AuthForm() {
   const { t, lang } = useLang();
@@ -37,82 +37,84 @@ export default function AuthForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--bg)" }}>
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-10 animate-in">
-          <h1 className="font-pixel text-2xl font-bold" style={{ color: "var(--text)" }}>{t.app_name}</h1>
-          <p className="font-pixel text-sm mt-2" style={{ color: "var(--text-muted)" }}>
+      <div className="w-full max-w-[380px]">
+        <div className="text-center mb-8 animate-in">
+          <div className="w-12 h-12 rounded-[14px] flex items-center justify-center mx-auto mb-4"
+            style={{ background: "var(--primary)" }}>
+            <Wallet size={22} style={{ color: "var(--text-invert)" }} />
+          </div>
+          <h1 className="text-[26px] font-bold tracking-tight">{t.app_name}</h1>
+          <p className="text-[14px] mt-1.5" style={{ color: "var(--text-secondary)" }}>
             {lang === "th" ? "จัดการเงินของคุณ" : "Manage your finances"}
           </p>
         </div>
 
-        <div className="card p-8 animate-in" style={{ animationDelay: "0.05s" }}>
-          <h2 className="font-pixel text-lg font-bold text-center mb-6" style={{ color: "var(--text)" }}>
-            {isSignUp ? t.signup : t.login}
-          </h2>
+        <div className="card p-7 animate-in d1">
+          <h2 className="text-[17px] font-bold text-center mb-5">{isSignUp ? t.signup : t.login}</h2>
 
           {error && (
-            <div className="mb-5 p-3 rounded-xl font-pixel text-sm" style={{ background: "var(--red-bg)", color: "var(--red)" }}>
+            <div className="mb-4 p-3 rounded-xl text-[13px] font-medium" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
               {error}
             </div>
           )}
           {message && (
-            <div className="mb-5 p-3 rounded-xl font-pixel text-sm" style={{ background: "var(--green-bg)", color: "var(--green)" }}>
+            <div className="mb-4 p-3 rounded-xl text-[13px] font-medium" style={{ background: "var(--green-soft)", color: "var(--green)" }}>
               {message}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block font-pixel text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)" }}>{t.email}</label>
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            <div className="field">
+              <label className="label">{t.email}</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-light)" }} />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                   className="input" style={{ paddingLeft: "38px" }} placeholder="email@example.com" />
               </div>
             </div>
-            <div>
-              <label className="block font-pixel text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)" }}>{t.password}</label>
+            <div className="field">
+              <label className="label">{t.password}</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-light)" }} />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                 <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                   className="input" style={{ paddingLeft: "38px" }} placeholder="••••••••" />
               </div>
             </div>
             {isSignUp && (
-              <div>
-                <label className="block font-pixel text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)" }}>{t.confirm_password}</label>
+              <div className="field">
+                <label className="label">{t.confirm_password}</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-light)" }} />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                   <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                     className="input" style={{ paddingLeft: "38px" }} placeholder="••••••••" />
                 </div>
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">
+            <button type="submit" disabled={loading} className="btn btn-primary w-full mt-1">
               {loading ? <span className="animate-pulse">{t.loading}</span> : (
-                <>{isSignUp ? t.signup_button : t.login_button} <ArrowRight className="w-4 h-4" /></>
+                <>{isSignUp ? t.signup_button : t.login_button} <ArrowRight size={15} /></>
               )}
             </button>
           </form>
 
-          <div className="my-5 flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
-            <span className="font-pixel text-xs" style={{ color: "var(--text-light)" }}>{t.or}</span>
-            <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 divider" />
+            <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{t.or}</span>
+            <div className="flex-1 divider" />
           </div>
 
           <button onClick={async () => {
             await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } });
-          }} className="btn-ghost w-full flex items-center justify-center gap-3">
+          }} className="btn btn-ghost w-full">
             <svg className="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
             {lang === "th" ? "เข้าสู่ระบบด้วย Google" : "Sign in with Google"}
           </button>
 
-          <div className="mt-6 text-center">
-            <span className="font-pixel text-sm" style={{ color: "var(--text-light)" }}>{isSignUp ? t.login : t.signup} </span>
+          <div className="mt-5 text-center">
+            <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>{isSignUp ? t.login : t.signup} </span>
             <button onClick={() => { setIsSignUp(!isSignUp); setError(""); setMessage(""); }}
-              className="font-pixel text-sm font-semibold" style={{ color: "var(--text)" }}>
+              className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
               {isSignUp ? t.login_button : t.signup_button}
             </button>
           </div>
