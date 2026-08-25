@@ -13,9 +13,9 @@ const CAT_ICONS: Record<string, typeof Utensils> = {
   salary: Banknote, gift: Gift, other: Box,
 };
 
-interface Props { onSaved: () => void; editing: Transaction | null; onCancelEdit: () => void; }
+interface Props { onSaved: () => void; editing: Transaction | null; onCancelEdit: () => void; onCategoryDrop?: (txId: string, category: string) => void; }
 
-export default function TransactionForm({ onSaved, editing, onCancelEdit }: Props) {
+export default function TransactionForm({ onSaved, editing, onCancelEdit, onCategoryDrop }: Props) {
   const { t, lang } = useLang();
   const supabase = createClient();
   const [type, setType] = useState<"income" | "expense">("expense");
@@ -86,7 +86,18 @@ export default function TransactionForm({ onSaved, editing, onCancelEdit }: Prop
           {CATEGORIES.map((c) => {
             const Icon = CAT_ICONS[c];
             return (
-              <button key={c} type="button" onClick={() => setCategory(c)} className={`chip ${category === c ? "on" : ""}`}>
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(c)}
+                className={`chip ${category === c ? "on" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const txId = e.dataTransfer.getData("text/plain");
+                  if (txId && onCategoryDrop) onCategoryDrop(txId, c);
+                }}
+              >
                 <Icon size={16} />
                 <span>{t[c as keyof typeof t]}</span>
               </button>

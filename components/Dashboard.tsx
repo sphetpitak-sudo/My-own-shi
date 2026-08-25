@@ -14,17 +14,18 @@ import TodoList from "./TodoList";
 import SavingsGoalList from "./SavingsGoalList";
 import RecurringForm from "./RecurringForm";
 import RecurringList from "./RecurringList";
+import CalendarView from "./CalendarView";
 import { SkeletonSummary, SkeletonChart, SkeletonList, SkeletonForm } from "./Skeleton";
 import LangToggle from "./LangToggle";
 import ThemeToggle from "./ThemeToggle";
 import {
   LayoutDashboard, Receipt, ListTodo, LogOut, Menu, X,
   TrendingUp, Wallet, Plus, Settings as SettingsIcon,
-  Target, Repeat,
+  Target, Repeat, Calendar,
 } from "lucide-react";
 import Settings from "./Settings";
 
-type Tab = "overview" | "money" | "todo" | "goals" | "recurring" | "settings";
+type Tab = "overview" | "money" | "calendar" | "todo" | "goals" | "recurring" | "settings";
 
 function Shell() {
   const { t, lang } = useLang();
@@ -123,9 +124,16 @@ function Shell() {
     fetchTransactions();
   };
 
+  const handleCategoryDrop = async (txId: string, newCategory: string) => {
+    await supabase.from("transactions").update({ category: newCategory }).eq("id", txId);
+    toast(lang === "th" ? "เปลี่ยนหมวดแล้ว" : "Category updated", "success");
+    fetchTransactions();
+  };
+
   const NAV: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
     { key: "overview", label: lang === "th" ? "ภาพรวม" : "Overview", icon: LayoutDashboard },
     { key: "money", label: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", icon: Receipt },
+    { key: "calendar", label: t.calendar, icon: Calendar },
     { key: "goals", label: t.savings_goals, icon: Target },
     { key: "recurring", label: t.recurring, icon: Repeat },
     { key: "todo", label: lang === "th" ? "งานที่ต้องทำ" : "Tasks", icon: ListTodo },
@@ -138,6 +146,7 @@ function Shell() {
   const titles: Record<Tab, { title: string; sub: string }> = {
     overview: { title: lang === "th" ? "ภาพรวม" : "Overview", sub: lang === "th" ? "สรุปการเงินและงานของคุณ" : "Your money & tasks at a glance" },
     money: { title: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", sub: lang === "th" ? "บันทึกและจัดการรายการการเงิน" : "Record and manage your transactions" },
+    calendar: { title: t.calendar, sub: t.calendar_sub },
     goals: { title: t.savings_goals, sub: t.savings_sub },
     recurring: { title: t.recurring, sub: t.recurring_sub },
     todo: { title: lang === "th" ? "งานที่ต้องทำ" : "Tasks", sub: lang === "th" ? "จัดการงานของคุณให้เป็นระบบ" : "Stay organized, get things done" },
@@ -256,12 +265,18 @@ function Shell() {
                 <div className="mt-5 space-y-4">
                   <div id="tx-form" className="animate-in d1">
                     <TransactionForm onSaved={() => { fetchTransactions(); toast(editing ? (lang === "th" ? "แก้ไขสำเร็จ" : "Updated") : (lang === "th" ? "บันทึกสำเร็จ" : "Saved")); }}
-                      editing={editing} onCancelEdit={() => setEditing(null)} />
+                      editing={editing} onCancelEdit={() => setEditing(null)} onCategoryDrop={handleCategoryDrop} />
                   </div>
                   <div className="animate-in d2"><Charts transactions={filtered} /></div>
                   <div className="animate-in d3">
                     <TransactionList transactions={filtered} onEdit={setEditing} onDelete={handleDeleteTransaction} />
                   </div>
+                </div>
+              )}
+
+              {tab === "calendar" && (
+                <div className="mt-5">
+                  <CalendarView transactions={transactions} onEdit={(tx) => { setEditing(tx); setTab("money"); }} />
                 </div>
               )}
 
