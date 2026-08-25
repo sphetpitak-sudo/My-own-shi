@@ -1,0 +1,164 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useLang } from "@/lib/i18n";
+import { User, Lock, Mail, Shield, Save, CheckCircle, AlertCircle, Hash } from "lucide-react";
+
+export default function Settings() {
+  const { t, lang } = useLang();
+  const supabase = createClient();
+
+  const [email, setEmail] = useState("");
+  const [userId, setUserId] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setEmail(user.email || "");
+        setUserId(user.id);
+        setDisplayName(user.user_metadata?.display_name || "");
+      }
+    })();
+  }, [supabase]);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    setProfileMsg(null);
+    const { error } = await supabase.auth.updateUser({
+      data: { display_name: displayName.trim() },
+    });
+    if (error) setProfileMsg({ type: "error", text: error.message });
+    else setProfileMsg({ type: "success", text: t.profile_updated });
+    setProfileLoading(false);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordLoading(true);
+    setPasswordMsg(null);
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordMsg({ type: "error", text: t.password_not_match });
+      setPasswordLoading(false);
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: "error", text: lang === "th" ? "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" : "Password must be at least 6 characters" });
+      setPasswordLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPasswordMsg({ type: "error", text: error.message === "Invalid login credentials" ? t.wrong_password : error.message });
+    } else {
+      setPasswordMsg({ type: "success", text: t.password_changed });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    }
+    setPasswordLoading(false);
+  };
+
+  return (
+    <div className="space-y-6 animate-in">
+      {/* Profile Section */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-[11px] flex items-center justify-center" style={{ background: "var(--primary-soft)" }}>
+            <User size={18} style={{ color: "var(--primary)" }} />
+          </div>
+          <div>
+            <h3 className="text-[16px] font-bold">{t.profile}</h3>
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{lang === "th" ? "จัดการข้อมูลส่วนตัวของคุณ" : "Manage your personal information"}</p>
+          </div>
+        </div>
+
+        {profileMsg && (
+          <div className="mb-4 p-3.5 rounded-xl flex items-center gap-2 text-[13px] font-medium"
+            style={{ background: profileMsg.type === "success" ? "var(--green-soft)" : "var(--red-soft)", color: profileMsg.type === "success" ? "var(--green)" : "var(--red)" }}>
+            {profileMsg.type === "success" ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+            {profileMsg.text}
+          </div>
+        )}
+
+        <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <div className="field">
+            <label className="label flex items-center gap-1.5"><Mail size={12} /> {t.email_label}</label>
+            <input type="email" value={email} disabled className="input opacity-60 cursor-not-allowed" />
+          </div>
+
+          <div className="field">
+            <label className="label flex items-center gap-1.5"><Hash size={12} /> {t.user_id}</label>
+            <input type="text" value={userId} disabled className="input opacity-60 cursor-not-allowed font-mono text-[13px]" />
+          </div>
+
+          <div className="field">
+            <label className="label flex items-center gap-1.5"><User size={12} /> {t.display_name}</label>
+            <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+              className="input" placeholder={lang === "th" ? "ชื่อที่ต้องการแสดง" : "Your display name"} />
+          </div>
+
+          <button type="submit" disabled={profileLoading} className="btn btn-primary w-full">
+            <Save size={15} />
+            {profileLoading ? t.loading : t.update_profile}
+          </button>
+        </form>
+      </div>
+
+      {/* Security Section */}
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-[11px] flex items-center justify-center" style={{ background: "var(--amber-soft)" }}>
+            <Shield size={18} style={{ color: "var(--amber)" }} />
+          </div>
+          <div>
+            <h3 className="text-[16px] font-bold">{t.security}</h3>
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{lang === "th" ? "เปลี่ยนรหัสผ่านเพื่อความปลอดภัย" : "Change your password to stay secure"}</p>
+          </div>
+        </div>
+
+        {passwordMsg && (
+          <div className="mb-4 p-3.5 rounded-xl flex items-center gap-2 text-[13px] font-medium"
+            style={{ background: passwordMsg.type === "success" ? "var(--green-soft)" : "var(--red-soft)", color: passwordMsg.type === "success" ? "var(--green)" : "var(--red)" }}>
+            {passwordMsg.type === "success" ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+            {passwordMsg.text}
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div className="field">
+            <label className="label flex items-center gap-1.5"><Lock size={12} /> {t.new_password}</label>
+            <input type="password" required minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+              className="input" placeholder="••••••••" />
+          </div>
+
+          <div className="field">
+            <label className="label flex items-center gap-1.5"><Lock size={12} /> {t.confirm_new_password}</label>
+            <input type="password" required minLength={6} value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)}
+              className="input" placeholder="••••••••" />
+          </div>
+
+          <button type="submit" disabled={passwordLoading} className="btn btn-primary w-full">
+            <Lock size={15} />
+            {passwordLoading ? t.loading : t.change_password}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

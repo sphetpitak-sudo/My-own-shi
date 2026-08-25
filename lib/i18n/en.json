@@ -42,5 +42,20 @@
   "password_not_match": "Passwords do not match",
   "login_required": "Please log in",
   "signup_success": "Sign up successful! Check your email to confirm.",
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "settings": "Settings",
+  "settings_sub": "Manage your profile and security",
+  "profile": "Profile",
+  "security": "Security",
+  "display_name": "Display Name",
+  "current_password": "Current Password",
+  "new_password": "New Password",
+  "confirm_new_password": "Confirm New Password",
+  "update_profile": "Update Profile",
+  "change_password": "Change Password",
+  "profile_updated": "Profile updated successfully",
+  "password_changed": "Password changed successfully",
+  "wrong_password": "Current password is incorrect",
+  "email_label": "Email (cannot be changed)",
+  "user_id": "User ID"
 }

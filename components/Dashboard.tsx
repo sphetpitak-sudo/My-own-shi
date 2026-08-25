@@ -16,10 +16,11 @@ import LangToggle from "./LangToggle";
 import ThemeToggle from "./ThemeToggle";
 import {
   LayoutDashboard, Receipt, ListTodo, LogOut, Menu, X,
-  TrendingUp, Wallet, Plus,
+  TrendingUp, Wallet, Plus, Settings as SettingsIcon,
 } from "lucide-react";
+import Settings from "./Settings";
 
-type Tab = "overview" | "money" | "todo";
+type Tab = "overview" | "money" | "todo" | "settings";
 
 function Shell() {
   const { t, lang } = useLang();
@@ -92,6 +93,7 @@ function Shell() {
     { key: "overview", label: lang === "th" ? "ภาพรวม" : "Overview", icon: LayoutDashboard },
     { key: "money", label: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", icon: Receipt },
     { key: "todo", label: lang === "th" ? "งานที่ต้องทำ" : "Tasks", icon: ListTodo },
+    { key: "settings", label: t.settings, icon: SettingsIcon },
   ];
 
   const pendingTodos = todos.filter((t) => !t.completed).length;
@@ -101,6 +103,7 @@ function Shell() {
     overview: { title: lang === "th" ? "ภาพรวม" : "Overview", sub: lang === "th" ? "สรุปการเงินและงานของคุณ" : "Your money & tasks at a glance" },
     money: { title: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", sub: lang === "th" ? "บันทึกและจัดการรายการการเงิน" : "Record and manage your transactions" },
     todo: { title: lang === "th" ? "งานที่ต้องทำ" : "Tasks", sub: lang === "th" ? "จัดการงานของคุณให้เป็นระบบ" : "Stay organized, get things done" },
+    settings: { title: t.settings, sub: t.settings_sub },
   };
 
   return (
@@ -150,11 +153,13 @@ function Shell() {
             <div className="flex-1" />
             <LangToggle />
             <ThemeToggle />
-            <button className="btn btn-primary !py-2 !px-3.5 !text-[13px]"
-              onClick={() => { setTab("money"); setTimeout(() => document.getElementById("tx-form")?.scrollIntoView({ behavior: "smooth" }), 80); }}>
-              <Plus size={15} />
-              <span className="hidden sm:inline">{lang === "th" ? "เพิ่มรายการ" : "Add"}</span>
-            </button>
+            {tab !== "settings" && (
+              <button className="btn btn-primary !py-2 !px-3.5 !text-[13px]"
+                onClick={() => { setTab("money"); setTimeout(() => document.getElementById("tx-form")?.scrollIntoView({ behavior: "smooth" }), 80); }}>
+                <Plus size={15} />
+                <span className="hidden sm:inline">{lang === "th" ? "เพิ่มรายการ" : "Add"}</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -177,7 +182,9 @@ function Shell() {
           ) : (
             <>
               {/* Stats always visible */}
-              <SummaryCards income={totalIncome} expense={totalExpense} balance={balance} pendingTodos={pendingTodos} />
+              {tab !== "settings" && (
+                <SummaryCards income={totalIncome} expense={totalExpense} balance={balance} pendingTodos={pendingTodos} />
+              )}
 
               {tab === "overview" && (
                 <div className="mt-5 space-y-4">
@@ -220,6 +227,12 @@ function Shell() {
                   <div className="animate-in d2">
                     <TodoList todos={todos} onSaved={fetchTodos} />
                   </div>
+                </div>
+              )}
+
+              {tab === "settings" && (
+                <div className="mt-5">
+                  <Settings />
                 </div>
               )}
             </>

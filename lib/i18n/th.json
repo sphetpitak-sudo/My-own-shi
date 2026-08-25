@@ -42,5 +42,20 @@
   "password_not_match": "รหัสผ่านไม่ตรงกัน",
   "login_required": "กรุณาเข้าสู่ระบบ",
   "signup_success": "สมัครสำเร็จ! ตรวจสอบอีเมลเพื่อยืนยัน",
-  "loading": "กำลังโหลด..."
+  "loading": "กำลังโหลด...",
+  "settings": "ตั้งค่า",
+  "settings_sub": "จัดการข้อมูลส่วนตัวและความปลอดภัย",
+  "profile": "โปรไฟล์",
+  "security": "ความปลอดภัย",
+  "display_name": "ชื่อที่แสดง",
+  "current_password": "รหัสผ่านปัจจุบัน",
+  "new_password": "รหัสผ่านใหม่",
+  "confirm_new_password": "ยืนยันรหัสผ่านใหม่",
+  "update_profile": "อัปเดตโปรไฟล์",
+  "change_password": "เปลี่ยนรหัสผ่าน",
+  "profile_updated": "อัปเดตโปรไฟล์สำเร็จ",
+  "password_changed": "เปลี่ยนรหัสผ่านสำเร็จ",
+  "wrong_password": "รหัสผ่านเดิมไม่ถูกต้อง",
+  "email_label": "อีเมล (ไม่สามารถเปลี่ยนได้)",
+  "user_id": "User ID"
 }
