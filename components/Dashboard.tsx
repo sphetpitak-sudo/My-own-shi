@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import type { Transaction, Todo } from "@/lib/types";
+import type { Transaction, Todo, SavingsGoal, RecurringTransaction } from "@/lib/types";
 import { ToastProvider, useToast } from "./Toast";
 import SummaryCards from "./SummaryCards";
 import Charts from "./Charts";
@@ -11,16 +11,20 @@ import TransactionForm from "./TransactionForm";
 import TransactionList from "./TransactionList";
 import TodoForm from "./TodoForm";
 import TodoList from "./TodoList";
+import SavingsGoalList from "./SavingsGoalList";
+import RecurringForm from "./RecurringForm";
+import RecurringList from "./RecurringList";
 import { SkeletonSummary, SkeletonChart, SkeletonList, SkeletonForm } from "./Skeleton";
 import LangToggle from "./LangToggle";
 import ThemeToggle from "./ThemeToggle";
 import {
   LayoutDashboard, Receipt, ListTodo, LogOut, Menu, X,
   TrendingUp, Wallet, Plus, Settings as SettingsIcon,
+  Target, Repeat,
 } from "lucide-react";
 import Settings from "./Settings";
 
-type Tab = "overview" | "money" | "todo" | "settings";
+type Tab = "overview" | "money" | "todo" | "goals" | "recurring" | "settings";
 
 function Shell() {
   const { t, lang } = useLang();
@@ -37,6 +41,8 @@ function Shell() {
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [recurringTx, setRecurringTx] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
@@ -66,7 +72,25 @@ function Shell() {
     setLoading(false);
   }, [supabase, fetchUser]);
 
-  const fetchAll = useCallback(async () => { await Promise.all([fetchTransactions(), fetchTodos()]); }, [fetchTransactions, fetchTodos]);
+  const fetchSavingsGoals = useCallback(async () => {
+    const user = await fetchUser();
+    if (!user) return;
+    const { data } = await supabase.from("savings_goals").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setSavingsGoals(data || []);
+    setLoading(false);
+  }, [supabase, fetchUser]);
+
+  const fetchRecurring = useCallback(async () => {
+    const user = await fetchUser();
+    if (!user) return;
+    const { data } = await supabase.from("recurring_transactions").select("*").eq("user_id", user.id).order("next_date", { ascending: true });
+    setRecurringTx(data || []);
+    setLoading(false);
+  }, [supabase, fetchUser]);
+
+  const fetchAll = useCallback(async () => {
+    await Promise.all([fetchTransactions(), fetchTodos(), fetchSavingsGoals(), fetchRecurring()]);
+  }, [fetchTransactions, fetchTodos, fetchSavingsGoals, fetchRecurring]);
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
@@ -74,6 +98,8 @@ function Shell() {
     const channel = supabase.channel("realtime-all")
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: `user_id=eq.${userId}` }, () => fetchTransactions())
       .on("postgres_changes", { event: "*", schema: "public", table: "todos", filter: `user_id=eq.${userId}` }, () => fetchTodos())
+      .on("postgres_changes", { event: "*", schema: "public", table: "savings_goals", filter: `user_id=eq.${userId}` }, () => fetchSavingsGoals())
+      .on("postgres_changes", { event: "*", schema: "public", table: "recurring_transactions", filter: `user_id=eq.${userId}` }, () => fetchRecurring())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase, userId, fetchTransactions, fetchTodos]);
@@ -100,6 +126,8 @@ function Shell() {
   const NAV: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
     { key: "overview", label: lang === "th" ? "ภาพรวม" : "Overview", icon: LayoutDashboard },
     { key: "money", label: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", icon: Receipt },
+    { key: "goals", label: t.savings_goals, icon: Target },
+    { key: "recurring", label: t.recurring, icon: Repeat },
     { key: "todo", label: lang === "th" ? "งานที่ต้องทำ" : "Tasks", icon: ListTodo },
     { key: "settings", label: t.settings, icon: SettingsIcon },
   ];
@@ -110,6 +138,8 @@ function Shell() {
   const titles: Record<Tab, { title: string; sub: string }> = {
     overview: { title: lang === "th" ? "ภาพรวม" : "Overview", sub: lang === "th" ? "สรุปการเงินและงานของคุณ" : "Your money & tasks at a glance" },
     money: { title: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", sub: lang === "th" ? "บันทึกและจัดการรายการการเงิน" : "Record and manage your transactions" },
+    goals: { title: t.savings_goals, sub: t.savings_sub },
+    recurring: { title: t.recurring, sub: t.recurring_sub },
     todo: { title: lang === "th" ? "งานที่ต้องทำ" : "Tasks", sub: lang === "th" ? "จัดการงานของคุณให้เป็นระบบ" : "Stay organized, get things done" },
     settings: { title: t.settings, sub: t.settings_sub },
   };
@@ -243,6 +273,19 @@ function Shell() {
                   <div className="animate-in d2">
                     <TodoList todos={todos} onSaved={fetchTodos} />
                   </div>
+                </div>
+              )}
+
+              {tab === "goals" && (
+                <div className="mt-5">
+                  <SavingsGoalList goals={savingsGoals} onSaved={fetchSavingsGoals} toast={toast} />
+                </div>
+              )}
+
+              {tab === "recurring" && (
+                <div className="mt-5 space-y-4">
+                  <RecurringForm onSaved={() => { fetchRecurring(); toast(t.recurring_created, "success"); }} />
+                  <RecurringList items={recurringTx} onSaved={fetchRecurring} toast={toast} />
                 </div>
               )}
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import { User, Lock, Mail, Shield, Save, CheckCircle, AlertCircle, Hash, KeyRound } from "lucide-react";
+import { User, Lock, Mail, Shield, Save, CheckCircle, AlertCircle, Hash, KeyRound, Trash2, AlertTriangle } from "lucide-react";
 
 export default function Settings() {
   const { t, lang } = useLang();
@@ -23,6 +23,11 @@ export default function Settings() {
 
   const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -86,6 +91,30 @@ export default function Settings() {
       setHasPassword(true);
     }
     setPasswordLoading(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteEmail !== email) return;
+    setDeleteLoading(true);
+    setDeleteMsg(null);
+    try {
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: deleteEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteMsg({ type: "error", text: data.error || "Failed" });
+        setDeleteLoading(false);
+        return;
+      }
+      setDeleteMsg({ type: "success", text: t.account_deleted });
+      setTimeout(() => { window.location.href = "/"; }, 1500);
+    } catch {
+      setDeleteMsg({ type: "error", text: "Network error" });
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -180,6 +209,54 @@ export default function Settings() {
             {passwordLoading ? t.loading : hasPassword ? t.change_password : t.set_password}
           </button>
         </form>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="card p-6" style={{ border: "1px solid var(--red)" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-[11px] flex items-center justify-center" style={{ background: "var(--red-soft)" }}>
+            <AlertTriangle size={18} style={{ color: "var(--red)" }} />
+          </div>
+          <div>
+            <h3 className="text-[16px] font-bold" style={{ color: "var(--red)" }}>{t.danger_zone}</h3>
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{t.danger_zone_sub}</p>
+          </div>
+        </div>
+
+        {deleteMsg && (
+          <div className="mb-4 p-3.5 rounded-xl flex items-center gap-2 text-[13px] font-medium"
+            style={{ background: deleteMsg.type === "success" ? "var(--green-soft)" : "var(--red-soft)", color: deleteMsg.type === "success" ? "var(--green)" : "var(--red)" }}>
+            {deleteMsg.type === "success" ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+            {deleteMsg.text}
+          </div>
+        )}
+
+        {!showDeleteConfirm ? (
+          <button onClick={() => setShowDeleteConfirm(true)} className="btn w-full !border-red-500 !text-red-500 hover:!bg-red-50">
+            <Trash2 size={15} />
+            {t.delete_account}
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{t.confirm_delete_desc}</p>
+            <div className="field">
+              <label className="label">{t.type_email_confirm}</label>
+              <input type="email" value={deleteEmail} onChange={(e) => setDeleteEmail(e.target.value)}
+                className="input" placeholder={email} autoFocus />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleDeleteAccount} disabled={deleteEmail !== email || deleteLoading}
+                className="btn flex-1 !border-red-500 !text-red-500 hover:!bg-red-50 disabled:opacity-40">
+                <Trash2 size={15} />
+                {deleteLoading ? t.loading : t.confirm_delete}
+              </button>
+              <button onClick={() => { setShowDeleteConfirm(false); setDeleteEmail(""); setDeleteMsg(null); }}
+                className="btn btn-ghost flex-1">
+                {t.cancel}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
