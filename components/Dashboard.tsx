@@ -29,6 +29,9 @@ function Shell() {
   const [tab, setTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState("all");
@@ -38,7 +41,12 @@ function Shell() {
 
   const fetchUser = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) setUserId(user.id);
+    if (user) {
+      setUserId(user.id);
+      setUserEmail(user.email || "");
+      setDisplayName(user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "");
+      setAvatarUrl(user.user_metadata?.avatar_url || "");
+    }
     return user;
   }, [supabase]);
 
@@ -111,10 +119,18 @@ function Shell() {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
-          <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: "var(--text-invert)" }}>
-            <Wallet size={16} style={{ color: "var(--sidebar)" }} />
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="w-8 h-8 rounded-[10px] object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[14px] font-bold"
+              style={{ background: "var(--primary)", color: "var(--text-invert)" }}>
+              {displayName ? displayName.charAt(0).toUpperCase() : <Wallet size={16} />}
+            </div>
+          )}
+          <div className="flex flex-col min-w-0">
+            <span className="text-[14px] font-bold text-white tracking-tight truncate">{displayName || "User"}</span>
+            <span className="text-[11px] truncate" style={{ color: "#8a867d" }}>{userEmail}</span>
           </div>
-          <span className="text-[15px] font-bold text-white tracking-tight">Fintrack</span>
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)} style={{ color: "#8a867d" }}>
             <X size={18} />
           </button>
