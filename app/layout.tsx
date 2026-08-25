@@ -11,8 +11,8 @@ const k2d = K2D({
 });
 
 export const metadata: Metadata = {
-  title: "Piggy",
-  description: "Track your income and expenses",
+  title: "StudyHub",
+  description: "Student planner — manage homework and tasks",
 };
 
 export default function RootLayout({

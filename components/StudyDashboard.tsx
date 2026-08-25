@@ -1,0 +1,127 @@
+"use client";
+
+import { useLang } from "@/lib/i18n";
+import type { Assignment, Subject } from "@/lib/types";
+import { AlertTriangle, CheckCircle2, Clock, BookOpen, CalendarDays } from "lucide-react";
+
+interface Props {
+  assignments: Assignment[];
+  subjects: Subject[];
+}
+
+export default function StudyDashboard({ assignments, subjects }: Props) {
+  const { t, lang } = useLang();
+  const today = new Date().toISOString().slice(0, 10);
+  const weekLater = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+
+  const pending = assignments.filter((a) => a.status === "pending");
+  const inProgress = assignments.filter((a) => a.status === "in_progress");
+  const done = assignments.filter((a) => a.status === "done");
+  const overdue = pending.filter((a) => a.due_date && a.due_date < today);
+  const dueToday = pending.filter((a) => a.due_date === today);
+  const dueThisWeek = pending.filter((a) => a.due_date && a.due_date > today && a.due_date <= weekLater);
+
+  const stats = [
+    { label: t.pending_count, value: pending.length + inProgress.length, icon: Clock, color: "var(--amber)", bg: "var(--amber-soft)" },
+    { label: t.completed_count, value: done.length, icon: CheckCircle2, color: "var(--green)", bg: "var(--green-soft)" },
+    { label: t.overdue_count, value: overdue.length, icon: AlertTriangle, color: "var(--red)", bg: "var(--red-soft)" },
+  ];
+
+  const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s]));
+
+  const upcoming = [...dueToday, ...dueThisWeek, ...overdue].slice(0, 5);
+
+  return (
+    <div className="space-y-4 animate-in">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {stats.map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="stat-card">
+            <div className="stat-icon" style={{ background: bg }}>
+              <Icon size={18} style={{ color }} />
+            </div>
+            <div className="stat-label">{label}</div>
+            <div className="stat-value">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Upcoming deadlines */}
+      {upcoming.length > 0 && (
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarDays size={16} style={{ color: "var(--text-secondary)" }} />
+            <span className="sec-title">{lang === "th" ? "กำหนดส่งที่กำลังจะมาถึง" : "Upcoming Deadlines"}</span>
+          </div>
+          <div className="space-y-1.5">
+            {upcoming.map((a) => {
+              const sub = a.subject_id ? subjectMap[a.subject_id] : null;
+              const daysLeft = a.due_date ? Math.ceil((new Date(a.due_date).getTime() - new Date(today).getTime()) / 86400000) : null;
+              const isOverdue = daysLeft !== null && daysLeft < 0;
+
+              return (
+                <div key={a.id} className="list-item" style={{ background: "var(--bg-card)" }}>
+                  {isOverdue ? (
+                    <AlertTriangle size={16} style={{ color: "var(--red)", flexShrink: 0 }} />
+                  ) : (
+                    <CalendarDays size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-[13px]">{a.title}</span>
+                    {sub && (
+                      <span className="badge ml-2" style={{ background: `${sub.color}18`, color: sub.color }}>
+                        {sub.name}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`badge ${isOverdue ? "badge-red" : "badge-amber"}`}>
+                    {isOverdue
+                      ? (lang === "th" ? `เลย ${Math.abs(daysLeft)} วัน` : `${Math.abs(daysLeft)}d overdue`)
+                      : daysLeft === 0
+                        ? (lang === "th" ? "วันนี้" : "Today")
+                        : `${daysLeft}${lang === "th" ? " วัน" : "d"}`
+                    }
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Subject breakdown */}
+      {subjects.length > 0 && (
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen size={16} style={{ color: "var(--text-secondary)" }} />
+            <span className="sec-title">{lang === "th" ? "สรุปตามวิชา" : "By Subject"}</span>
+          </div>
+          <div className="space-y-2">
+            {subjects.map((s) => {
+              const subAssignments = assignments.filter((a) => a.subject_id === s.id);
+              const subPending = subAssignments.filter((a) => a.status !== "done").length;
+              const subDone = subAssignments.filter((a) => a.status === "done").length;
+              const total = subAssignments.length;
+              const pct = total > 0 ? Math.round((subDone / total) * 100) : 0;
+
+              return (
+                <div key={s.id} className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[13px] font-semibold truncate">{s.name}</span>
+                      <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{subDone}/{total}</span>
+                    </div>
+                    <div className="bar">
+                      <div style={{ width: `${pct}%`, background: s.color }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

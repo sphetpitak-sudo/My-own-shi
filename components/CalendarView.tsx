@@ -2,13 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useLang } from "@/lib/i18n";
-import type { Transaction } from "@/lib/types";
-import { ChevronLeft, ChevronRight, ArrowDownLeft, ArrowUpRight, Utensils, Bus, BookOpen, Gamepad2, Banknote, Gift, Box } from "lucide-react";
-
-const CAT_ICONS: Record<string, typeof Utensils> = {
-  food: Utensils, transport: Bus, study: BookOpen, entertainment: Gamepad2,
-  salary: Banknote, gift: Gift, other: Box,
-};
+import type { Assignment, Subject } from "@/lib/types";
+import { ChevronLeft, ChevronRight, BookOpen, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 const WEEKDAYS_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 const WEEKDAYS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -16,42 +11,44 @@ const MONTHS_TH = ["มกราคม", "กุมภาพันธ์", "ม�
 const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 interface Props {
-  transactions: Transaction[];
-  onEdit: (t: Transaction) => void;
+  assignments: Assignment[];
+  subjects: Subject[];
 }
 
-export default function CalendarView({ transactions, onEdit }: Props) {
+export default function CalendarView({ assignments, subjects }: Props) {
   const { t, lang } = useLang();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const weekdays = lang === "th" ? WEEKDAYS_TH : WEEKDAYS_EN;
   const monthName = lang === "th" ? MONTHS_TH[month] : MONTHS_EN[month];
 
-  const transactionsByDate = useMemo(() => {
-    const map: Record<string, Transaction[]> = {};
-    transactions.forEach((tx) => {
-      if (!map[tx.date]) map[tx.date] = [];
-      map[tx.date].push(tx);
+  const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s]));
+
+  const assignmentsByDate = useMemo(() => {
+    const map: Record<string, Assignment[]> = {};
+    assignments.forEach((a) => {
+      if (a.due_date) {
+        if (!map[a.due_date]) map[a.due_date] = [];
+        map[a.due_date].push(a);
+      }
     });
     return map;
-  }, [transactions]);
+  }, [assignments]);
 
-  const selectedTransactions = selectedDate ? transactionsByDate[selectedDate] || [] : [];
+  const selectedAssignments = selectedDate ? assignmentsByDate[selectedDate] || [] : [];
 
   const days: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
   const navigate = (dir: number) => {
-    const next = new Date(year, month + dir, 1);
-    setCurrentDate(next);
+    setCurrentDate(new Date(year, month + dir, 1));
     setSelectedDate(null);
   };
 
@@ -59,7 +56,6 @@ export default function CalendarView({ transactions, onEdit }: Props) {
 
   return (
     <div className="space-y-4 animate-in">
-      {/* Calendar Card */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => navigate(-1)} className="icon-btn-sm"><ChevronLeft size={18} /></button>
@@ -67,7 +63,6 @@ export default function CalendarView({ transactions, onEdit }: Props) {
           <button onClick={() => navigate(1)} className="icon-btn-sm"><ChevronRight size={18} /></button>
         </div>
 
-        {/* Weekday headers */}
         <div className="grid grid-cols-7 gap-1 mb-1">
           {weekdays.map((wd) => (
             <div key={wd} className="text-center text-[11px] font-semibold py-1" style={{ color: "var(--text-muted)" }}>
@@ -76,14 +71,13 @@ export default function CalendarView({ transactions, onEdit }: Props) {
           ))}
         </div>
 
-        {/* Day grid */}
         <div className="grid grid-cols-7 gap-1 cal-grid">
           {days.map((day, i) => {
             if (day === null) return <div key={`empty-${i}`} />;
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const dayTx = transactionsByDate[dateStr] || [];
-            const hasIncome = dayTx.some((tx) => tx.type === "income");
-            const hasExpense = dayTx.some((tx) => tx.type === "expense");
+            const dayAssignments = assignmentsByDate[dateStr] || [];
+            const hasPending = dayAssignments.some((a) => a.status !== "done");
+            const hasDone = dayAssignments.some((a) => a.status === "done");
             const isToday = dateStr === today;
             const isSelected = dateStr === selectedDate;
 
@@ -99,10 +93,10 @@ export default function CalendarView({ transactions, onEdit }: Props) {
                 }}
               >
                 <span className="text-[13px]">{day}</span>
-                {(hasIncome || hasExpense) && (
+                {dayAssignments.length > 0 && (
                   <div className="flex gap-0.5 mt-0.5">
-                    {hasIncome && <div className="w-1.5 h-1.5 rounded-full cal-dot" style={{ background: isSelected ? "#fff" : "var(--green)" }} />}
-                    {hasExpense && <div className="w-1.5 h-1.5 rounded-full cal-dot" style={{ background: isSelected ? "#fff" : "var(--red)" }} />}
+                    {hasPending && <div className="w-1.5 h-1.5 rounded-full cal-dot" style={{ background: isSelected ? "#fff" : "var(--amber)" }} />}
+                    {hasDone && <div className="w-1.5 h-1.5 rounded-full cal-dot" style={{ background: isSelected ? "#fff" : "var(--green)" }} />}
                   </div>
                 )}
               </button>
@@ -111,43 +105,44 @@ export default function CalendarView({ transactions, onEdit }: Props) {
         </div>
       </div>
 
-      {/* Selected Day Transactions */}
       {selectedDate && (
         <div className="card p-5 animate-in">
           <h3 className="sec-title mb-3">
             {selectedDate}
-            {selectedTransactions.length > 0 && (
+            {selectedAssignments.length > 0 && (
               <span className="text-[12px] font-normal ml-2" style={{ color: "var(--text-muted)" }}>
-                {selectedTransactions.length} {lang === "th" ? "รายการ" : "items"}
+                {selectedAssignments.length} {lang === "th" ? "งาน" : "items"}
               </span>
             )}
           </h3>
-          {selectedTransactions.length === 0 ? (
+          {selectedAssignments.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{t.no_transactions}</p>
+              <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{t.no_items}</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {selectedTransactions.map((tx) => {
-                const CatIcon = CAT_ICONS[tx.category] || Box;
+              {selectedAssignments.map((a) => {
+                const sub = a.subject_id ? subjectMap[a.subject_id] : null;
+                const isOverdue = a.status !== "done" && a.due_date && a.due_date < today;
                 return (
-                  <div key={tx.id} className="list-item group cursor-pointer" onClick={() => onEdit(tx)}>
-                    <div className="item-icon" style={{ background: tx.type === "income" ? "var(--green-soft)" : "var(--red-soft)" }}>
-                      {tx.type === "income"
-                        ? <ArrowDownLeft size={17} style={{ color: "var(--green)" }} />
-                        : <ArrowUpRight size={17} style={{ color: "var(--red)" }} />
-                      }
-                    </div>
+                  <div key={a.id} className="list-item" style={{ background: "var(--bg-card)" }}>
+                    {a.status === "done" ? (
+                      <CheckCircle2 size={18} style={{ color: "var(--green)", flexShrink: 0 }} />
+                    ) : isOverdue ? (
+                      <AlertTriangle size={18} style={{ color: "var(--red)", flexShrink: 0 }} />
+                    ) : (
+                      <BookOpen size={18} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                    )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <CatIcon size={14} style={{ color: "var(--text-muted)" }} />
-                        <span className="font-semibold text-[14px]">{t[tx.category as keyof typeof t]}</span>
-                      </div>
-                      {tx.note && <span className="text-[12px] truncate" style={{ color: "var(--text-muted)" }}>{tx.note}</span>}
+                      <span className="font-semibold text-[14px]" style={{ textDecoration: a.status === "done" ? "line-through" : "none" }}>
+                        {a.title}
+                      </span>
+                      {sub && (
+                        <span className="badge ml-2" style={{ background: `${sub.color}18`, color: sub.color }}>
+                          {sub.name}
+                        </span>
+                      )}
                     </div>
-                    <span className="font-bold text-[14px] tabular-nums" style={{ color: tx.type === "income" ? "var(--green)" : "var(--red)" }}>
-                      {tx.type === "income" ? "+" : "-"}฿{tx.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
-                    </span>
                   </div>
                 );
               })}

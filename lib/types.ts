@@ -1,43 +1,23 @@
-export interface Transaction {
-  id: string;
-  type: "income" | "expense";
-  amount: number;
-  category: string;
-  note: string;
-  date: string;
-}
-
-export interface Todo {
-  id: string;
-  user_id: string;
-  title: string;
-  completed: boolean;
-  priority: "low" | "medium" | "high";
-  due_date: string | null;
-  created_at: string;
-}
-
-export interface SavingsGoal {
+export interface Subject {
   id: string;
   user_id: string;
   name: string;
-  target_amount: number;
-  current_amount: number;
-  deadline: string | null;
   color: string;
+  icon: string;
+  is_default: boolean;
+  sort_order: number;
   created_at: string;
 }
 
-export interface RecurringTransaction {
+export interface Assignment {
   id: string;
   user_id: string;
-  type: "income" | "expense";
-  amount: number;
-  category: string;
-  note: string;
-  frequency: "daily" | "weekly" | "monthly" | "yearly";
-  skip_weekends: boolean;
-  next_date: string;
-  active: boolean;
+  subject_id: string | null;
+  title: string;
+  description: string;
+  due_date: string | null;
+  priority: "low" | "medium" | "high";
+  status: "pending" | "in_progress" | "done";
   created_at: string;
+  updated_at: string;
 }

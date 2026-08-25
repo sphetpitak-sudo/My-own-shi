@@ -3,29 +3,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import type { Transaction, Todo, SavingsGoal, RecurringTransaction } from "@/lib/types";
+import type { Assignment, Subject } from "@/lib/types";
 import { ToastProvider, useToast } from "./Toast";
-import SummaryCards from "./SummaryCards";
-import Charts from "./Charts";
-import TransactionForm from "./TransactionForm";
-import TransactionList from "./TransactionList";
-import TodoForm from "./TodoForm";
-import TodoList from "./TodoList";
-import SavingsGoalList from "./SavingsGoalList";
-import RecurringForm from "./RecurringForm";
-import RecurringList from "./RecurringList";
+import StudyDashboard from "./StudyDashboard";
+import SubjectForm from "./SubjectForm";
+import SubjectList from "./SubjectList";
+import AssignmentForm from "./AssignmentForm";
+import AssignmentList from "./AssignmentList";
 import CalendarView from "./CalendarView";
-import { SkeletonSummary, SkeletonChart, SkeletonList, SkeletonForm } from "./Skeleton";
 import LangToggle from "./LangToggle";
 import ThemeToggle from "./ThemeToggle";
-import {
-  LayoutDashboard, Receipt, ListTodo, LogOut, Menu, X,
-  TrendingUp, Wallet, Plus, Settings as SettingsIcon,
-  Target, Repeat, Calendar, MoreHorizontal,
-} from "lucide-react";
 import Settings from "./Settings";
+import {
+  LayoutDashboard, BookOpen, ListTodo, LogOut, Menu, X,
+  Wallet, Plus, Settings as SettingsIcon, Calendar,
+} from "lucide-react";
 
-type Tab = "overview" | "money" | "calendar" | "todo" | "goals" | "recurring" | "settings";
+type Tab = "overview" | "subjects" | "tasks" | "calendar" | "settings";
 
 function Shell() {
   const { t, lang } = useLang();
@@ -38,14 +32,11 @@ function Shell() {
   const [userEmail, setUserEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [editing, setEditing] = useState<Transaction | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
-  const [recurringTx, setRecurringTx] = useState<RecurringTransaction[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [editingSubject, setEditingSubject] = useState<{ id: string; name: string; color: string } | null>(null);
 
   const fetchUser = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -58,99 +49,68 @@ function Shell() {
     return user;
   }, [supabase]);
 
-  const fetchTransactions = useCallback(async () => {
+  const fetchSubjects = useCallback(async () => {
     const user = await fetchUser();
     if (!user) return;
-    const { data } = await supabase.from("transactions").select("*").eq("user_id", user.id).order("date", { ascending: false });
-    setTransactions(data || []);
+    const { data } = await supabase.from("subjects").select("*").eq("user_id", user.id).order("sort_order");
+    setSubjects(data || []);
     setLoading(false);
   }, [supabase, fetchUser]);
 
-  const fetchTodos = useCallback(async () => {
+  const fetchAssignments = useCallback(async () => {
     const user = await fetchUser();
     if (!user) return;
-    const { data } = await supabase.from("todos").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setTodos(data || []);
-    setLoading(false);
-  }, [supabase, fetchUser]);
-
-  const fetchSavingsGoals = useCallback(async () => {
-    const user = await fetchUser();
-    if (!user) return;
-    const { data } = await supabase.from("savings_goals").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setSavingsGoals(data || []);
-    setLoading(false);
-  }, [supabase, fetchUser]);
-
-  const fetchRecurring = useCallback(async () => {
-    const user = await fetchUser();
-    if (!user) return;
-    const { data } = await supabase.from("recurring_transactions").select("*").eq("user_id", user.id).order("next_date", { ascending: true });
-    setRecurringTx(data || []);
+    const { data } = await supabase.from("assignments").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setAssignments(data || []);
     setLoading(false);
   }, [supabase, fetchUser]);
 
   const fetchAll = useCallback(async () => {
-    await Promise.all([fetchTransactions(), fetchTodos(), fetchSavingsGoals(), fetchRecurring()]);
-  }, [fetchTransactions, fetchTodos, fetchSavingsGoals, fetchRecurring]);
+    await Promise.all([fetchSubjects(), fetchAssignments()]);
+  }, [fetchSubjects, fetchAssignments]);
+
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase.channel("realtime-all")
-      .on("postgres_changes", { event: "*", schema: "public", table: "transactions", filter: `user_id=eq.${userId}` }, () => fetchTransactions())
-      .on("postgres_changes", { event: "*", schema: "public", table: "todos", filter: `user_id=eq.${userId}` }, () => fetchTodos())
-      .on("postgres_changes", { event: "*", schema: "public", table: "savings_goals", filter: `user_id=eq.${userId}` }, () => fetchSavingsGoals())
-      .on("postgres_changes", { event: "*", schema: "public", table: "recurring_transactions", filter: `user_id=eq.${userId}` }, () => fetchRecurring())
+    const channel = supabase.channel("realtime-studyhub")
+      .on("postgres_changes", { event: "*", schema: "public", table: "subjects", filter: `user_id=eq.${userId}` }, () => fetchSubjects())
+      .on("postgres_changes", { event: "*", schema: "public", table: "assignments", filter: `user_id=eq.${userId}` }, () => fetchAssignments())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [supabase, userId, fetchTransactions, fetchTodos]);
-
-  const filtered = transactions.filter((tx) => {
-    if (selectedMonth !== "all" && !tx.date.startsWith(selectedMonth)) return false;
-    if (selectedCategory !== "all" && tx.category !== selectedCategory) return false;
-    return true;
-  });
-
-  const months = [...new Set(transactions.map((tx) => tx.date.slice(0, 7)))].sort().reverse();
-  const categories = [...new Set(transactions.map((tx) => tx.category))];
-  const totalIncome = filtered.filter((tx) => tx.type === "income").reduce((s, tx) => s + Number(tx.amount), 0);
-  const totalExpense = filtered.filter((tx) => tx.type === "expense").reduce((s, tx) => s + Number(tx.amount), 0);
+  }, [supabase, userId, fetchSubjects, fetchAssignments]);
 
   const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = "/"; };
 
-  const handleDeleteTransaction = async (id: string) => {
-    await supabase.from("transactions").delete().eq("id", id);
-    toast(lang === "th" ? "ลบรายการแล้ว" : "Transaction deleted", "success");
-    fetchTransactions();
-  };
-
-  const handleCategoryDrop = async (txId: string, newCategory: string) => {
-    await supabase.from("transactions").update({ category: newCategory }).eq("id", txId);
-    toast(lang === "th" ? "เปลี่ยนหมวดแล้ว" : "Category updated", "success");
-    fetchTransactions();
+  const seedDefaultSubjects = async () => {
+    const user = await fetchUser();
+    if (!user) return;
+    const defaults = [
+      { name: lang === "th" ? "คณิตศาสตร์" : "Mathematics", color: "#4F7CFF" },
+      { name: lang === "th" ? "วิทยาศาสตร์" : "Science", color: "#22C55E" },
+      { name: lang === "th" ? "ภาษาอังกฤษ" : "English", color: "#F59E0B" },
+      { name: lang === "th" ? "ภาษาไทย" : "Thai", color: "#EF4444" },
+      { name: lang === "th" ? "สังคมศึกษา" : "Social Studies", color: "#A855F7" },
+    ];
+    for (const d of defaults) {
+      await supabase.from("subjects").insert({ user_id: user.id, name: d.name, color: d.color, icon: "BookOpen", is_default: true });
+    }
+    fetchSubjects();
   };
 
   const NAV: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
-    { key: "overview", label: lang === "th" ? "ภาพรวม" : "Overview", icon: LayoutDashboard },
-    { key: "money", label: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", icon: Receipt },
+    { key: "overview", label: t.overview, icon: LayoutDashboard },
+    { key: "subjects", label: t.subjects, icon: BookOpen },
+    { key: "tasks", label: t.tasks, icon: ListTodo },
     { key: "calendar", label: t.calendar, icon: Calendar },
-    { key: "goals", label: t.savings_goals, icon: Target },
-    { key: "recurring", label: t.recurring, icon: Repeat },
-    { key: "todo", label: lang === "th" ? "งานที่ต้องทำ" : "Tasks", icon: ListTodo },
     { key: "settings", label: t.settings, icon: SettingsIcon },
   ];
 
-  const pendingTodos = todos.filter((t) => !t.completed).length;
-  const balance = totalIncome - totalExpense;
-
   const titles: Record<Tab, { title: string; sub: string }> = {
-    overview: { title: lang === "th" ? "ภาพรวม" : "Overview", sub: lang === "th" ? "สรุปการเงินและงานของคุณ" : "Your money & tasks at a glance" },
-    money: { title: lang === "th" ? "รายรับ-รายจ่าย" : "Transactions", sub: lang === "th" ? "บันทึกและจัดการรายการการเงิน" : "Record and manage your transactions" },
+    overview: { title: t.overview, sub: t.overview_sub },
+    subjects: { title: t.subjects, sub: t.subjects_sub },
+    tasks: { title: t.tasks, sub: t.tasks_sub },
     calendar: { title: t.calendar, sub: t.calendar_sub },
-    goals: { title: t.savings_goals, sub: t.savings_sub },
-    recurring: { title: t.recurring, sub: t.recurring_sub },
-    todo: { title: lang === "th" ? "งานที่ต้องทำ" : "Tasks", sub: lang === "th" ? "จัดการงานของคุณให้เป็นระบบ" : "Stay organized, get things done" },
     settings: { title: t.settings, sub: t.settings_sub },
   };
 
@@ -211,9 +171,16 @@ function Shell() {
             <ThemeToggle />
             {tab !== "settings" && (
               <button className="btn btn-primary !py-2 !px-3.5 !text-[13px]"
-                onClick={() => { setTab("money"); setTimeout(() => document.getElementById("tx-form")?.scrollIntoView({ behavior: "smooth" }), 80); }}>
+                onClick={() => {
+                  if (tab === "subjects") {
+                    document.getElementById("subject-form")?.scrollIntoView({ behavior: "smooth" });
+                  } else {
+                    setTab("tasks");
+                    setTimeout(() => document.getElementById("assignment-form")?.scrollIntoView({ behavior: "smooth" }), 80);
+                  }
+                }}>
                 <Plus size={15} />
-                <span className="hidden sm:inline topbar-add-text">{lang === "th" ? "เพิ่มรายการ" : "Add"}</span>
+                <span className="hidden sm:inline">{t.add}</span>
               </button>
             )}
           </div>
@@ -230,78 +197,55 @@ function Shell() {
 
           {loading ? (
             <div className="space-y-4">
-              <SkeletonSummary />
-              {tab !== "todo" && <SkeletonChart />}
-              {tab === "money" && <SkeletonForm />}
-              <SkeletonList />
+              <div className="grid grid-cols-3 gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="stat-card"><div className="shimmer h-20" /></div>
+                ))}
+              </div>
+              <div className="shimmer h-40" />
             </div>
           ) : (
             <>
-              {/* Stats always visible */}
-              {tab !== "settings" && (
-                <SummaryCards income={totalIncome} expense={totalExpense} balance={balance} pendingTodos={pendingTodos} />
+              {tab === "overview" && (
+                <StudyDashboard assignments={assignments} subjects={subjects} />
               )}
 
-              {tab === "overview" && (
+              {tab === "subjects" && (
                 <div className="mt-5 space-y-4">
-                  <div className="flex items-center justify-between animate-in d1">
-                    <div className="segmented">
-                      <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="select !py-2 !pl-3 !pr-9 !text-[13px] !w-auto">
-                        <option value="all">{lang === "th" ? "ทุกเดือน" : "All months"}</option>
-                        {months.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
+                  {subjects.length === 0 && (
+                    <div className="card p-4 text-center">
+                      <p className="text-[13px] mb-3" style={{ color: "var(--text-muted)" }}>
+                        {lang === "th" ? "ยังไม่มีวิชา — เพิ่มวิชาหรือใช้ค่าเริ่มต้น" : "No subjects yet — add your own or use defaults"}
+                      </p>
+                      <button onClick={seedDefaultSubjects} className="btn btn-ghost !text-[12px]">
+                        {lang === "th" ? "เพิ่มวิชาพื้นฐาน" : "Add default subjects"}
+                      </button>
                     </div>
-                    <button className="btn btn-ghost !py-2 !px-3.5 !text-[13px]" onClick={() => setTab("money")}>
-                      {lang === "th" ? "ดูทั้งหมด" : "View all"}
-                    </button>
+                  )}
+                  <div id="subject-form">
+                    <SubjectForm onSaved={() => { fetchSubjects(); toast(lang === "th" ? "บันทึกวิชาสำเร็จ" : "Subject saved", "success"); }}
+                      editing={editingSubject} onCancelEdit={() => setEditingSubject(null)} />
                   </div>
-                  <div className="animate-in d2"><Charts transactions={filtered} /></div>
-                  <div className="animate-in d3">
-                    <TransactionList transactions={filtered.slice(0, 6)} onEdit={(tx) => { setEditing(tx); setTab("money"); }} onDelete={handleDeleteTransaction} compact />
-                  </div>
+                  <SubjectList subjects={subjects} onEdit={(s) => setEditingSubject({ id: s.id, name: s.name, color: s.color })} onDeleted={() => { fetchSubjects(); toast(lang === "th" ? "ลบวิชาแล้ว" : "Subject deleted", "success"); }} />
                 </div>
               )}
 
-              {tab === "money" && (
+              {tab === "tasks" && (
                 <div className="mt-5 space-y-4">
-                  <div id="tx-form" className="animate-in d1">
-                    <TransactionForm onSaved={() => { fetchTransactions(); toast(editing ? (lang === "th" ? "แก้ไขสำเร็จ" : "Updated") : (lang === "th" ? "บันทึกสำเร็จ" : "Saved")); }}
-                      editing={editing} onCancelEdit={() => setEditing(null)} onCategoryDrop={handleCategoryDrop} />
+                  <div id="assignment-form">
+                    <AssignmentForm subjects={subjects} onSaved={() => { fetchAssignments(); toast(editingAssignment ? t.assignment_updated : t.assignment_created, "success"); }}
+                      editing={editingAssignment} onCancelEdit={() => setEditingAssignment(null)} />
                   </div>
-                  <div className="animate-in d2"><Charts transactions={filtered} /></div>
-                  <div className="animate-in d3">
-                    <TransactionList transactions={filtered} onEdit={setEditing} onDelete={handleDeleteTransaction} />
-                  </div>
+                  <AssignmentList assignments={assignments} subjects={subjects}
+                    onEdit={setEditingAssignment}
+                    onDeleted={() => { fetchAssignments(); toast(t.assignment_deleted, "success"); }}
+                    onStatusChange={fetchAssignments} />
                 </div>
               )}
 
               {tab === "calendar" && (
                 <div className="mt-5">
-                  <CalendarView transactions={transactions} onEdit={(tx) => { setEditing(tx); setTab("money"); }} />
-                </div>
-              )}
-
-              {tab === "todo" && (
-                <div className="mt-5 space-y-4">
-                  <div className="animate-in d1">
-                    <TodoForm onSaved={() => { fetchTodos(); toast(lang === "th" ? "เพิ่มงานแล้ว" : "Task added"); }} />
-                  </div>
-                  <div className="animate-in d2">
-                    <TodoList todos={todos} onSaved={fetchTodos} />
-                  </div>
-                </div>
-              )}
-
-              {tab === "goals" && (
-                <div className="mt-5">
-                  <SavingsGoalList goals={savingsGoals} onSaved={fetchSavingsGoals} toast={toast} />
-                </div>
-              )}
-
-              {tab === "recurring" && (
-                <div className="mt-5 space-y-4">
-                  <RecurringForm onSaved={() => { fetchRecurring(); toast(t.recurring_created, "success"); }} toast={toast} />
-                  <RecurringList items={recurringTx} onSaved={fetchRecurring} toast={toast} />
+                  <CalendarView assignments={assignments} subjects={subjects} />
                 </div>
               )}
 
@@ -317,33 +261,12 @@ function Shell() {
 
       {/* Bottom nav (mobile) */}
       <nav className="bottom-nav">
-        {NAV.filter(({ key }) => !["goals", "recurring"].includes(key)).map(({ key, label, icon: Icon }) => (
+        {NAV.map(({ key, label, icon: Icon }) => (
           <button key={key} className={`bottom-nav-item ${tab === key ? "active" : ""}`} onClick={() => setTab(key)}>
             <span className="nav-icon"><Icon size={19} /></span>
             {label}
           </button>
         ))}
-        <button
-          className={`bottom-nav-item ${["goals", "recurring"].includes(tab) ? "active" : ""}`}
-          onClick={() => setMoreOpen(!moreOpen)}
-        >
-          <span className="nav-icon"><MoreHorizontal size={19} /></span>
-          {lang === "th" ? "เพิ่มเติม" : "More"}
-        </button>
-        {moreOpen && (
-          <>
-            <div className="fixed inset-0 z-[99]" onClick={() => setMoreOpen(false)} />
-            <div className="bottom-more-menu">
-              {NAV.filter(({ key }) => ["goals", "recurring"].includes(key)).map(({ key, label, icon: Icon }) => (
-                <button key={key} className={`bottom-more-item ${tab === key ? "active" : ""}`}
-                  onClick={() => { setTab(key); setMoreOpen(false); }}>
-                  <Icon size={18} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
       </nav>
     </div>
   );
