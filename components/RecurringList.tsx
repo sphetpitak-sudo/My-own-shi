@@ -11,6 +11,7 @@ const CAT_ICONS: Record<string, typeof Utensils> = {
 };
 
 const FREQ_LABELS: Record<string, Record<string, string>> = {
+  daily: { th: "ทุกวัน", en: "Daily" },
   weekly: { th: "ทุกสัปดาห์", en: "Weekly" },
   monthly: { th: "ทุกเดือน", en: "Monthly" },
   yearly: { th: "ทุกปี", en: "Yearly" },

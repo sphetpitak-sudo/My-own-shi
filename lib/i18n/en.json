@@ -89,6 +89,7 @@
   "new_recurring": "New Recurring",
   "frequency": "Frequency",
   "weekly": "Weekly",
+  "daily": "Daily",
   "monthly_recurring": "Monthly",
   "yearly": "Yearly",
   "next_date": "Next Date",

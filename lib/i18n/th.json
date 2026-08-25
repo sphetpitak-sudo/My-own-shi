@@ -89,6 +89,7 @@
   "new_recurring": "รายการประจำใหม่",
   "frequency": "ความถี่",
   "weekly": "ทุกสัปดาห์",
+  "daily": "ทุกวัน",
   "monthly_recurring": "ทุกเดือน",
   "yearly": "ทุกปี",
   "next_date": "วันที่ครั้งถัดไป",

@@ -20,7 +20,7 @@ export default function RecurringForm({ onSaved, onClose }: Props) {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("food");
   const [note, setNote] = useState("");
-  const [frequency, setFrequency] = useState<"weekly" | "monthly" | "yearly">("monthly");
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly");
   const [nextDate, setNextDate] = useState(new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
 
@@ -66,10 +66,10 @@ export default function RecurringForm({ onSaved, onClose }: Props) {
         <div className="field">
           <label className="label">{t.frequency}</label>
           <div className="segmented w-full">
-            {(["weekly", "monthly", "yearly"] as const).map((f) => (
+            {(["daily", "weekly", "monthly", "yearly"] as const).map((f) => (
               <button key={f} type="button" onClick={() => setFrequency(f)}
                 className={`segmented-item flex-1 text-[12px] ${frequency === f ? "active" : ""}`}>
-                {f === "weekly" ? t.weekly : f === "monthly" ? t.monthly_recurring : t.yearly}
+                {f === "daily" ? t.daily : f === "weekly" ? t.weekly : f === "monthly" ? t.monthly_recurring : t.yearly}
               </button>
             ))}
           </div>

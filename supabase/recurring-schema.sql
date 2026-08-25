@@ -5,7 +5,7 @@ create table public.recurring_transactions (
   amount numeric(12,2) not null check (amount > 0),
   category text not null,
   note text default '',
-  frequency text not null check (frequency in ('weekly', 'monthly', 'yearly')),
+  frequency text not null check (frequency in ('daily', 'weekly', 'monthly', 'yearly')),
   next_date date not null,
   active boolean not null default true,
   created_at timestamptz default now()

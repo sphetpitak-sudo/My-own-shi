@@ -35,7 +35,7 @@ export interface RecurringTransaction {
   amount: number;
   category: string;
   note: string;
-  frequency: "weekly" | "monthly" | "yearly";
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
   next_date: string;
   active: boolean;
   created_at: string;
