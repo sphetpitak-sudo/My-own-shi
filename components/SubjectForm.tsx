@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import { Plus } from "lucide-react";
@@ -23,12 +23,15 @@ export default function SubjectForm({ onSaved, editing, onCancelEdit }: Props) {
   const [color, setColor] = useState(SUBJECT_COLORS[0]);
   const [loading, setLoading] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     if (editing) {
       setName(editing.name);
       setColor(editing.color);
+    } else {
+      setName("");
+      setColor(SUBJECT_COLORS[0]);
     }
-  });
+  }, [editing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +94,8 @@ export default function SubjectForm({ onSaved, editing, onCancelEdit }: Props) {
                   borderColor: color === c ? "var(--text)" : "transparent",
                   transform: color === c ? "scale(1.15)" : "scale(1)",
                 }}
+                aria-label={lang === "th" ? `สี ${name || ""}` : `Color ${name || ""}`}
+                aria-pressed={color === c}
               />
             ))}
           </div>

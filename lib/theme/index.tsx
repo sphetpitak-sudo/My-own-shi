@@ -17,18 +17,35 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (saved === "dark" || saved === "light") {
       setTheme(saved);
       document.documentElement.classList.toggle("dark", saved === "dark");
-    } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setTheme(prefersDark ? "dark" : "light");
-      document.documentElement.classList.toggle("dark", prefersDark);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setTheme("dark");
+      document.documentElement.classList.add("dark");
     }
   }, []);
 
+  useEffect(() => {
+    const checkTime = () => {
+      const hour = new Date().getHours();
+      if (!localStorage.getItem("theme")) {
+        const shouldBeDark = hour >= 20 || hour < 7;
+        document.documentElement.classList.toggle("dark", shouldBeDark);
+      }
+    };
+    checkTime();
+    const interval = setInterval(checkTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
   const toggle = () => {
     const next = theme === "light" ? "dark" : "light";
+    document.documentElement.classList.add("transitioning");
     setTheme(next);
     localStorage.setItem("theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
+    setTimeout(() => document.documentElement.classList.remove("transitioning"), 300);
   };
 
   return (

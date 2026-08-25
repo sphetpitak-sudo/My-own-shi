@@ -21,7 +21,7 @@ import ThemeToggle from "./ThemeToggle";
 import Settings from "./Settings";
 import {
   LayoutDashboard, BookOpen, ListTodo, LogOut, Menu, X,
-  Wallet, Plus, Settings as SettingsIcon, Calendar,
+  Plus, Settings as SettingsIcon, Calendar, User,
 } from "lucide-react";
 
 type Tab = "overview" | "subjects" | "tasks" | "calendar" | "settings";
@@ -44,42 +44,77 @@ function Shell() {
   const [editingSubject, setEditingSubject] = useState<{ id: string; name: string; color: string } | null>(null);
   const [templateData, setTemplateData] = useState<{ title: string; description: string; priority: "low" | "medium" | "high"; estimatedMinutes: number } | null>(null);
 
-  const fetchUser = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUserId(user.id);
-      setUserEmail(user.email || "");
-      setDisplayName(user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "");
-      setAvatarUrl(user.user_metadata?.avatar_url || "");
-    }
-    return user;
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        setUserEmail(user.email || "");
+        setDisplayName(user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "");
+        setAvatarUrl(user.user_metadata?.avatar_url || "");
+      }
+      setLoading(false);
+    };
+    init();
   }, [supabase]);
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "1") setTab("overview");
+      if (e.key === "2") setTab("subjects");
+      if (e.key === "3") setTab("tasks");
+      if (e.key === "4") setTab("calendar");
+      if (e.key === "5") setTab("settings");
+      if (e.key === "n" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setTab("tasks");
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   const fetchSubjects = useCallback(async () => {
-    const user = await fetchUser();
-    if (!user) return;
-    const { data } = await supabase.from("subjects").select("*").eq("user_id", user.id).order("sort_order");
+    if (!userId) return;
+    const { data } = await supabase.from("subjects").select("*").eq("user_id", userId).order("sort_order");
     setSubjects(data || []);
-    setLoading(false);
-  }, [supabase, fetchUser]);
+  }, [supabase, userId]);
 
   const fetchAssignments = useCallback(async () => {
-    const user = await fetchUser();
-    if (!user) return;
-    const { data } = await supabase.from("assignments").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (!userId) return;
+    const { data } = await supabase.from("assignments").select("*").eq("user_id", userId).order("created_at", { ascending: false });
     setAssignments(data || []);
-    setLoading(false);
-  }, [supabase, fetchUser]);
+  }, [supabase, userId]);
 
   const fetchAll = useCallback(async () => {
     await Promise.all([fetchSubjects(), fetchAssignments()]);
   }, [fetchSubjects, fetchAssignments]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { if (userId) fetchAll(); }, [fetchAll, userId]);
+
+  useEffect(() => {
+    if (!userId || assignments.length === 0) return;
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+    const tomorrowAssignments = assignments.filter(
+      (a) => a.due_date === tomorrowStr && a.status !== "done"
+    );
+    if (tomorrowAssignments.length > 0 && "Notification" in window && Notification.permission === "granted") {
+      new Notification(
+        lang === "th" ? "มีงานส่งพรุ่งนี้!" : "Due tomorrow!",
+        { body: tomorrowAssignments.map((a) => a.title).join(", "), icon: "/favicon.ico" }
+      );
+    }
+  }, [assignments, userId, lang]);
 
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase.channel("realtime-studyhub")
+    const channel = supabase.channel(`realtime-${userId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "subjects", filter: `user_id=eq.${userId}` }, () => fetchSubjects())
       .on("postgres_changes", { event: "*", schema: "public", table: "assignments", filter: `user_id=eq.${userId}` }, () => fetchAssignments())
       .subscribe();
@@ -89,8 +124,7 @@ function Shell() {
   const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = "/"; };
 
   const seedDefaultSubjects = async () => {
-    const user = await fetchUser();
-    if (!user) return;
+    if (!userId) return;
     const defaults = [
       { name: lang === "th" ? "คณิตศาสตร์" : "Mathematics", color: "#4F7CFF" },
       { name: lang === "th" ? "วิทยาศาสตร์" : "Science", color: "#22C55E" },
@@ -98,9 +132,9 @@ function Shell() {
       { name: lang === "th" ? "ภาษาไทย" : "Thai", color: "#EF4444" },
       { name: lang === "th" ? "สังคมศึกษา" : "Social Studies", color: "#A855F7" },
     ];
-    for (const d of defaults) {
-      await supabase.from("subjects").insert({ user_id: user.id, name: d.name, color: d.color, icon: "BookOpen", is_default: true });
-    }
+    await supabase.from("subjects").insert(defaults.map(d => ({
+      user_id: userId, name: d.name, color: d.color, icon: "BookOpen", is_default: true,
+    })));
     fetchSubjects();
   };
 
@@ -126,11 +160,11 @@ function Shell() {
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
           {avatarUrl ? (
-            <img src={avatarUrl} alt="" className="w-8 h-8 rounded-[10px] object-cover" referrerPolicy="no-referrer" />
+            <img src={avatarUrl} alt={displayName || "User avatar"} className="w-8 h-8 rounded-[10px] object-cover" referrerPolicy="no-referrer" />
           ) : (
             <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[14px] font-bold"
               style={{ background: "var(--primary)", color: "var(--text-invert)" }}>
-              {displayName ? displayName.charAt(0).toUpperCase() : <Wallet size={16} />}
+              {displayName ? displayName.charAt(0).toUpperCase() : <User size={16} />}
             </div>
           )}
           <div className="flex flex-col min-w-0">
@@ -146,7 +180,8 @@ function Shell() {
         <nav className="flex flex-col gap-1">
           {NAV.map(({ key, label, icon: Icon }) => (
             <button key={key} className={`nav-item ${tab === key ? "active" : ""}`}
-              onClick={() => { setTab(key); setSidebarOpen(false); }}>
+              onClick={() => { setTab(key); setSidebarOpen(false); }}
+              aria-current={tab === key ? "page" : undefined}>
               <span className="nav-icon"><Icon size={17} /></span>
               {label}
             </button>
@@ -162,6 +197,19 @@ function Shell() {
       </aside>
 
       {sidebarOpen && <div className="overlay lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Focus trap for sidebar on mobile */}
+      {sidebarOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={lang === "th" ? "เมนูนำทาง" : "Navigation menu"}
+          onKeyDown={(e) => { if (e.key === "Escape") setSidebarOpen(false); }}
+          className="sr-only"
+          tabIndex={-1}
+          ref={(el) => { if (el) el.focus(); }}
+        />
+      )}
 
       {/* Main */}
       <div className="main-area">
@@ -216,8 +264,9 @@ function Shell() {
             </div>
           ) : (
             <>
+              <div key={tab} className="tab-enter">
               {tab === "overview" && (
-                <div className="tab-content space-y-4">
+                <div key="overview" className="tab-enter space-y-4">
                   <StudyDashboard assignments={assignments} subjects={subjects} />
                   <StudyCharts assignments={assignments} />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -262,7 +311,7 @@ function Shell() {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <ExportCSV assignments={assignments} subjects={subjects} />
+                    {userId && <ExportCSV assignments={assignments} subjects={subjects} userId={userId} onImport={fetchAssignments} />}
                   </div>
                   <AssignmentList assignments={assignments} subjects={subjects}
                     onEdit={setEditingAssignment}
@@ -273,7 +322,7 @@ function Shell() {
 
               {tab === "calendar" && (
                 <div className="mt-5 tab-content">
-                  <CalendarView assignments={assignments} subjects={subjects} />
+                  <CalendarView assignments={assignments} subjects={subjects} onCreated={fetchAll} />
                 </div>
               )}
 
@@ -282,6 +331,7 @@ function Shell() {
                   <Settings />
                 </div>
               )}
+              </div>
             </>
           )}
         </main>
@@ -289,8 +339,9 @@ function Shell() {
 
       {/* Bottom nav (mobile) */}
       <nav className="bottom-nav">
-        {NAV.map(({ key, label, icon: Icon }) => (
-          <button key={key} className={`bottom-nav-item ${tab === key ? "active" : ""}`} onClick={() => setTab(key)}>
+          {NAV.map(({ key, label, icon: Icon }) => (
+          <button key={key} className={`bottom-nav-item ${tab === key ? "active" : ""}`} onClick={() => setTab(key)}
+            aria-current={tab === key ? "page" : undefined}>
             <span className="nav-icon"><Icon size={19} /></span>
             {label}
           </button>

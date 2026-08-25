@@ -102,5 +102,8 @@
   "great_job": "ทำได้ดีมาก!",
   "pending_count": "งานค้าง",
   "completed_count": "เสร็จแล้ว",
-  "overdue_count": "เลยกำหนด"
+  "overdue_count": "เลยกำหนด",
+  "password_min_6": "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
+  "failed": "ล้มเหลว",
+  "network_error": "เครือข่ายขัดข้อง"
 }

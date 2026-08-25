@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import { Mail, Lock, ArrowRight, GraduationCap } from "lucide-react";
+import { Mail, Lock, ArrowRight, GraduationCap, Eye, EyeOff } from "lucide-react";
 
 export default function AuthForm() {
   const { t, lang } = useLang();
@@ -14,6 +14,18 @@ export default function AuthForm() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const getPasswordStrength = (pwd: string): { score: number; label: string; color: string } => {
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    const labels = [lang === "th" ? "อ่อนมาก" : "Very weak", lang === "th" ? "อ่อน" : "Weak", lang === "th" ? "พอใช้" : "Fair", lang === "th" ? "ดี" : "Good", lang === "th" ? "แข็งแรง" : "Strong"];
+    const colors = ["var(--red)", "var(--red)", "var(--yellow, #eab308)", "var(--green)", "var(--green)"];
+    return { score, label: labels[score], color: colors[score] };
+  };
 
   const supabase = createClient();
 
@@ -28,7 +40,12 @@ export default function AuthForm() {
       if (error) setError(error.message); else setMessage(t.signup_success);
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { setError(error.message); setLoading(false); return; }
+      if (error) {
+      const msg = error.message.includes("429") || error.message.toLowerCase().includes("rate")
+        ? (lang === "th" ? "ลองใหม่อีกครั้งในภายหลัง — คุณลองผิดหลายครั้งเกินไป" : "Too many attempts. Please try again later.")
+        : error.message;
+      setError(msg); setLoading(false); return;
+    }
       window.location.href = "/dashboard";
       return;
     }
@@ -53,7 +70,7 @@ export default function AuthForm() {
           <h2 className="text-[17px] font-bold text-center mb-5">{isSignUp ? t.signup : t.login}</h2>
 
           {error && (
-            <div className="mb-4 p-3 rounded-xl text-[13px] font-medium" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+            <div id="auth-error" role="alert" className="mb-4 p-3 rounded-xl text-[13px] font-medium" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
               {error}
             </div>
           )}
@@ -63,22 +80,42 @@ export default function AuthForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-3.5" aria-describedby={error ? "auth-error" : undefined}>
             <div className="field">
               <label className="label">{t.email}</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="input" style={{ paddingLeft: "38px" }} placeholder="email@example.com" />
+                  className="input" style={{ paddingLeft: "38px" }} placeholder="email@example.com"
+                  aria-invalid={error ? "true" : undefined} />
               </div>
             </div>
             <div className="field">
               <label className="label">{t.password}</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="input" style={{ paddingLeft: "38px" }} placeholder="••••••••" />
+                <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="input" style={{ paddingLeft: "38px", paddingRight: "38px" }} placeholder="••••••••"
+                  aria-invalid={error ? "true" : undefined} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                  aria-label={showPassword ? (lang === "th" ? "ซ่อนรหัสผ่าน" : "Hide password") : (lang === "th" ? "แสดงรหัสผ่าน" : "Show password")}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+              {isSignUp && password && (
+                <div className="mt-1">
+                  <div className="flex gap-1 mb-1">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i} className="h-1 flex-1 rounded-full" style={{ background: i < getPasswordStrength(password).score ? getPasswordStrength(password).color : "var(--border)" }} />
+                    ))}
+                  </div>
+                  <p className="text-xs" style={{ color: getPasswordStrength(password).color }}>{getPasswordStrength(password).label}</p>
+                </div>
+              )}
             </div>
             {isSignUp && (
               <div className="field">
@@ -86,7 +123,8 @@ export default function AuthForm() {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                   <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="input" style={{ paddingLeft: "38px" }} placeholder="••••••••" />
+                    className="input" style={{ paddingLeft: "38px" }} placeholder="••••••••"
+                    aria-invalid={error ? "true" : undefined} />
                 </div>
               </div>
             )}

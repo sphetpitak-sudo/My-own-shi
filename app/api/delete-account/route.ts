@@ -2,14 +2,30 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function POST(request: Request) {
-  const { email } = await request.json();
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+  if (origin && host && !origin.includes(host)) {
+    return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const email = body.email;
+  if (!email || !email.includes("@") || email.length > 254) {
+    return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        getAll() { return []; },
+        getAll() {
+          const cookieHeader = request.headers.get("cookie") || "";
+          return cookieHeader.split(";").map(c => {
+            const [name, ...rest] = c.trim().split("=");
+            return { name, value: rest.join("=") };
+          }).filter(c => c.name);
+        },
         setAll() {},
       },
     }
@@ -20,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (email !== user.email) {
+  if (email !== user.email!) {
     return NextResponse.json({ error: "Email does not match" }, { status: 400 });
   }
 

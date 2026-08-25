@@ -102,5 +102,8 @@
   "great_job": "Great job!",
   "pending_count": "Pending",
   "completed_count": "Completed",
-  "overdue_count": "Overdue"
+  "overdue_count": "Overdue",
+  "password_min_6": "Password must be at least 6 characters",
+  "failed": "Failed",
+  "network_error": "Network error"
 }

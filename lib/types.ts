@@ -9,6 +9,12 @@ export interface Subject {
   created_at: string;
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Assignment {
   id: string;
   user_id: string;
@@ -19,6 +25,10 @@ export interface Assignment {
   priority: "low" | "medium" | "high";
   status: "pending" | "in_progress" | "done";
   estimated_minutes: number | null;
+  actual_minutes: number | null;
+  subtasks: Subtask[];
+  recurring: "none" | "daily" | "weekly" | "monthly";
+  tags: string[];
   created_at: string;
   updated_at: string;
 }

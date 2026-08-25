@@ -18,7 +18,10 @@ export default function StudyStreaks({ assignments }: Props) {
     const doneDates = new Set(
       assignments
         .filter((a) => a.status === "done")
-        .map((a) => a.updated_at.slice(0, 10))
+        .map((a) => {
+          const d = new Date(a.updated_at);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        })
     );
 
     // Calculate current streak
@@ -49,14 +52,19 @@ export default function StudyStreaks({ assignments }: Props) {
 
     // This week completions
     const weekAgo = getLocalDateOffset(-7);
-    const thisWeek = assignments.filter(
-      (a) => a.status === "done" && a.updated_at.slice(0, 10) >= weekAgo
-    ).length;
+    const thisWeek = assignments.filter((a) => {
+      if (a.status !== "done") return false;
+      const d = new Date(a.updated_at);
+      const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      return local >= weekAgo;
+    }).length;
 
-    // Today completions
-    const todayCount = assignments.filter(
-      (a) => a.status === "done" && a.updated_at.slice(0, 10) === today
-    ).length;
+    const todayCount = assignments.filter((a) => {
+      if (a.status !== "done") return false;
+      const d = new Date(a.updated_at);
+      const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      return local === today;
+    }).length;
 
     return { streak, bestStreak, thisWeek, todayCount };
   }, [assignments]);

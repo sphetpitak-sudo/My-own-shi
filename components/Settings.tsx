@@ -66,7 +66,7 @@ export default function Settings() {
     }
 
     if (newPassword.length < 6) {
-      setPasswordMsg({ type: "error", text: lang === "th" ? "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" : "Password must be at least 6 characters" });
+      setPasswordMsg({ type: "error", text: t.password_min_6 });
       setPasswordLoading(false);
       return;
     }
@@ -105,14 +105,14 @@ export default function Settings() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setDeleteMsg({ type: "error", text: data.error || "Failed" });
+        setDeleteMsg({ type: "error", text: data.error || t.failed });
         setDeleteLoading(false);
         return;
       }
       setDeleteMsg({ type: "success", text: t.account_deleted });
       setTimeout(() => { window.location.href = "/"; }, 1500);
     } catch {
-      setDeleteMsg({ type: "error", text: "Network error" });
+      setDeleteMsg({ type: "error", text: t.network_error });
       setDeleteLoading(false);
     }
   };
@@ -122,7 +122,7 @@ export default function Settings() {
       {/* Profile Section */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-[11px] flex items-center justify-center" style={{ background: "var(--primary-soft)" }}>
+          <div className="w-10 h-10 rounded-[11px] flex items-center justify-center" style={{ background: "var(--bg)" }}>
             <User size={18} style={{ color: "var(--primary)" }} />
           </div>
           <div>
@@ -232,7 +232,7 @@ export default function Settings() {
         )}
 
         {!showDeleteConfirm ? (
-          <button onClick={() => setShowDeleteConfirm(true)} className="btn w-full !border-red-500 !text-red-500 hover:!bg-red-50">
+          <button onClick={() => setShowDeleteConfirm(true)} className="btn w-full !border-red-500 !text-red-500 hover:!bg-[var(--red-soft)]">
             <Trash2 size={15} />
             {t.delete_account}
           </button>
@@ -246,7 +246,7 @@ export default function Settings() {
             </div>
             <div className="flex gap-2">
               <button onClick={handleDeleteAccount} disabled={deleteEmail !== email || deleteLoading}
-                className="btn flex-1 !border-red-500 !text-red-500 hover:!bg-red-50 disabled:opacity-40">
+                className="btn flex-1 !border-red-500 !text-red-500 hover:!bg-[var(--red-soft)] disabled:opacity-40">
                 <Trash2 size={15} />
                 {deleteLoading ? t.loading : t.confirm_delete}
               </button>

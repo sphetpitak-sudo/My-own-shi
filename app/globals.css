@@ -477,6 +477,17 @@ body {
   to { opacity: 0; transform: translateY(6px); }
 }
 
+/* ============ PULL-TO-REFRESH ============ */
+[data-pull-refresh].pulling {
+  transform: translateY(20px);
+  transition: transform 0.2s;
+}
+
+/* ============ FIX: pb-20 only on mobile ============ */
+@media (min-width: 768px) {
+  .pb-20 { padding-bottom: 1.5rem !important; }
+}
+
 /* ============ ANIMATIONS ============ */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -501,6 +512,12 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 .tab-content { animation: tabFadeIn 0.25s var(--ease) both; }
+
+.tab-enter { animation: tabFadeSlide 0.2s ease-out; }
+@keyframes tabFadeSlide {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* ============ STAT COUNT UP ============ */
 @keyframes countUp {
@@ -551,7 +568,7 @@ body {
 /* ============ OVERLAY (mobile sidebar) ============ */
 .overlay {
   position: fixed; inset: 0;
-  background: rgba(23,23,31,0.4);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(2px);
   z-index: 99;
   animation: fadeIn 0.2s var(--ease);
@@ -731,4 +748,21 @@ button:focus-visible {
   .icon-btn-sm { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
   .bottom-nav-item { min-height: 48px; }
   .chip { min-height: 38px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============ PRINT ============ */
+@media print {
+  .no-print, nav, .sidebar, .bottom-nav, button { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .card { border: 1px solid #ccc !important; box-shadow: none !important; }
+  * { color-adjust: exact; -webkit-print-color-adjust: exact; }
 }

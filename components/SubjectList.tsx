@@ -11,10 +11,6 @@ interface Props {
   onDeleted: () => void;
 }
 
-const SUB_ICONS: Record<string, typeof BookOpen> = {
-  BookOpen,
-};
-
 export default function SubjectList({ subjects, onEdit, onDeleted }: Props) {
   const { lang } = useLang();
   const supabase = createClient();
@@ -22,15 +18,16 @@ export default function SubjectList({ subjects, onEdit, onDeleted }: Props) {
   const handleDelete = async (id: string) => {
     if (!confirm(lang === "th" ? "ลบวิชานี้?" : "Delete this subject?")) return;
     await supabase.from("subjects").delete().eq("id", id);
+    if (navigator.vibrate) navigator.vibrate(10);
     onDeleted();
   };
 
   if (subjects.length === 0) {
     return (
       <div className="empty">
-        <div className="empty-icon"><BookOpen size={24} /></div>
+        <div className="empty-icon"><BookOpen size={32} /></div>
         <div className="empty-title">{lang === "th" ? "ยังไม่มีวิชา" : "No subjects yet"}</div>
-        <div className="empty-sub">{lang === "th" ? "เริ่มเพิ่มวิชาแรกของคุณ" : "Add your first subject"}</div>
+        <div className="empty-sub">{lang === "th" ? "กดปุ่มด้านบนเพื่อเพิ่มวิชาแรก" : "Tap the button above to add your first subject"}</div>
       </div>
     );
   }

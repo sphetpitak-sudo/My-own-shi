@@ -36,6 +36,9 @@ export async function middleware(request: NextRequest) {
       supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
         redirectResponse.cookies.set(name, value);
       });
+      redirectResponse.headers.set("X-Content-Type-Options", "nosniff");
+      redirectResponse.headers.set("X-Frame-Options", "DENY");
+      redirectResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
       return redirectResponse;
     }
   }
@@ -47,7 +50,11 @@ export async function middleware(request: NextRequest) {
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    redirectResponse.headers.set("X-Content-Type-Options", "nosniff");
+    redirectResponse.headers.set("X-Frame-Options", "DENY");
+    redirectResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    return redirectResponse;
   }
 
   if (user && request.nextUrl.pathname === "/") {
@@ -57,9 +64,15 @@ export async function middleware(request: NextRequest) {
     supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
       redirectResponse.cookies.set(name, value);
     });
+    redirectResponse.headers.set("X-Content-Type-Options", "nosniff");
+    redirectResponse.headers.set("X-Frame-Options", "DENY");
+    redirectResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
     return redirectResponse;
   }
 
+  supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
+  supabaseResponse.headers.set("X-Frame-Options", "DENY");
+  supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   return supabaseResponse;
 }
 

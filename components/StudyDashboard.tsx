@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useLang } from "@/lib/i18n";
 import type { Assignment, Subject } from "@/lib/types";
 import { getLocalDate, getLocalDateOffset } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, Clock, BookOpen, CalendarDays } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, BookOpen, CalendarDays, Minus, Plus } from "lucide-react";
 
 interface Props {
   assignments: Assignment[];
@@ -14,6 +15,22 @@ export default function StudyDashboard({ assignments, subjects }: Props) {
   const { t, lang } = useLang();
   const today = getLocalDate();
   const weekLater = getLocalDateOffset(7);
+
+  const [weeklyGoal, setWeeklyGoal] = useState(() => {
+    if (typeof window !== "undefined") {
+      return parseInt(localStorage.getItem("weeklyGoal") || "10", 10);
+    }
+    return 10;
+  });
+  const completedThisWeek = assignments.filter((a) => {
+    if (a.status !== "done") return false;
+    const d = new Date(a.updated_at);
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    return d >= weekStart;
+  }).length;
 
   const pending = assignments.filter((a) => a.status === "pending");
   const inProgress = assignments.filter((a) => a.status === "in_progress");
@@ -47,6 +64,36 @@ export default function StudyDashboard({ assignments, subjects }: Props) {
         ))}
       </div>
 
+      {/* Weekly Goal */}
+      <div className="card p-5">
+        <h3 className="text-sm font-semibold text-[var(--text)] mb-3">
+          {lang === "th" ? "เป้าหมายรายสัปดาห์" : "Weekly Goal"}
+        </h3>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex-1 h-2 bg-[var(--bg)] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[var(--primary)] rounded-full transition-all"
+              style={{ width: `${Math.min((completedThisWeek / weeklyGoal) * 100, 100)}%` }}
+            />
+          </div>
+          <span className="text-sm font-medium text-[var(--text)]">{completedThisWeek}/{weeklyGoal}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setWeeklyGoal(Math.max(1, weeklyGoal - 1)); localStorage.setItem("weeklyGoal", String(Math.max(1, weeklyGoal - 1))); }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg)] hover:bg-[var(--border)] text-[var(--muted)]"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => { setWeeklyGoal(weeklyGoal + 1); localStorage.setItem("weeklyGoal", String(weeklyGoal + 1)); }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg)] hover:bg-[var(--border)] text-[var(--muted)]"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
       {/* Upcoming deadlines */}
       {upcoming.length > 0 && (
         <div className="card p-4">
@@ -57,7 +104,7 @@ export default function StudyDashboard({ assignments, subjects }: Props) {
           <div className="space-y-1.5">
             {upcoming.map((a) => {
               const sub = a.subject_id ? subjectMap[a.subject_id] : null;
-              const daysLeft = a.due_date ? Math.ceil((new Date(a.due_date).getTime() - new Date(today).getTime()) / 86400000) : null;
+              const daysLeft = a.due_date ? Math.floor((new Date(a.due_date).getTime() - new Date(today).getTime()) / 86400000) : null;
               const isOverdue = daysLeft !== null && daysLeft < 0;
 
               return (

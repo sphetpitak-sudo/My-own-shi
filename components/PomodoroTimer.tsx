@@ -16,6 +16,24 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
   const [sessions, setSessions] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("pomodoro");
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.mode) setMode(s.mode);
+        if (typeof s.secondsLeft === "number") setSecondsLeft(s.secondsLeft);
+        if (typeof s.sessions === "number") setSessions(s.sessions);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("pomodoro", JSON.stringify({ mode, secondsLeft, sessions }));
+    } catch {}
+  }, [mode, secondsLeft, sessions]);
+
   const WORK_MIN = 25;
   const BREAK_MIN = 5;
 
@@ -32,36 +50,43 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
   }, []);
 
   useEffect(() => {
-    if (isRunning && secondsLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft((s) => s - 1);
-      }, 1000);
-    } else if (secondsLeft === 0) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (mode === "work") {
-        setSessions((s) => s + 1);
-        setMode("break");
-        setSecondsLeft(BREAK_MIN * 60);
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(lang === "th" ? "พักได้เลย!" : "Time for a break!", {
-            body: lang === "th" ? "ทำงานได้ดีมาก 休息一下吧" : "Great work! Take a 5-minute break.",
-            icon: "/favicon.ico",
-          });
+    if (!isRunning) return;
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(intervalRef.current!);
+          return 0;
         }
-      } else {
-        setMode("work");
-        setSecondsLeft(WORK_MIN * 60);
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(lang === "th" ? "เวลาทำงานแล้ว!" : "Back to work!", {
-            body: lang === "th" ? "พร้อมลุยต่อไหม?" : "Ready to focus again?",
-            icon: "/favicon.ico",
-          });
-        }
-      }
-      setIsRunning(false);
-    }
+        return s - 1;
+      });
+    }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, secondsLeft, mode, lang]);
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (secondsLeft > 0) return;
+    if (mode === "work") {
+      setSessions((s) => s + 1);
+      setMode("break");
+      setSecondsLeft(BREAK_MIN * 60);
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(lang === "th" ? "พักได้เลย!" : "Time for a break!", {
+          body: lang === "th" ? "ทำงานได้ดีมาก พักสักครู่" : "Great work! Take a 5-minute break.",
+          icon: "/favicon.ico",
+        });
+      }
+    } else {
+      setMode("work");
+      setSecondsLeft(WORK_MIN * 60);
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(lang === "th" ? "เวลาทำงานแล้ว!" : "Back to work!", {
+          body: lang === "th" ? "พร้อมลุยต่อไหม?" : "Ready to focus again?",
+          icon: "/favicon.ico",
+        });
+      }
+    }
+    setIsRunning(false);
+  }, [secondsLeft, mode, lang]);
 
   const circumference = 2 * Math.PI * 54;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
@@ -103,10 +128,12 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
 
         {/* Controls */}
         <div className="flex items-center gap-3">
-          <button onClick={reset} className="icon-btn-sm"><RotateCcw size={18} /></button>
+          <button onClick={reset} className="icon-btn-sm"
+            aria-label={lang === "th" ? "รีเซ็ต" : "Reset"}><RotateCcw size={18} /></button>
           <button
             onClick={() => setIsRunning(!isRunning)}
             className="btn btn-primary !rounded-full !w-12 !h-12 !p-0"
+            aria-label={isRunning ? (lang === "th" ? "หยุด" : "Pause") : (lang === "th" ? "เริ่ม" : "Play")}
           >
             {isRunning ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
           </button>
