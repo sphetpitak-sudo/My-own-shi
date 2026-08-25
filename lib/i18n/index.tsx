@@ -20,7 +20,18 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem("lang") as Lang | null;
-    if (saved === "th" || saved === "en") setLang(saved);
+    if (saved === "th" || saved === "en") {
+      setLang(saved);
+    } else if (typeof navigator !== "undefined") {
+      const browserLang = navigator.language.toLowerCase();
+      if (browserLang.startsWith("th")) {
+        setLang("th");
+        localStorage.setItem("lang", "th");
+      } else {
+        setLang("en");
+        localStorage.setItem("lang", "en");
+      }
+    }
   }, []);
 
   const toggle = () => {

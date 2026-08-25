@@ -33,10 +33,8 @@ export async function POST(request: Request) {
       { cookies: { getAll() { return []; }, setAll() {} } }
     );
 
-    await adminClient.from("transactions").delete().eq("user_id", user.id);
-    await adminClient.from("todos").delete().eq("user_id", user.id);
-    await adminClient.from("savings_goals").delete().eq("user_id", user.id);
-    await adminClient.from("recurring_transactions").delete().eq("user_id", user.id);
+    await adminClient.from("assignments").delete().eq("user_id", user.id);
+    await adminClient.from("subjects").delete().eq("user_id", user.id);
 
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
     if (deleteError) {
@@ -46,10 +44,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   }
 
-  await supabase.from("transactions").delete().eq("user_id", user.id);
-  await supabase.from("todos").delete().eq("user_id", user.id);
-  await supabase.from("savings_goals").delete().eq("user_id", user.id);
-  await supabase.from("recurring_transactions").delete().eq("user_id", user.id);
+  await supabase.from("assignments").delete().eq("user_id", user.id);
+  await supabase.from("subjects").delete().eq("user_id", user.id);
   await supabase.auth.signOut();
 
   return NextResponse.json({ success: true, partial: true });

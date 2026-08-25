@@ -18,6 +18,7 @@ export interface Assignment {
   due_date: string | null;
   priority: "low" | "medium" | "high";
   status: "pending" | "in_progress" | "done";
+  estimated_minutes: number | null;
   created_at: string;
   updated_at: string;
 }

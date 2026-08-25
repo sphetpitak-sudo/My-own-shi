@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import type { Assignment, Subject } from "@/lib/types";
+import { getLocalDate } from "@/lib/utils";
 import {
   BookOpen, CalendarDays, CheckCircle2, Clock, Circle,
   Pencil, Trash2, Search, AlertTriangle,
@@ -34,10 +35,12 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
   const supabase = createClient();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const touchStartX = useRef(0);
 
   const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s]));
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDate();
 
   const getDaysLeft = (dueDate: string | null) => {
     if (!dueDate) return null;
@@ -104,8 +107,8 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
       {filtered.length === 0 ? (
         <div className="empty">
           <div className="empty-icon"><BookOpen size={24} /></div>
-          <div className="empty-title">{t.no_assignments}</div>
-          <div className="empty-sub">{t.no_assignments_sub}</div>
+          <div className="empty-title">{search ? t.no_items : t.no_assignments}</div>
+          <div className="empty-sub">{search ? (lang === "th" ? "ลองค้นหาด้วยคำอื่น" : "Try a different search") : t.no_assignments_sub}</div>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -119,12 +122,35 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
             return (
               <div
                 key={a.id}
-                className="list-item group"
+                className="list-item group relative overflow-hidden"
                 style={{
                   background: "var(--bg-card)",
                   opacity: a.status === "done" ? 0.6 : 1,
+                  transform: swipedId === a.id ? "translateX(-120px)" : "translateX(0)",
+                  transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+                }}
+                onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                onTouchEnd={(e) => {
+                  const dx = e.changedTouches[0].clientX - touchStartX.current;
+                  if (dx < -60) setSwipedId(a.id);
+                  else setSwipedId(null);
                 }}
               >
+                {/* Swipe action layers */}
+                {swipedId === a.id && (
+                  <div className="absolute inset-0 flex items-center justify-end gap-2 pr-4 z-0"
+                    style={{ background: "var(--red-soft)" }}>
+                    <button onClick={() => { setSwipedId(null); onEdit(a); }}
+                      className="btn btn-ghost !py-1.5 !px-3 !text-[12px]" style={{ color: "var(--blue)" }}>
+                      <Pencil size={13} /> {t.edit}
+                    </button>
+                    <button onClick={() => { setSwipedId(null); handleDelete(a.id); }}
+                      className="btn btn-ghost !py-1.5 !px-3 !text-[12px]" style={{ color: "var(--red)" }}>
+                      <Trash2 size={13} /> {t.delete}
+                    </button>
+                  </div>
+                )}
+
                 {/* Status toggle */}
                 <button
                   onClick={() => cycleStatus(a)}

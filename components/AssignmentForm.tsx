@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import type { Subject, Assignment } from "@/lib/types";
-import { Plus, CalendarDays, Tag, Flag } from "lucide-react";
+import { Plus, CalendarDays, Tag, Flag, Timer } from "lucide-react";
 
 interface Props {
   subjects: Subject[];
@@ -21,6 +21,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [estimatedMinutes, setEstimatedMinutes] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -30,12 +31,14 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
       setSubjectId(editing.subject_id);
       setDueDate(editing.due_date || "");
       setPriority(editing.priority);
+      setEstimatedMinutes(editing.estimated_minutes ? String(editing.estimated_minutes) : "");
     } else {
       setTitle("");
       setDescription("");
       setSubjectId(null);
       setDueDate("");
       setPriority("medium");
+      setEstimatedMinutes("");
     }
   }, [editing]);
 
@@ -54,6 +57,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
         subject_id: subjectId,
         due_date: dueDate || null,
         priority,
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
         updated_at: new Date().toISOString(),
       }).eq("id", editing.id);
     } else {
@@ -64,6 +68,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
         description: description.trim(),
         due_date: dueDate || null,
         priority,
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
         status: "pending",
       });
     }
@@ -119,7 +124,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="field">
           <label className="label flex items-center gap-1.5"><Tag size={12} /> {t.subject}</label>
           <select value={subjectId || ""} onChange={(e) => setSubjectId(e.target.value || null)} className="select">
@@ -128,6 +133,17 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
+        </div>
+        <div className="field">
+          <label className="label flex items-center gap-1.5"><Timer size={12} /> {t.estimated_time}</label>
+          <input
+            type="number"
+            min="0"
+            value={estimatedMinutes}
+            onChange={(e) => setEstimatedMinutes(e.target.value)}
+            placeholder={lang === "th" ? "นาที" : "minutes"}
+            className="input"
+          />
         </div>
         <div className="field">
           <label className="label flex items-center gap-1.5"><Flag size={12} /> {t.priority}</label>

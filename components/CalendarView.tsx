@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useLang } from "@/lib/i18n";
 import type { Assignment, Subject } from "@/lib/types";
+import { getLocalDate } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, BookOpen, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 const WEEKDAYS_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -52,14 +53,20 @@ export default function CalendarView({ assignments, subjects }: Props) {
     setSelectedDate(null);
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDate();
 
   return (
     <div className="space-y-4 animate-in">
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => navigate(-1)} className="icon-btn-sm"><ChevronLeft size={18} /></button>
-          <h3 className="text-[16px] font-bold">{monthName} {year + 543}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-[16px] font-bold">{monthName} {year + 543}</h3>
+            <button onClick={() => { setCurrentDate(new Date()); setSelectedDate(null); }}
+              className="badge badge-blue cursor-pointer hover:opacity-80">
+              {lang === "th" ? "วันนี้" : "Today"}
+            </button>
+          </div>
           <button onClick={() => navigate(1)} className="icon-btn-sm"><ChevronRight size={18} /></button>
         </div>
 

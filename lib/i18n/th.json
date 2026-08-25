@@ -61,6 +61,7 @@
   "assignment_updated": "อัปเดตงานสำเร็จ",
   "assignment_deleted": "ลบงานแล้ว",
   "assignment_completed": "เสร็จแล้ว!",
+  "estimated_time": "เวลาที่คาดว่าจะใช้",
   "calendar": "ปฏิทิน",
   "calendar_sub": "ดูกำหนดส่งตามวันที่",
   "tasks": "งาน",
@@ -98,7 +99,7 @@
   "no_assignments": "ยังไม่มีงาน",
   "no_assignments_sub": "เริ่มเพิ่มการบ้านแรกของคุณ",
   "all_caught_up": "ไม่มีงานค้าง!",
-  "great_job": "做得好!",
+  "great_job": "ทำได้ดีมาก!",
   "pending_count": "งานค้าง",
   "completed_count": "เสร็จแล้ว",
   "overdue_count": "เลยกำหนด"

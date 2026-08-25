@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { K2D } from "next/font/google";
 import "./globals.css";
 import { LangProvider } from "@/lib/i18n";
@@ -13,6 +13,11 @@ const k2d = K2D({
 export const metadata: Metadata = {
   title: "StudyHub",
   description: "Student planner — manage homework and tasks",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#17171f",
 };
 
 export default function RootLayout({

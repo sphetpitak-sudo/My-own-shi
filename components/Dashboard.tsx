@@ -6,6 +6,12 @@ import { useLang } from "@/lib/i18n";
 import type { Assignment, Subject } from "@/lib/types";
 import { ToastProvider, useToast } from "./Toast";
 import StudyDashboard from "./StudyDashboard";
+import StudyStreaks from "./StudyStreaks";
+import PomodoroTimer from "./PomodoroTimer";
+import AssignmentTemplates from "./AssignmentTemplates";
+import StudyCharts from "./StudyCharts";
+import GPACalculator from "./GPACalculator";
+import ExportCSV from "./ExportCSV";
 import SubjectForm from "./SubjectForm";
 import SubjectList from "./SubjectList";
 import AssignmentForm from "./AssignmentForm";
@@ -199,19 +205,35 @@ function Shell() {
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="stat-card"><div className="shimmer h-20" /></div>
+                  <div key={i} className="stat-card">
+                    <div className="shimmer w-9 h-9 rounded-[10px] mb-3" />
+                    <div className="shimmer h-3 w-16 mb-2" />
+                    <div className="shimmer h-6 w-12" />
+                  </div>
                 ))}
               </div>
-              <div className="shimmer h-40" />
+              <div className="card p-4"><div className="shimmer h-4 w-32 mb-3" /><div className="shimmer h-10 w-full mb-2" /><div className="shimmer h-10 w-full mb-2" /><div className="shimmer h-10 w-full" /></div>
             </div>
           ) : (
             <>
               {tab === "overview" && (
-                <StudyDashboard assignments={assignments} subjects={subjects} />
+                <div className="tab-content space-y-4">
+                  <StudyDashboard assignments={assignments} subjects={subjects} />
+                  <StudyCharts assignments={assignments} />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <StudyStreaks assignments={assignments} />
+                    <PomodoroTimer />
+                  </div>
+                  <AssignmentTemplates onSelect={(tpl) => {
+                    setTab("tasks");
+                    setTimeout(() => document.getElementById("assignment-form")?.scrollIntoView({ behavior: "smooth" }), 80);
+                  }} />
+                  <GPACalculator />
+                </div>
               )}
 
               {tab === "subjects" && (
-                <div className="mt-5 space-y-4">
+                <div className="mt-5 space-y-4 tab-content">
                   {subjects.length === 0 && (
                     <div className="card p-4 text-center">
                       <p className="text-[13px] mb-3" style={{ color: "var(--text-muted)" }}>
@@ -231,10 +253,15 @@ function Shell() {
               )}
 
               {tab === "tasks" && (
-                <div className="mt-5 space-y-4">
-                  <div id="assignment-form">
-                    <AssignmentForm subjects={subjects} onSaved={() => { fetchAssignments(); toast(editingAssignment ? t.assignment_updated : t.assignment_created, "success"); }}
-                      editing={editingAssignment} onCancelEdit={() => setEditingAssignment(null)} />
+                <div className="mt-5 space-y-4 tab-content">
+                  <div className="flex items-center justify-between">
+                    <div id="assignment-form" className="flex-1">
+                      <AssignmentForm subjects={subjects} onSaved={() => { fetchAssignments(); toast(editingAssignment ? t.assignment_updated : t.assignment_created, "success"); }}
+                        editing={editingAssignment} onCancelEdit={() => setEditingAssignment(null)} />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <ExportCSV assignments={assignments} subjects={subjects} />
                   </div>
                   <AssignmentList assignments={assignments} subjects={subjects}
                     onEdit={setEditingAssignment}
@@ -244,13 +271,13 @@ function Shell() {
               )}
 
               {tab === "calendar" && (
-                <div className="mt-5">
+                <div className="mt-5 tab-content">
                   <CalendarView assignments={assignments} subjects={subjects} />
                 </div>
               )}
 
               {tab === "settings" && (
-                <div className="mt-5">
+                <div className="mt-5 tab-content">
                   <Settings />
                 </div>
               )}

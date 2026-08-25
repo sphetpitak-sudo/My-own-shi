@@ -2,6 +2,7 @@
 
 import { useLang } from "@/lib/i18n";
 import type { Assignment, Subject } from "@/lib/types";
+import { getLocalDate, getLocalDateOffset } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, Clock, BookOpen, CalendarDays } from "lucide-react";
 
 interface Props {
@@ -11,8 +12,8 @@ interface Props {
 
 export default function StudyDashboard({ assignments, subjects }: Props) {
   const { t, lang } = useLang();
-  const today = new Date().toISOString().slice(0, 10);
-  const weekLater = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const today = getLocalDate();
+  const weekLater = getLocalDateOffset(7);
 
   const pending = assignments.filter((a) => a.status === "pending");
   const inProgress = assignments.filter((a) => a.status === "in_progress");

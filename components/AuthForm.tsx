@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import { Mail, Lock, ArrowRight, Wallet } from "lucide-react";
+import { Mail, Lock, ArrowRight, GraduationCap } from "lucide-react";
 
 export default function AuthForm() {
   const { t, lang } = useLang();
@@ -41,11 +41,11 @@ export default function AuthForm() {
         <div className="text-center mb-8 animate-in">
           <div className="w-12 h-12 rounded-[14px] flex items-center justify-center mx-auto mb-4"
             style={{ background: "var(--primary)" }}>
-            <Wallet size={22} style={{ color: "var(--text-invert)" }} />
+            <GraduationCap size={22} style={{ color: "var(--text-invert)" }} />
           </div>
           <h1 className="text-[26px] font-bold tracking-tight">{t.app_name}</h1>
           <p className="text-[14px] mt-1.5" style={{ color: "var(--text-secondary)" }}>
-            {lang === "th" ? "จัดการเงินของคุณ" : "Manage your finances"}
+            {lang === "th" ? "จัดการการบ้านและงานของคุณ" : "Manage your homework and tasks"}
           </p>
         </div>
 
@@ -97,6 +97,19 @@ export default function AuthForm() {
               )}
             </button>
           </form>
+
+          {!isSignUp && (
+            <div className="mt-3 text-center">
+              <button onClick={async () => {
+                if (!email) { setError(lang === "th" ? "กรุณากรอกอีเมล" : "Please enter your email first"); return; }
+                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/` });
+                if (error) setError(error.message);
+                else setMessage(lang === "th" ? "ส่งลิงก์รีเซ็ตรหัสผ่านแล้ว — ตรวจสอบอีเมล" : "Password reset link sent — check your email");
+              }} className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                {lang === "th" ? "ลืมรหัสผ่าน?" : "Forgot password?"}
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 divider" />

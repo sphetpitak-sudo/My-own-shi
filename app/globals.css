@@ -495,6 +495,26 @@ body {
   border-radius: 8px;
 }
 
+/* ============ TAB ANIMATION ============ */
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tab-content { animation: tabFadeIn 0.25s var(--ease) both; }
+
+/* ============ STAT COUNT UP ============ */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stat-value { animation: countUp 0.4s var(--ease) both; }
+
+/* ============ PROGRESS BAR MOUNT ============ */
+@keyframes barGrow {
+  from { width: 0%; }
+}
+.bar > div { animation: barGrow 0.8s var(--ease) both; }
+
 /* ============ CHARTS ============ */
 .chart-tooltip {
   background: var(--bg-card);
@@ -672,4 +692,43 @@ body {
 /* --- Mobile badge --- */
 @media (max-width: 640px) {
   .badge { font-size: 10px; padding: 2px 7px; }
+}
+
+/* --- Mobile: always show action buttons on list items --- */
+@media (max-width: 1024px) {
+  .list-item .group-hover\:opacity-100,
+  [class*="group-hover:opacity-100"] {
+    opacity: 1 !important;
+  }
+}
+
+/* --- Theme transition --- */
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+html * {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0s;
+}
+html.transitioning * {
+  transition-duration: 0.2s !important;
+  transition-timing-function: ease;
+}
+
+/* --- Focus visible for keyboard nav --- */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* --- Touch targets: min 44px --- */
+@media (pointer: coarse) {
+  .icon-btn-sm { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .bottom-nav-item { min-height: 48px; }
+  .chip { min-height: 38px; }
 }
