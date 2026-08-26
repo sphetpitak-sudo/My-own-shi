@@ -81,11 +81,22 @@ ALTER TABLE assignments ADD COLUMN IF NOT EXISTS recurring TEXT DEFAULT 'none';
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS actual_minutes INTEGER;
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
 
--- Additional constraints
-ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_recurring CHECK (recurring IN ('none', 'daily', 'weekly', 'monthly'));
-ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_estimated_minutes CHECK (estimated_minutes IS NULL OR estimated_minutes >= 0);
-ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_actual_minutes CHECK (actual_minutes IS NULL OR actual_minutes >= 0);
-ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_title_length CHECK (char_length(title) > 0 AND char_length(title) <= 500);
+-- Additional constraints (wrapped in DO blocks for safe re-run)
+DO $$ BEGIN
+  ALTER TABLE assignments ADD CONSTRAINT check_recurring CHECK (recurring IN ('none', 'daily', 'weekly', 'monthly'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE assignments ADD CONSTRAINT check_estimated_minutes CHECK (estimated_minutes IS NULL OR estimated_minutes >= 0);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE assignments ADD CONSTRAINT check_actual_minutes CHECK (actual_minutes IS NULL OR actual_minutes >= 0);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE assignments ADD CONSTRAINT check_title_length CHECK (char_length(title) > 0 AND char_length(title) <= 500);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Auto-update updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()
