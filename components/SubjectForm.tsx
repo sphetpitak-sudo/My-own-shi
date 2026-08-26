@@ -64,7 +64,7 @@ export default function SubjectForm({ onSaved, editing, onCancelEdit }: Props) {
     <form onSubmit={handleSubmit} className="card p-4">
       <div className="flex items-center gap-2 mb-3">
         <Plus size={16} style={{ color: "var(--text-secondary)" }} />
-        <span className="sec-title">{editing ? (lang === "th" ? "แก้ไขวิชา" : "Edit Subject") : t.new_subject}</span>
+        <span className="sec-title">{editing ? t.edit_subject : t.new_subject}</span>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -81,29 +81,31 @@ export default function SubjectForm({ onSaved, editing, onCancelEdit }: Props) {
         </div>
 
         <div className="field">
-          <label className="label">{t.subject_color}</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {SUBJECT_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setColor(c)}
-                className="w-7 h-7 rounded-full border-2 transition-all"
-                style={{
-                  background: c,
-                  borderColor: color === c ? "var(--text)" : "transparent",
-                  transform: color === c ? "scale(1.15)" : "scale(1)",
-                }}
-                aria-label={lang === "th" ? `สี ${name || ""}` : `Color ${name || ""}`}
-                aria-pressed={color === c}
-              />
-            ))}
-          </div>
+          <fieldset>
+            <legend className="label">{t.subject_color}</legend>
+            <div className="flex gap-1.5 flex-wrap">
+              {SUBJECT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className="w-7 h-7 rounded-full border-2 transition-all"
+                  style={{
+                    background: c,
+                    borderColor: color === c ? "var(--text)" : "transparent",
+                    transform: color === c ? "scale(1.15)" : "scale(1)",
+                  }}
+                  aria-label={lang === "th" ? `สี ${name || ""}` : `Color ${name || ""}`}
+                  aria-pressed={color === c}
+                />
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         <div className="flex items-end gap-2">
           <button type="submit" disabled={loading || !name.trim()} className="btn btn-primary !py-2.5">
-            {editing ? (lang === "th" ? "บันทึก" : "Save") : (lang === "th" ? "เพิ่ม" : "Add")}
+            {editing ? t.save : t.add}
           </button>
           {editing && (
             <button type="button" onClick={onCancelEdit} className="btn btn-ghost !py-2.5">

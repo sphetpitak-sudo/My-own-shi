@@ -5,6 +5,7 @@ import { useLang } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import type { Assignment, Subject } from "@/lib/types";
 import { getLocalDate } from "@/lib/utils";
+import { useSubjectMap } from "@/lib/useSubjectMap";
 import { ChevronLeft, ChevronRight, BookOpen, AlertTriangle, CheckCircle2, CalendarDays } from "lucide-react";
 
 const WEEKDAYS_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -35,7 +36,7 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
   const weekdays = lang === "th" ? WEEKDAYS_TH : WEEKDAYS_EN;
   const monthName = lang === "th" ? MONTHS_TH[month] : MONTHS_EN[month];
 
-  const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s]));
+  const subjectMap = useSubjectMap(subjects);
 
   const assignmentsByDate = useMemo(() => {
     const map: Record<string, Assignment[]> = {};
@@ -80,17 +81,17 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => navigate(-1)} className="icon-btn-sm"
-            aria-label={lang === "th" ? "เดือนก่อนหน้า" : "Previous month"}><ChevronLeft size={18} /></button>
+            aria-label={t.previous_month}><ChevronLeft size={18} /></button>
           <div className="flex items-center gap-2">
             <h3 className="text-[16px] font-bold">{monthName} {lang === "th" ? year + 543 : year}</h3>
             <button onClick={() => { setCurrentDate(new Date()); setSelectedDate(null); }}
               className="badge badge-blue cursor-pointer hover:opacity-80"
-              aria-label={lang === "th" ? "วันนี้" : "Today"}>
-              {lang === "th" ? "วันนี้" : "Today"}
+              aria-label={t.today_label}>
+              {t.today_label}
             </button>
           </div>
           <button onClick={() => navigate(1)} className="icon-btn-sm"
-            aria-label={lang === "th" ? "เดือนถัดไป" : "Next month"}><ChevronRight size={18} /></button>
+            aria-label={t.next_month}><ChevronRight size={18} /></button>
         </div>
 
         <div className="grid grid-cols-7 gap-1 mb-1">
@@ -101,7 +102,7 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1 cal-grid" role="grid" aria-label={lang === "th" ? "ปฏิทิน" : "Calendar"}>
+        <div className="grid grid-cols-7 gap-1 cal-grid" role="grid" aria-label={t.calendar}>
           {days.map((day, i) => {
             if (day === null) return <div key={`empty-${i}`} />;
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -123,12 +124,14 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
                   }
                 }}
                 className="relative flex flex-col items-center py-2 rounded-lg transition-all cal-day"
+                role="gridcell"
+                aria-selected={isSelected ? true : undefined}
                 style={{
                   background: expandedDay === dateStr ? "var(--primary)" : isSelected ? "var(--primary)" : isToday ? "var(--blue-soft)" : "transparent",
                   color: expandedDay === dateStr || isSelected ? "var(--text-invert)" : "var(--text)",
                   fontWeight: isToday || isSelected || expandedDay === dateStr ? 700 : 500,
                 }}
-                aria-label={`${lang === "th" ? "วันที่" : "Day"} ${day}, ${monthName} ${year}${dayAssignments.length > 0 ? `, ${dayAssignments.length} ${lang === "th" ? "งาน" : "assignments"}` : ""}`}
+                aria-label={`${t.day_label} ${day}, ${monthName} ${year}${dayAssignments.length > 0 ? `, ${dayAssignments.length} ${t.assignments_label}` : ""}`}
               >
                 <span className="text-[13px]">{day}</span>
                 {dayAssignments.length > 0 && (
@@ -154,7 +157,7 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
       {expandedDay && (
         <div className="card p-4 animate-in">
           <p className="text-sm font-medium mb-2">
-            {lang === "th" ? "เพิ่มงานวันที่" : "Add assignment for"}{" "}
+            {t.add_from_calendar}{" "}
             {expandedDay.split("-")[2]} {(lang === "th" ? MONTHS_TH : MONTHS_EN)[parseInt(expandedDay.split("-")[1], 10) - 1]}
           </p>
           <div className="flex gap-2">
@@ -168,7 +171,7 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
                   setExpandedDay(null);
                 }
               }}
-              placeholder={lang === "th" ? "ชื่องาน..." : "Assignment name..."}
+              placeholder={t.assignment_name}
               className="flex-1 bg-transparent border rounded-lg px-3 py-2 text-sm"
               style={{ borderColor: "var(--border)", color: "var(--text)" }}
               autoFocus
@@ -183,7 +186,7 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
               }}
               className="btn btn-primary !py-2 !px-3 !text-[13px]"
             >
-              {lang === "th" ? "เพิ่ม" : "Add"}
+              {t.add}
             </button>
           </div>
         </div>
@@ -195,7 +198,7 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
             {selectedDate}
             {selectedAssignments.length > 0 && (
               <span className="text-[12px] font-normal ml-2" style={{ color: "var(--text-muted)" }}>
-                {selectedAssignments.length} {lang === "th" ? "งาน" : "items"}
+                {selectedAssignments.length} {t.items_label}
               </span>
             )}
           </h3>
@@ -203,7 +206,7 @@ export default function CalendarView({ assignments, subjects, onEdit, onCreated 
             <div className="text-center py-6">
               <CalendarDays size={28} className="mx-auto mb-2" style={{ color: "var(--text-muted)", opacity: 0.4 }} />
               <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{t.no_items}</p>
-              <p className="text-[12px] mt-1" style={{ color: "var(--text-muted)", opacity: 0.6 }}>{lang === "th" ? "ไม่มีงานในวันนี้" : "No assignments for this day"}</p>
+              <p className="text-[12px] mt-1" style={{ color: "var(--text-muted)", opacity: 0.6 }}>{t.no_data}</p>
             </div>
           ) : (
             <div className="space-y-2">

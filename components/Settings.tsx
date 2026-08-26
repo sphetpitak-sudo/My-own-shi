@@ -36,7 +36,7 @@ export default function Settings() {
         setEmail(user.email || "");
         setUserId(user.id);
         setDisplayName(user.user_metadata?.display_name || "");
-        const emailIdentity = user.identities?.find((i) => i.provider === "email");
+        const emailIdentity = user.identities?.find((i: { provider: string }) => i.provider === "email");
         setHasPassword(!!emailIdentity);
       }
     })();
@@ -109,6 +109,7 @@ export default function Settings() {
         setDeleteLoading(false);
         return;
       }
+      setDeleteLoading(false);
       setDeleteMsg({ type: "success", text: t.account_deleted });
       setTimeout(() => { window.location.href = "/"; }, 1500);
     } catch {
@@ -127,7 +128,7 @@ export default function Settings() {
           </div>
           <div>
             <h3 className="text-[16px] font-bold">{t.profile}</h3>
-            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{lang === "th" ? "จัดการข้อมูลส่วนตัวของคุณ" : "Manage your personal information"}</p>
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{t.manage_profile}</p>
           </div>
         </div>
 
@@ -153,7 +154,7 @@ export default function Settings() {
           <div className="field">
             <label className="label flex items-center gap-1.5"><User size={12} /> {t.display_name}</label>
             <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-              className="input" placeholder={lang === "th" ? "ชื่อที่ต้องการแสดง" : "Your display name"} />
+              className="input"               placeholder={t.display_name} />
           </div>
 
           <button type="submit" disabled={profileLoading} className="btn btn-primary w-full">
@@ -212,7 +213,7 @@ export default function Settings() {
       </div>
 
       {/* Danger Zone */}
-      <div className="card p-6" style={{ border: "1px solid var(--red)" }}>
+      <div className="card p-6 border border-[var(--red)]">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-[11px] flex items-center justify-center" style={{ background: "var(--red-soft)" }}>
             <AlertTriangle size={18} style={{ color: "var(--red)" }} />

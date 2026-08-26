@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import type { Subject } from "@/lib/types";
 import { BookOpen, Pencil, Trash2 } from "lucide-react";
+import ConfirmModal from "./ConfirmModal";
 
 interface Props {
   subjects: Subject[];
@@ -12,22 +14,16 @@ interface Props {
 }
 
 export default function SubjectList({ subjects, onEdit, onDeleted }: Props) {
-  const { lang } = useLang();
+  const { t, lang } = useLang();
   const supabase = createClient();
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(lang === "th" ? "ลบวิชานี้?" : "Delete this subject?")) return;
-    await supabase.from("subjects").delete().eq("id", id);
-    if (navigator.vibrate) navigator.vibrate(10);
-    onDeleted();
-  };
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   if (subjects.length === 0) {
     return (
       <div className="empty">
         <div className="empty-icon"><BookOpen size={32} /></div>
-        <div className="empty-title">{lang === "th" ? "ยังไม่มีวิชา" : "No subjects yet"}</div>
-        <div className="empty-sub">{lang === "th" ? "กดปุ่มด้านบนเพื่อเพิ่มวิชาแรก" : "Tap the button above to add your first subject"}</div>
+        <div className="empty-title">{t.no_subjects}</div>
+        <div className="empty-sub">{t.no_subjects_hint}</div>
       </div>
     );
   }
@@ -46,18 +42,31 @@ export default function SubjectList({ subjects, onEdit, onDeleted }: Props) {
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-[14px] truncate">{s.name}</div>
               <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                {s.is_default ? (lang === "th" ? "วิชาพื้นฐาน" : "Default") : (lang === "th" ? "วิชาที่เพิ่มเอง" : "Custom")}
+                {s.is_default ? t.default_subjects : t.custom_subjects}
               </div>
             </div>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button onClick={() => onEdit(s)} className="icon-btn-sm"><Pencil size={14} /></button>
               {!s.is_default && (
-                <button onClick={() => handleDelete(s.id)} className="icon-btn-sm danger"><Trash2 size={14} /></button>
+                <button onClick={() => setConfirmDelete({ id: s.id, name: s.name })} className="icon-btn-sm danger"><Trash2 size={14} /></button>
               )}
             </div>
           </div>
         </div>
       ))}
+      <ConfirmModal
+        open={!!confirmDelete}
+        title={t.delete_subject_confirm}
+        message={lang === "th" ? `ต้องการลบวิชา "${confirmDelete?.name}" ใช่หรือไม่?` : `Delete subject "${confirmDelete?.name}"?`}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          await supabase.from("subjects").delete().eq("id", confirmDelete.id);
+          if (navigator.vibrate) navigator.vibrate(10);
+          onDeleted();
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

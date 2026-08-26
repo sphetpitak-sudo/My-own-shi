@@ -6,9 +6,9 @@ import { Moon, Sun } from "lucide-react";
 
 export default function ThemeToggle() {
   const { theme, toggle } = useTheme();
-  const { lang } = useLang();
+  const { t } = useLang();
   return (
-    <button onClick={toggle} className="btn-icon" title={theme === "dark" ? (lang === "th" ? "เปลี่ยนเป็นสว่าง" : "Switch to light") : (lang === "th" ? "เปลี่ยนมืด" : "Switch to dark")}>
+    <button onClick={toggle} className="btn-icon" title={t.toggle_dark} aria-label={t.toggle_dark}>
       {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
     </button>
   );

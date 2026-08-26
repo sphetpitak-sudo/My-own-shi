@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 
 type Theme = "light" | "dark";
 
@@ -11,29 +11,18 @@ const ThemeContext = createContext<{
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
+  const toggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("theme") as Theme | null;
-    if (saved === "dark" || saved === "light") {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") {
       setTheme(saved);
       document.documentElement.classList.toggle("dark", saved === "dark");
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
+    } else {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      setTheme(mq.matches ? "dark" : "light");
+      document.documentElement.classList.toggle("dark", mq.matches);
     }
-  }, []);
-
-  useEffect(() => {
-    const checkTime = () => {
-      const hour = new Date().getHours();
-      if (!localStorage.getItem("theme")) {
-        const shouldBeDark = hour >= 20 || hour < 7;
-        document.documentElement.classList.toggle("dark", shouldBeDark);
-      }
-    };
-    checkTime();
-    const interval = setInterval(checkTime, 60000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -45,8 +34,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.add("transitioning");
     setTheme(next);
     localStorage.setItem("theme", next);
-    setTimeout(() => document.documentElement.classList.remove("transitioning"), 300);
+    if (toggleTimeoutRef.current) clearTimeout(toggleTimeoutRef.current);
+    toggleTimeoutRef.current = setTimeout(() => document.documentElement.classList.remove("transitioning"), 300);
   };
+
+  useEffect(() => {
+    return () => { if (toggleTimeoutRef.current) clearTimeout(toggleTimeoutRef.current); };
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>

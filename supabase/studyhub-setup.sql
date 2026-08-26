@@ -80,3 +80,31 @@ ALTER TABLE assignments ADD COLUMN IF NOT EXISTS subtasks JSONB DEFAULT '[]'::js
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS recurring TEXT DEFAULT 'none';
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS actual_minutes INTEGER;
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+
+-- Additional constraints
+ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_recurring CHECK (recurring IN ('none', 'daily', 'weekly', 'monthly'));
+ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_estimated_minutes CHECK (estimated_minutes IS NULL OR estimated_minutes >= 0);
+ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_actual_minutes CHECK (actual_minutes IS NULL OR actual_minutes >= 0);
+ALTER TABLE assignments ADD CONSTRAINT IF NOT EXISTS check_title_length CHECK (char_length(title) > 0 AND char_length(title) <= 500);
+
+-- Auto-update updated_at trigger
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+DO $$ BEGIN
+  CREATE TRIGGER update_assignments_updated_at
+    BEFORE UPDATE ON assignments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Composite indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_assignments_user_due ON assignments(user_id, due_date);
+CREATE INDEX IF NOT EXISTS idx_assignments_user_status ON assignments(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_subjects_user_name ON subjects(user_id, name);

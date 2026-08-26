@@ -29,9 +29,12 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("pomodoro", JSON.stringify({ mode, secondsLeft, sessions }));
-    } catch {}
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem("pomodoro", JSON.stringify({ mode, secondsLeft, sessions }));
+      } catch {}
+    }, 1000);
+    return () => clearTimeout(timer);
   }, [mode, secondsLeft, sessions]);
 
   const WORK_MIN = 25;
@@ -70,8 +73,8 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
       setMode("break");
       setSecondsLeft(BREAK_MIN * 60);
       if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(lang === "th" ? "พักได้เลย!" : "Time for a break!", {
-          body: lang === "th" ? "ทำงานได้ดีมาก พักสักครู่" : "Great work! Take a 5-minute break.",
+        new Notification(t.break_time, {
+          body: t.notification_break_body,
           icon: "/favicon.ico",
         });
       }
@@ -79,8 +82,8 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
       setMode("work");
       setSecondsLeft(WORK_MIN * 60);
       if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(lang === "th" ? "เวลาทำงานแล้ว!" : "Back to work!", {
-          body: lang === "th" ? "พร้อมลุยต่อไหม?" : "Ready to focus again?",
+        new Notification(t.focus, {
+          body: t.notification_work_body,
           icon: "/favicon.ico",
         });
       }
@@ -94,8 +97,8 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
   return (
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Timer size={16} style={{ color: "var(--text-secondary)" }} />
-        <span className="sec-title">{lang === "th" ? "ตั้งเวลาทำงาน" : "Pomodoro Timer"}</span>
+        <Timer size={16} className="text-secondary" />
+        <span className="sec-title">{t.pomodoro_timer}</span>
         {assignmentTitle && (
           <span className="badge badge-blue ml-auto">{assignmentTitle}</span>
         )}
@@ -104,7 +107,7 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
       <div className="flex flex-col items-center">
         {/* Timer circle */}
         <div className="relative w-32 h-32 mb-4">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120" role="img" aria-label={lang === "th" ? "ตารางเวลา" : "Timer progress"}>
             <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" strokeWidth="6" />
             <circle
               cx="60" cy="60" r="54" fill="none"
@@ -120,8 +123,8 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
             <span className="text-[28px] font-bold tabular-nums">
               {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
             </span>
-            <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-              {mode === "work" ? (lang === "th" ? "ทำงาน" : "Focus") : (lang === "th" ? "พัก" : "Break")}
+            <span className="text-[11px] font-semibold text-muted">
+              {mode === "work" ? t.focus : t.break_time}
             </span>
           </div>
         </div>
@@ -129,11 +132,11 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
         {/* Controls */}
         <div className="flex items-center gap-3">
           <button onClick={reset} className="icon-btn-sm"
-            aria-label={lang === "th" ? "รีเซ็ต" : "Reset"}><RotateCcw size={18} /></button>
+            aria-label={t.reset}><RotateCcw size={18} /></button>
           <button
             onClick={() => setIsRunning(!isRunning)}
             className="btn btn-primary !rounded-full !w-12 !h-12 !p-0"
-            aria-label={isRunning ? (lang === "th" ? "หยุด" : "Pause") : (lang === "th" ? "เริ่ม" : "Play")}
+            aria-label={isRunning ? t.pause : t.play}
           >
             {isRunning ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
           </button>
@@ -142,15 +145,15 @@ export default function PomodoroTimer({ assignmentTitle }: Props) {
 
         {/* Sessions */}
         <div className="mt-4 flex items-center gap-2">
-          <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-            {lang === "th" ? "รอบที่ทำเสร็จ" : "Sessions completed"}:
+          <span className="text-[12px] text-muted">
+            {t.sessions_completed}:
           </span>
-          <div className="flex gap-1">
+          <div className="flex gap-1" aria-label={`${sessions} ${t.sessions_completed}`}>
             {Array.from({ length: Math.min(sessions, 8) }).map((_, i) => (
               <div key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--green)" }} />
             ))}
           </div>
-          {sessions > 8 && <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>+{sessions - 8}</span>}
+            {sessions > 8 && <span className="text-[11px] text-muted">+{sessions - 8}</span>}
         </div>
       </div>
     </div>

@@ -15,6 +15,23 @@ export function getLocalDateOffset(days: number): string {
   return `${y}-${m}-${d}`;
 }
 
-export function daysBetween(a: string, b: string): number {
-  return Math.ceil((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
+export function formatLocalDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export function formatDaysLeft(dueDate: string, lang: string): string {
+  const today = getLocalDate();
+  const due = new Date(dueDate + "T00:00:00");
+  const diffDays = Math.floor((due.getTime() - new Date(today + "T00:00:00").getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return lang === "th" ? `เลย ${Math.abs(diffDays)} วัน` : `${Math.abs(diffDays)}d overdue`;
+  if (diffDays === 0) return lang === "th" ? "วันนี้" : "Today";
+  return `${diffDays}${lang === "th" ? " วัน" : "d"}`;
+}
+
+export function isOverdue(dueDate: string): boolean {
+  return dueDate < getLocalDate();
+}
+
+export function isToday(dueDate: string): boolean {
+  return dueDate === getLocalDate();
 }

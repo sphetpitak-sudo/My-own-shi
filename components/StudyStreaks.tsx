@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useLang } from "@/lib/i18n";
 import type { Assignment } from "@/lib/types";
-import { getLocalDate, getLocalDateOffset } from "@/lib/utils";
+import { getLocalDate, getLocalDateOffset, formatLocalDate } from "@/lib/utils";
 import { Flame, Trophy, Star } from "lucide-react";
 
 interface Props {
@@ -11,24 +11,21 @@ interface Props {
 }
 
 export default function StudyStreaks({ assignments }: Props) {
-  const { lang } = useLang();
+  const { t, lang } = useLang();
 
   const stats = useMemo(() => {
     const today = getLocalDate();
     const doneDates = new Set(
       assignments
         .filter((a) => a.status === "done")
-        .map((a) => {
-          const d = new Date(a.updated_at);
-          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        })
+        .map((a) => formatLocalDate(new Date(a.updated_at)))
     );
 
     // Calculate current streak
     let streak = 0;
     let d = new Date();
     while (true) {
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const dateStr = formatLocalDate(d);
       if (doneDates.has(dateStr)) {
         streak++;
         d.setDate(d.getDate() - 1);
@@ -54,16 +51,12 @@ export default function StudyStreaks({ assignments }: Props) {
     const weekAgo = getLocalDateOffset(-7);
     const thisWeek = assignments.filter((a) => {
       if (a.status !== "done") return false;
-      const d = new Date(a.updated_at);
-      const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      return local >= weekAgo;
+      return formatLocalDate(new Date(a.updated_at)) >= weekAgo;
     }).length;
 
     const todayCount = assignments.filter((a) => {
       if (a.status !== "done") return false;
-      const d = new Date(a.updated_at);
-      const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      return local === today;
+      return formatLocalDate(new Date(a.updated_at)) === today;
     }).length;
 
     return { streak, bestStreak, thisWeek, todayCount };
@@ -74,8 +67,8 @@ export default function StudyStreaks({ assignments }: Props) {
   return (
     <div className="card p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Flame size={16} style={{ color: "var(--text-secondary)" }} />
-        <span className="sec-title">{lang === "th" ? "สถิติการเรียน" : "Study Streaks"}</span>
+        <Flame size={16} className="text-secondary" />
+        <span className="sec-title">{t.study_streaks}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -83,13 +76,13 @@ export default function StudyStreaks({ assignments }: Props) {
         <div className="p-3 rounded-xl" style={{ background: streakLevel === "fire" ? "var(--red-soft)" : streakLevel === "warm" ? "var(--amber-soft)" : "var(--bg)" }}>
           <div className="flex items-center gap-2 mb-1">
             <Flame size={14} style={{ color: streakLevel === "fire" ? "var(--red)" : streakLevel === "warm" ? "var(--amber)" : "var(--text-muted)" }} />
-            <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-              {lang === "th" ? "ต่อเนื่อง" : "Streak"}
+            <span className="text-[11px] font-semibold text-muted">
+              {t.streak}
             </span>
           </div>
           <div className="text-[22px] font-bold">{stats.streak}</div>
-          <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {lang === "th" ? "วัน" : "days"}
+          <div className="text-[10px] text-muted">
+            {t.days_unit}
           </div>
         </div>
 
@@ -97,13 +90,13 @@ export default function StudyStreaks({ assignments }: Props) {
         <div className="p-3 rounded-xl" style={{ background: "var(--amber-soft)" }}>
           <div className="flex items-center gap-2 mb-1">
             <Trophy size={14} style={{ color: "var(--amber)" }} />
-            <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-              {lang === "th" ? "ดีที่สุด" : "Best"}
+            <span className="text-[11px] font-semibold text-muted">
+              {t.best}
             </span>
           </div>
           <div className="text-[22px] font-bold">{stats.bestStreak}</div>
-          <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {lang === "th" ? "วัน" : "days"}
+          <div className="text-[10px] text-muted">
+            {t.days_unit}
           </div>
         </div>
 
@@ -111,13 +104,13 @@ export default function StudyStreaks({ assignments }: Props) {
         <div className="p-3 rounded-xl" style={{ background: "var(--green-soft)" }}>
           <div className="flex items-center gap-2 mb-1">
             <Star size={14} style={{ color: "var(--green)" }} />
-            <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-              {lang === "th" ? "สัปดาห์นี้" : "This week"}
+            <span className="text-[11px] font-semibold text-muted">
+              {t.this_week}
             </span>
           </div>
           <div className="text-[22px] font-bold">{stats.thisWeek}</div>
-          <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {lang === "th" ? "งานเสร็จ" : "completed"}
+          <div className="text-[10px] text-muted">
+            {t.completed}
           </div>
         </div>
 
@@ -125,13 +118,13 @@ export default function StudyStreaks({ assignments }: Props) {
         <div className="p-3 rounded-xl" style={{ background: "var(--blue-soft)" }}>
           <div className="flex items-center gap-2 mb-1">
             <Star size={14} style={{ color: "var(--blue)" }} />
-            <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-              {lang === "th" ? "วันนี้" : "Today"}
+            <span className="text-[11px] font-semibold text-muted">
+              {t.today_label}
             </span>
           </div>
           <div className="text-[22px] font-bold">{stats.todayCount}</div>
-          <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {lang === "th" ? "งานเสร็จ" : "completed"}
+          <div className="text-[10px] text-muted">
+            {t.completed}
           </div>
         </div>
       </div>

@@ -23,6 +23,9 @@
     --blue-soft: #e8eefb;
     --amber: #b07d10;
     --amber-soft: #faf3e2;
+    --yellow: #F59E0B;
+    --muted: var(--text-muted);
+    --primary-soft: rgba(79, 124, 255, 0.12);
     --radius-sm: 8px;
     --radius: 12px;
     --radius-lg: 16px;
@@ -68,6 +71,9 @@ body {
   --red-soft: #2b1a17;
   --blue-soft: #171d2e;
   --amber-soft: #2a2214;
+  --yellow: #FBBF24;
+  --muted: var(--text-muted);
+  --primary-soft: rgba(79, 124, 255, 0.15);
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --shadow-md: 0 2px 4px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
@@ -442,18 +448,7 @@ body {
 .sec-sub { font-size: 13px; color: var(--text-muted); }
 
 /* ============ TOAST ============ */
-.toast-wrap {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-@media (max-width: 1024px) {
-  .toast-wrap { bottom: 88px; right: 16px; left: 16px; }
-}
+/* Removed — positioning handled by Tailwind classes on component */
 .toast {
   display: flex;
   align-items: center;
@@ -494,8 +489,7 @@ body {
 @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
 .animate-in { animation: fadeUp 0.35s var(--ease) both; }
 .animate-fade { animation: fadeIn 0.3s var(--ease) both; }
-.d1 { animation-delay: 0.04s; } .d2 { animation-delay: 0.08s; } .d3 { animation-delay: 0.12s; }
-.d4 { animation-delay: 0.16s; } .d5 { animation-delay: 0.2s; }
+.d1 { animation-delay: 0.04s; }
 
 /* ============ SKELETON ============ */
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
@@ -662,11 +656,6 @@ body {
     min-width: 52px;
   }
 }
-@media (min-width: 641px) {
-  .chip-scroll-none {
-    display: grid;
-  }
-}
 
 /* --- Mobile forms: better spacing --- */
 @media (max-width: 640px) {
@@ -758,6 +747,17 @@ button:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+/* Utility classes */
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-red { color: var(--red); }
+.text-green { color: var(--green); }
+.text-blue { color: var(--blue); }
+.bg-card { background: var(--bg-card); }
+.border-default { border-color: var(--border); }
+.avatar-primary { background: var(--primary); color: var(--text-invert); }
+.line-through-done { text-decoration: line-through; }
 
 /* ============ PRINT ============ */
 @media print {

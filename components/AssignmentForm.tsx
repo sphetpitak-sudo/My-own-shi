@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
-import type { Subject, Assignment } from "@/lib/types";
+import type { Subject, Assignment, Subtask } from "@/lib/types";
 import { Plus, CalendarDays, Tag, Flag, Timer, X } from "lucide-react";
 
 interface Props {
@@ -23,7 +23,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [estimatedMinutes, setEstimatedMinutes] = useState<string>("");
-  const [subtasks, setSubtasks] = useState<{ title: string; completed: boolean }[]>([]);
+  const [subtasks, setSubtasks] = useState<Pick<Subtask, "title" | "completed">[]>([]);
   const [newSubtask, setNewSubtask] = useState("");
   const [recurring, setRecurring] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [tags, setTags] = useState<string[]>([]);
@@ -126,7 +126,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
     <form onSubmit={handleSubmit} className="card p-4 form-card">
       <div className="flex items-center gap-2 mb-3">
         <Plus size={16} style={{ color: "var(--text-secondary)" }} />
-        <span className="sec-title">{editing ? (lang === "th" ? "แก้ไขงาน" : "Edit Assignment") : t.new_assignment}</span>
+        <span className="sec-title">{editing ? t.edit_assignment : t.new_assignment}</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -157,7 +157,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
         onClick={() => setCollapsed(!collapsed)}
         className="text-sm text-[var(--text-muted)] md:hidden mb-3"
       >
-        {collapsed ? (lang === "th" ? "แสดงเพิ่มเติม" : "Show more") : (lang === "th" ? "ซ่อน" : "Hide")}
+        {collapsed ? t.show_more : t.hide}
       </button>
       {!collapsed && (
         <>
@@ -189,13 +189,13 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
             min="0"
             value={estimatedMinutes}
             onChange={(e) => setEstimatedMinutes(e.target.value)}
-            placeholder={lang === "th" ? "นาที" : "minutes"}
+            placeholder={t.minutes_placeholder}
             className="input"
           />
         </div>
         <div className="field">
           <label className="label flex items-center gap-1.5"><Flag size={12} /> {t.priority}</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="group" aria-label={t.priority}>
             {(["low", "medium", "high"] as const).map((p) => (
               <button
                 key={p}
@@ -218,15 +218,14 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
 
       {/* Subtasks */}
       <div className="mb-3">
-        <label className="label">{lang === "th" ? "งานย่อย" : "Subtasks"}</label>
+        <label className="label">{t.subtasks}</label>
         {subtasks.map((s, i) => (
           <div key={i} className="flex items-center gap-2 mb-2">
             <input
               type="checkbox"
               checked={s.completed}
               onChange={() => {
-                const updated = [...subtasks];
-                updated[i].completed = !updated[i].completed;
+                const updated = subtasks.map((s, j) => i === j ? { ...s, completed: !s.completed } : s);
                 setSubtasks(updated);
               }}
               className="w-4 h-4 accent-[var(--primary)]"
@@ -234,8 +233,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
             <input
               value={s.title}
               onChange={(e) => {
-                const updated = [...subtasks];
-                updated[i].title = e.target.value;
+                const updated = subtasks.map((s, j) => i === j ? { ...s, title: e.target.value } : s);
                 setSubtasks(updated);
               }}
               className="flex-1 bg-transparent border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
@@ -244,6 +242,7 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
               type="button"
               onClick={() => setSubtasks(subtasks.filter((_, j) => j !== i))}
               className="text-[var(--muted)] hover:text-[var(--red)]"
+              aria-label={lang === "th" ? "ลบงานย่อย" : "Remove subtask"}
             >
               <X className="w-4 h-4" />
             </button>
@@ -260,35 +259,36 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
                 setNewSubtask("");
               }
             }}
-            placeholder={lang === "th" ? "เพิ่มงานย่อย..." : "Add subtask..."}
+            placeholder={t.add_subtask}
             className="flex-1 bg-transparent border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
+            aria-label={t.add_subtask}
           />
         </div>
       </div>
 
       {/* Recurring */}
       <div className="mb-3">
-        <label className="label">{lang === "th" ? "ทำซ้ำ" : "Recurring"}</label>
+        <label className="label">{t.recurring}</label>
         <select
           value={recurring}
           onChange={(e) => setRecurring(e.target.value as typeof recurring)}
           className="select"
         >
-          <option value="none">{lang === "th" ? "ไม่ทำซ้ำ" : "None"}</option>
-          <option value="daily">{lang === "th" ? "ทุกวัน" : "Daily"}</option>
-          <option value="weekly">{lang === "th" ? "ทุกสัปดาห์" : "Weekly"}</option>
-          <option value="monthly">{lang === "th" ? "ทุกเดือน" : "Monthly"}</option>
+          <option value="none">{t.recurring_none}</option>
+          <option value="daily">{t.recurring_daily}</option>
+          <option value="weekly">{t.recurring_weekly}</option>
+          <option value="monthly">{t.recurring_monthly}</option>
         </select>
       </div>
 
       {/* Tags */}
       <div className="mb-4">
-        <label className="label">{lang === "th" ? "แท็ก" : "Tags"}</label>
+        <label className="label">{t.tags}</label>
         <div className="flex flex-wrap gap-2 mb-2">
           {tags.map((tag) => (
             <span key={tag} className="px-2 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full text-xs flex items-center gap-1">
               {tag}
-              <button type="button" onClick={() => setTags(tags.filter((t) => t !== tag))}>
+              <button type="button" onClick={() => setTags(tags.filter((t) => t !== tag))} aria-label={lang === "th" ? "ลบแท็ก" : "Remove tag"}>
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -304,14 +304,15 @@ export default function AssignmentForm({ subjects, onSaved, editing, onCancelEdi
               setNewTag("");
             }
           }}
-          placeholder={lang === "th" ? "เพิ่มแท็ก..." : "Add tag..."}
+          placeholder={t.add_tag}
           className="w-full bg-transparent border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
+          aria-label={t.add_tag}
         />
       </div>
 
       <div className="flex gap-2">
         <button type="submit" disabled={loading || !title.trim()} className="btn btn-primary">
-          {editing ? (lang === "th" ? "บันทึก" : "Save") : (lang === "th" ? "เพิ่มงาน" : "Add Assignment")}
+          {editing ? t.save : t.add_assignment}
         </button>
         {editing && (
           <button type="button" onClick={onCancelEdit} className="btn btn-ghost">

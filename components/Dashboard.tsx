@@ -106,7 +106,7 @@ function Shell() {
     );
     if (tomorrowAssignments.length > 0 && "Notification" in window && Notification.permission === "granted") {
       new Notification(
-        lang === "th" ? "มีงานส่งพรุ่งนี้!" : "Due tomorrow!",
+        t.due_tomorrow,
         { body: tomorrowAssignments.map((a) => a.title).join(", "), icon: "/favicon.ico" }
       );
     }
@@ -146,6 +146,19 @@ function Shell() {
     { key: "settings", label: t.settings, icon: SettingsIcon },
   ];
 
+  const renderNavItem = (item: typeof NAV[number], isBottom = false) => (
+    <button
+      key={item.key}
+      onClick={() => { setTab(item.key); if (isBottom) setSidebarOpen(false); }}
+      className={`${isBottom ? "bottom-nav-item" : "nav-item"} ${tab === item.key ? "active" : ""}`}
+      aria-current={tab === item.key ? "page" : undefined}
+      aria-label={item.label}
+    >
+      <span className="nav-icon"><item.icon size={isBottom ? 19 : 17} /></span>
+      {item.label}
+    </button>
+  );
+
   const titles: Record<Tab, { title: string; sub: string }> = {
     overview: { title: t.overview, sub: t.overview_sub },
     subjects: { title: t.subjects, sub: t.subjects_sub },
@@ -169,27 +182,20 @@ function Shell() {
           )}
           <div className="flex flex-col min-w-0">
             <span className="text-[14px] font-bold text-white tracking-tight truncate">{displayName || "User"}</span>
-            <span className="text-[11px] truncate" style={{ color: "#8a867d" }}>{userEmail}</span>
+            <span className="text-[11px] truncate text-muted">{userEmail}</span>
           </div>
-          <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)} style={{ color: "#8a867d" }}>
+            <button className="ml-auto lg:hidden text-muted" onClick={() => setSidebarOpen(false)}>
             <X size={18} />
           </button>
         </div>
 
-        <div className="sidebar-label">{lang === "th" ? "เมนู" : "Menu"}</div>
+        <div className="sidebar-label">{t.menu}</div>
         <nav className="flex flex-col gap-1">
-          {NAV.map(({ key, label, icon: Icon }) => (
-            <button key={key} className={`nav-item ${tab === key ? "active" : ""}`}
-              onClick={() => { setTab(key); setSidebarOpen(false); }}
-              aria-current={tab === key ? "page" : undefined}>
-              <span className="nav-icon"><Icon size={17} /></span>
-              {label}
-            </button>
-          ))}
+          {NAV.map((item) => renderNavItem(item))}
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-item" onClick={handleLogout}>
+          <button className="nav-item" onClick={handleLogout} aria-label={lang === "th" ? "ออกจากระบบ" : "Log out"}>
             <span className="nav-icon"><LogOut size={17} /></span>
             {t.logout}
           </button>
@@ -203,7 +209,7 @@ function Shell() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={lang === "th" ? "เมนูนำทาง" : "Navigation menu"}
+          aria-label={t.navigation}
           onKeyDown={(e) => { if (e.key === "Escape") setSidebarOpen(false); }}
           className="sr-only"
           tabIndex={-1}
@@ -217,7 +223,7 @@ function Shell() {
         <header className="sticky top-0 z-40 backdrop-blur-md"
           style={{ background: "color-mix(in srgb, var(--bg) 82%, transparent)", borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center gap-3 px-4 lg:px-10 py-3">
-            <button className="btn-icon lg:hidden" onClick={() => setSidebarOpen(true)}>
+            <button className="btn-icon lg:hidden" onClick={() => setSidebarOpen(true)} aria-label={t.menu}>
               <Menu size={18} />
             </button>
             <div className="flex-1" />
@@ -286,18 +292,18 @@ function Shell() {
                   {subjects.length === 0 && (
                     <div className="card p-4 text-center">
                       <p className="text-[13px] mb-3" style={{ color: "var(--text-muted)" }}>
-                        {lang === "th" ? "ยังไม่มีวิชา — เพิ่มวิชาหรือใช้ค่าเริ่มต้น" : "No subjects yet — add your own or use defaults"}
+                        {t.no_subjects_seed}
                       </p>
                       <button onClick={seedDefaultSubjects} className="btn btn-ghost !text-[12px]">
-                        {lang === "th" ? "เพิ่มวิชาพื้นฐาน" : "Add default subjects"}
+                        {t.add_default_subjects}
                       </button>
                     </div>
                   )}
                   <div id="subject-form">
-                    <SubjectForm onSaved={() => { fetchSubjects(); toast(lang === "th" ? "บันทึกวิชาสำเร็จ" : "Subject saved", "success"); }}
+                    <SubjectForm onSaved={() => { fetchSubjects(); toast(t.subject_saved, "success"); }}
                       editing={editingSubject} onCancelEdit={() => setEditingSubject(null)} />
                   </div>
-                  <SubjectList subjects={subjects} onEdit={(s) => setEditingSubject({ id: s.id, name: s.name, color: s.color })} onDeleted={() => { fetchSubjects(); toast(lang === "th" ? "ลบวิชาแล้ว" : "Subject deleted", "success"); }} />
+                  <SubjectList subjects={subjects} onEdit={(s) => setEditingSubject({ id: s.id, name: s.name, color: s.color })} onDeleted={() => { fetchSubjects(); toast(t.subject_deleted, "success"); }} />
                 </div>
               )}
 
@@ -339,13 +345,7 @@ function Shell() {
 
       {/* Bottom nav (mobile) */}
       <nav className="bottom-nav">
-          {NAV.map(({ key, label, icon: Icon }) => (
-          <button key={key} className={`bottom-nav-item ${tab === key ? "active" : ""}`} onClick={() => setTab(key)}
-            aria-current={tab === key ? "page" : undefined}>
-            <span className="nav-icon"><Icon size={19} /></span>
-            {label}
-          </button>
-        ))}
+          {NAV.map((item) => renderNavItem(item, true))}
       </nav>
     </div>
   );

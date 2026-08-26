@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/lib/i18n";
 import { useToast } from "./Toast";
 import type { Assignment, Subject } from "@/lib/types";
-import { getLocalDate } from "@/lib/utils";
+import { getLocalDate, formatDaysLeft } from "@/lib/utils";
+import { useSubjectMap } from "@/lib/useSubjectMap";
 import {
   BookOpen, CalendarDays, CheckCircle2, Clock, Circle,
   Pencil, Trash2, Search, AlertTriangle, CheckSquare, ArrowUpDown, Check,
@@ -50,7 +51,7 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
     return () => clearTimeout(timer);
   }, [search]);
 
-  const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s]));
+  const subjectMap = useSubjectMap(subjects);
 
   const today = getLocalDate();
 
@@ -60,7 +61,7 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
     return diff;
   };
 
-  const filtered = assignments.filter((a) => {
+  const filtered = useMemo(() => assignments.filter((a) => {
     if (filterStatus !== "all" && a.status !== filterStatus) return false;
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
@@ -69,9 +70,9 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
       if (!a.title.toLowerCase().includes(q) && !subName.includes(q) && !tagMatch) return false;
     }
     return true;
-  });
+  }), [assignments, filterStatus, debouncedSearch, subjectMap]);
 
-  const sorted = [...filtered].sort((a, b) => {
+  const sorted = useMemo(() => [...filtered].sort((a, b) => {
     if (a.status === "done" && b.status !== "done") return 1;
     if (a.status !== "done" && b.status === "done") return -1;
     if (sortBy === "due") {
@@ -85,13 +86,13 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
     }
     if (sortBy === "title") return a.title.localeCompare(b.title);
     return 0;
-  });
+  }), [filtered, sortBy]);
 
   const cycleStatus = async (a: Assignment) => {
     const next = a.status === "pending" ? "in_progress" : a.status === "in_progress" ? "done" : "pending";
     await supabase.from("assignments").update({ status: next, updated_at: new Date().toISOString() }).eq("id", a.id);
     if (navigator.vibrate) navigator.vibrate(10);
-    setSrAnnouncement(lang === "th" ? "เปลี่ยนสถานะแล้ว" : "Status changed");
+    setSrAnnouncement(t.status_changed);
     setTimeout(() => setSrAnnouncement(""), 1000);
     onStatusChange();
   };
@@ -101,8 +102,8 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
     if (!a) return;
     await supabase.from("assignments").delete().eq("id", id);
     onDeleted();
-    toast(lang === "th" ? "ลบงานแล้ว" : "Assignment deleted", "success", {
-      label: lang === "th" ? "เลิกทำ" : "Undo",
+    toast(t.assignment_deleted, "success", {
+      label: t.undo,
       onClick: async () => {
         await supabase.from("assignments").insert({
           id: a.id, user_id: a.user_id, subject_id: a.subject_id,
@@ -144,25 +145,25 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
 
       {selected.size > 0 && (
         <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "var(--primary)", color: "var(--text-invert)" }}>
-          <span className="text-sm font-medium">{selected.size} {lang === "th" ? "เลือกแล้ว" : "selected"}</span>
+          <span className="text-sm font-medium">{selected.size} {t.selected}</span>
           <div className="flex-1" />
           <button onClick={bulkComplete} className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30">
             <Check size={12} className="inline mr-1" />
-            {lang === "th" ? "เสร็จทั้งหมด" : "Complete All"}
+            {t.complete_all}
           </button>
           <button onClick={bulkDelete} className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30">
             <Trash2 size={12} className="inline mr-1" />
-            {lang === "th" ? "ลบ" : "Delete"}
+            {t.delete}
           </button>
           <button onClick={() => setSelected(new Set())} className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30">
-            {lang === "th" ? "ยกเลิก" : "Cancel"}
+            {t.cancel}
           </button>
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             value={search}
@@ -183,16 +184,17 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <ArrowUpDown size={14} style={{ color: "var(--text-muted)" }} />
+          <ArrowUpDown size={14} className="text-muted" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="select !py-1.5 !text-xs"
+            aria-label={lang === "th" ? "เรียงลำดับ" : "Sort by"}
           >
-            <option value="created">{lang === "th" ? "วันที่สร้าง" : "Created"}</option>
-            <option value="due">{lang === "th" ? "กำหนดส่ง" : "Due date"}</option>
-            <option value="priority">{lang === "th" ? "ความสำคัญ" : "Priority"}</option>
-            <option value="title">{lang === "th" ? "ชื่อ" : "Title"}</option>
+            <option value="created">{t.created_at}</option>
+            <option value="due">{t.due_date}</option>
+            <option value="priority">{t.priority}</option>
+            <option value="title">{t.title}</option>
           </select>
         </div>
       </div>
@@ -201,7 +203,7 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
         <div className="empty">
           <div className="empty-icon"><BookOpen size={24} /></div>
           <div className="empty-title">{search ? t.no_items : t.no_assignments}</div>
-          <div className="empty-sub">{search ? (lang === "th" ? "ลองค้นหาด้วยคำอื่น" : "Try a different search") : t.no_assignments_sub}</div>
+          <div className="empty-sub">{search ? t.try_different_search : t.no_assignments_sub}</div>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -234,6 +236,10 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
                   if (e.key === "Delete") {
                     setSwipedId(a.id);
                   }
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpandedId(expandedId === a.id ? null : a.id);
+                  }
                 }}
                 tabIndex={0}
               >
@@ -241,11 +247,13 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
                   <div className="absolute inset-0 flex items-center justify-end gap-2 pr-4 z-0"
                     style={{ background: "var(--red-soft)" }}>
                     <button onClick={() => { setSwipedId(null); onEdit(a); }}
-                      className="btn btn-ghost !py-1.5 !px-3 !text-[12px]" style={{ color: "var(--blue)" }}>
+                      className="btn btn-ghost !py-1.5 !px-3 !text-[12px]" style={{ color: "var(--blue)" }}
+                      aria-label={lang === "th" ? "แก้ไข" : "Edit"}>
                       <Pencil size={13} /> {t.edit}
                     </button>
                     <button onClick={() => { setSwipedId(null); handleDelete(a.id); }}
-                      className="btn btn-ghost !py-1.5 !px-3 !text-[12px]" style={{ color: "var(--red)" }}>
+                      className="btn btn-ghost !py-1.5 !px-3 !text-[12px]" style={{ color: "var(--red)" }}
+                      aria-label={lang === "th" ? "ลบ" : "Delete"}>
                       <Trash2 size={13} /> {t.delete}
                     </button>
                   </div>
@@ -256,13 +264,14 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
                   checked={selected.has(a.id)}
                   onChange={() => toggleSelect(a.id)}
                   className="flex-shrink-0 w-4 h-4 accent-[var(--primary)]"
+                  aria-label={lang === "th" ? "เลือกงานนี้" : "Select this assignment"}
                 />
 
                 <button
                   onClick={() => cycleStatus(a)}
                   className="flex-shrink-0 transition-colors"
                   style={{ color: a.status === "done" ? "var(--green)" : "var(--text-muted)" }}
-                  aria-label={`${lang === "th" ? "เปลี่ยนสถานะ" : "Change status"}: ${a.status}`}
+                  aria-label={`${t.change_status}: ${a.status}`}
                 >
                   <StatusIcon size={20} />
                 </button>
@@ -270,8 +279,7 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className="font-semibold text-[14px]"
-                      style={{ textDecoration: a.status === "done" ? "line-through" : "none" }}
+                      className={`font-semibold text-[14px] ${a.status === "done" ? "line-through-done" : ""}`}
                     >
                       {a.title}
                     </span>
@@ -302,10 +310,8 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
                     {a.due_date && (
                       <span className={`badge ${isOverdue ? "badge-red" : isDueToday ? "badge-amber" : "badge-neutral"}`}>
                         <CalendarDays size={10} /> {a.due_date}
-                        {daysLeft !== null && a.status !== "done" && (
-                          isOverdue ? ` (${lang === "th" ? "เลย" : ""}${Math.abs(daysLeft)}${lang === "th" ? " วัน" : "d"})` :
-                          daysLeft === 0 ? (lang === "th" ? " (วันนี้)" : " (today)") :
-                          ` (${daysLeft}${lang === "th" ? " วัน" : "d"})`
+                        {a.due_date && a.status !== "done" && (
+                          ` (${formatDaysLeft(a.due_date, lang)})`
                         )}
                       </span>
                     )}
@@ -314,7 +320,7 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
                     </span>
                     {a.recurring && a.recurring !== "none" && (
                       <span className="badge badge-neutral">
-                        {lang === "th" ? { daily: "ทุกวัน", weekly: "ทุกสัปดาห์", monthly: "ทุกเดือน" }[a.recurring] : a.recurring}
+                        {t[a.recurring as keyof typeof t]}
                       </span>
                     )}
                     {a.estimated_minutes && a.status === "done" && a.actual_minutes != null && (
@@ -343,7 +349,7 @@ export default function AssignmentList({ assignments, subjects, onEdit, onDelete
                     {a.description && <p className="mb-2">{a.description}</p>}
                     {a.subtasks && a.subtasks.length > 0 && (
                       <div className="mb-2">
-                        <p className="font-medium mb-1" style={{ color: "var(--text)" }}>{lang === "th" ? "งานย่อย" : "Subtasks"}</p>
+                        <p className="font-medium mb-1" style={{ color: "var(--text)" }}>{t.subtasks}</p>
                         {a.subtasks.map((s) => (
                           <div key={s.id} className="flex items-center gap-2">
                             <CheckSquare className={`w-3.5 h-3.5 ${s.completed ? "text-[var(--green)]" : "text-[var(--muted)]"}`} />

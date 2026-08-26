@@ -28,13 +28,13 @@ interface Props {
 }
 
 export default function AssignmentTemplates({ onSelect }: Props) {
-  const { lang } = useLang();
+  const { t, lang } = useLang();
 
   return (
     <div className="card p-4">
       <div className="flex items-center gap-2 mb-3">
         <FileText size={16} style={{ color: "var(--text-secondary)" }} />
-        <span className="sec-title">{lang === "th" ? "เทมเพลตด่วน" : "Quick Templates"}</span>
+        <span className="sec-title">{t.quick_templates}</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         {TEMPLATES.map((tpl) => {
@@ -54,7 +54,7 @@ export default function AssignmentTemplates({ onSelect }: Props) {
               <Icon size={16} style={{ color: "var(--text-secondary)" }} className="mb-2" />
               <div className="text-[12px] font-semibold truncate">{lang === "th" ? tpl.nameTh : tpl.nameEn}</div>
               <div className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                ~{tpl.estimatedMinutes}{lang === "th" ? " นาที" : "min"}
+                ~{tpl.estimatedMinutes}{t.minutes_placeholder}
               </div>
             </button>
           );

@@ -10,8 +10,6 @@ interface Props {
   assignments: Assignment[];
 }
 
-const COLORS = ["#22C55E", "#F59E0B", "#EF4444", "#4F7CFF", "#A855F7", "#EC4899", "#0D9488", "#F97316"];
-
 const CustomTooltip = React.memo(({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string }>; label?: string }) => {
   if (!active || !payload) return null;
   return (
@@ -27,7 +25,7 @@ const CustomTooltip = React.memo(({ active, payload, label }: { active?: boolean
 });
 
 export default function StudyChartsInner({ assignments }: Props) {
-  const { lang } = useLang();
+  const { t, lang } = useLang();
 
   const weeklyData = useMemo(() => {
     const days = lang === "th" ? ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -53,9 +51,9 @@ export default function StudyChartsInner({ assignments }: Props) {
     const done = assignments.filter((a) => a.status === "done").length;
 
     return [
-      { name: lang === "th" ? "รอทำ" : "Pending", value: pending, color: "#F59E0B" },
-      { name: lang === "th" ? "กำลังทำ" : "In Progress", value: inProgress, color: "#4F7CFF" },
-      { name: lang === "th" ? "เสร็จแล้ว" : "Done", value: done, color: "#22C55E" },
+      { name: t.pending, value: pending, color: "#F59E0B" },
+      { name: t.in_progress, value: inProgress, color: "#4F7CFF" },
+      { name: t.done, value: done, color: "#22C55E" },
     ].filter((d) => d.value > 0);
   }, [assignments, lang]);
 
@@ -64,16 +62,16 @@ export default function StudyChartsInner({ assignments }: Props) {
       {/* Weekly bar chart */}
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
-          <BarChart3 size={16} style={{ color: "var(--text-secondary)" }} />
-          <span className="sec-title">{lang === "th" ? "งานตามวัน" : "By Day of Week"}</span>
+          <BarChart3 size={16} className="text-secondary" />
+          <span className="sec-title">{t.by_day}</span>
         </div>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={weeklyData} barGap={2}>
             <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} width={25} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="done" fill="var(--green)" radius={[4, 4, 0, 0]} name={lang === "th" ? "เสร็จ" : "Done"} />
-            <Bar dataKey="created" fill="var(--blue)" radius={[4, 4, 0, 0]} name={lang === "th" ? "สร้าง" : "Created"} opacity={0.5} />
+            <Bar dataKey="done" fill="var(--green)" radius={[4, 4, 0, 0]} name={t.done_label} />
+            <Bar dataKey="created" fill="var(--blue)" radius={[4, 4, 0, 0]} name={t.created_label} opacity={0.5} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -81,12 +79,12 @@ export default function StudyChartsInner({ assignments }: Props) {
       {/* Status pie chart */}
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
-          <PieChartIcon size={16} style={{ color: "var(--text-secondary)" }} />
-          <span className="sec-title">{lang === "th" ? "สถานะงาน" : "By Status"}</span>
+          <PieChartIcon size={16} className="text-secondary" />
+          <span className="sec-title">{t.by_status}</span>
         </div>
         {statusData.length === 0 ? (
           <div className="h-[180px] flex items-center justify-center">
-            <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>{lang === "th" ? "ยังไม่มีข้อมูล" : "No data yet"}</span>
+            <span className="text-[13px] text-muted">{t.no_data}</span>
           </div>
         ) : (
           <div className="flex items-center gap-4">

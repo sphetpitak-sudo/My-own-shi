@@ -52,9 +52,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               timers.current.set(t.id, timer);
             }}
           >
-            {t.type === "success" && <Check size={16} style={{ color: "#5fbf88" }} />}
-            {t.type === "error" && <AlertCircle size={16} style={{ color: "#e0705f" }} />}
-            {t.type === "info" && <Info size={16} style={{ color: "#7a9be0" }} />}
+            {t.type === "success" && <Check size={16} style={{ color: "var(--green)" }} />}
+            {t.type === "error" && <AlertCircle size={16} style={{ color: "var(--red)" }} />}
+            {t.type === "info" && <Info size={16} style={{ color: "var(--blue)" }} />}
             <span className="flex-1">{t.message}</span>
             {t.action && (
               <button

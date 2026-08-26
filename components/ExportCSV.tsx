@@ -15,14 +15,56 @@ interface Props {
 }
 
 export default function ExportCSV({ assignments, subjects, userId, onImport }: Props) {
-  const { lang } = useLang();
+  const { t, lang } = useLang();
   const { toast } = useToast();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s.name]));
 
+  function parseCSV(text: string): Record<string, string>[] {
+    const lines: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (const char of text) {
+      if (char === '"') { inQuotes = !inQuotes; continue; }
+      if (char === "\n" && !inQuotes) { lines.push(current); current = ""; continue; }
+      current += char;
+    }
+    if (current) lines.push(current);
+
+    if (lines.length < 2) return [];
+    const hdrs = lines[0].split(",").map(h => h.trim().toLowerCase());
+
+    return lines.slice(1).map(line => {
+      const values: string[] = [];
+      let val = "";
+      let inQ = false;
+      for (const c of line) {
+        if (c === '"') { inQ = !inQ; continue; }
+        if (c === "," && !inQ) { values.push(val); val = ""; continue; }
+        val += c;
+      }
+      values.push(val);
+      const row: Record<string, string> = {};
+      hdrs.forEach((h, i) => { row[h] = (values[i] || "").trim(); });
+      return row;
+    });
+  }
+
   const handleExport = () => {
-    const headers = ["Title", "Subject", "Priority", "Status", "Due Date", "Estimated Minutes", "Created", "Completed"];
+    const headers = [
+      lang === "th" ? "ชื่องาน" : "Title",
+      lang === "th" ? "วิชา" : "Subject",
+      lang === "th" ? "ความสำคัญ" : "Priority",
+      lang === "th" ? "สถานะ" : "Status",
+      lang === "th" ? "กำหนดส่ง" : "Due Date",
+      lang === "th" ? "เวลาที่คาด" : "Est. Minutes",
+      lang === "th" ? "เวลาจริง" : "Actual Minutes",
+      lang === "th" ? "งานย่อย" : "Subtasks",
+      lang === "th" ? "ทำซ้ำ" : "Recurring",
+      lang === "th" ? "แท็ก" : "Tags",
+    ];
     const rows = assignments.map((a) => [
       `"${a.title.replace(/"/g, '""')}"`,
       a.subject_id ? subjectMap[a.subject_id] || "" : "",
@@ -30,8 +72,10 @@ export default function ExportCSV({ assignments, subjects, userId, onImport }: P
       a.status,
       a.due_date || "",
       a.estimated_minutes || "",
-      a.created_at.slice(0, 10),
       a.status === "done" ? a.updated_at.slice(0, 10) : "",
+      "",
+      "",
+      "",
     ]);
 
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
@@ -48,14 +92,9 @@ export default function ExportCSV({ assignments, subjects, userId, onImport }: P
     const file = e.target.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const lines = text.split("\n").filter((l) => l.trim());
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+    const rows = parseCSV(text);
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim());
-      const row: Record<string, string> = {};
-      headers.forEach((h, j) => { row[h] = values[j] || ""; });
-
+    for (const row of rows) {
       await supabase.from("assignments").insert({
         user_id: userId,
         title: row.title || "Imported",
@@ -67,17 +106,17 @@ export default function ExportCSV({ assignments, subjects, userId, onImport }: P
       });
     }
     onImport();
-    toast(lang === "th" ? "นำเข้าสำเร็จ" : "Import successful", "success");
+    toast(t.import_successful, "success");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
     <div className="flex items-center gap-2">
       <button onClick={handleExport} className="btn btn-ghost !text-[13px]">
-        <Download size={14} /> {lang === "th" ? "ส่งออก CSV" : "Export CSV"}
+        <Download size={14} /> {t.export_csv}
       </button>
       <button onClick={() => fileInputRef.current?.click()} className="btn btn-ghost !text-[13px]">
-        <Upload size={14} /> {lang === "th" ? "นำเข้า CSV" : "Import CSV"}
+        <Upload size={14} /> {t.import_csv}
       </button>
       <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImport} className="hidden" />
     </div>

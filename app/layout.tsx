@@ -51,7 +51,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <noscript>
           <div style={{ padding: "2rem", textAlign: "center", fontFamily: "sans-serif" }}>
-            <p>StudyHub requires JavaScript to run. Please enable JavaScript in your browser.</p>
+            <p>StudyHub requires JavaScript to run / StudyHub ต้องการ JavaScript</p>
+            <p>Please enable JavaScript / กรุณาเปิดใช้งาน JavaScript</p>
           </div>
         </noscript>
         <ThemeProvider>

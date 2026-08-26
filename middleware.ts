@@ -1,7 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+function addSecurityHeaders(res: NextResponse) {
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  res.headers.set("X-XSS-Protection", "1; mode=block");
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  return res;
+}
+
 export async function middleware(request: NextRequest) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+    console.error("Missing Supabase env vars");
+    return NextResponse.redirect(new URL("/error", request.url));
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -36,10 +51,7 @@ export async function middleware(request: NextRequest) {
       supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
         redirectResponse.cookies.set(name, value);
       });
-      redirectResponse.headers.set("X-Content-Type-Options", "nosniff");
-      redirectResponse.headers.set("X-Frame-Options", "DENY");
-      redirectResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-      return redirectResponse;
+      return addSecurityHeaders(redirectResponse);
     }
   }
 
@@ -51,10 +63,7 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     const redirectResponse = NextResponse.redirect(url);
-    redirectResponse.headers.set("X-Content-Type-Options", "nosniff");
-    redirectResponse.headers.set("X-Frame-Options", "DENY");
-    redirectResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    return redirectResponse;
+    return addSecurityHeaders(redirectResponse);
   }
 
   if (user && request.nextUrl.pathname === "/") {
@@ -64,16 +73,10 @@ export async function middleware(request: NextRequest) {
     supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
       redirectResponse.cookies.set(name, value);
     });
-    redirectResponse.headers.set("X-Content-Type-Options", "nosniff");
-    redirectResponse.headers.set("X-Frame-Options", "DENY");
-    redirectResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    return redirectResponse;
+    return addSecurityHeaders(redirectResponse);
   }
 
-  supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
-  supabaseResponse.headers.set("X-Frame-Options", "DENY");
-  supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  return supabaseResponse;
+  return addSecurityHeaders(supabaseResponse);
 }
 
 export const config = {
