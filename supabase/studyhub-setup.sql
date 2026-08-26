@@ -76,6 +76,7 @@ CREATE INDEX IF NOT EXISTS idx_assignments_subject ON assignments(subject_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
 
 -- Additional columns for features #66–70
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS estimated_minutes INTEGER;
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS subtasks JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS recurring TEXT DEFAULT 'none';
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS actual_minutes INTEGER;
