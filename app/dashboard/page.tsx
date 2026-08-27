@@ -1,10 +1,5 @@
-import Dashboard from "@/components/Dashboard";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import DashboardShell from "@/components/DashboardShell";
 
 export default function DashboardPage() {
-  return (
-    <ErrorBoundary>
-      <Dashboard />
-    </ErrorBoundary>
-  );
+  return <DashboardShell />;
 }

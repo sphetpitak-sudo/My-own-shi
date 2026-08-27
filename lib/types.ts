@@ -1,38 +1,50 @@
-export type Priority = "low" | "medium" | "high";
-export type Status = "pending" | "in_progress" | "done";
-export type Recurring = "none" | "daily" | "weekly" | "monthly";
-
-export interface Subtask {
-  id: string;
-  title: string;
-  completed: boolean;
-}
-
-export interface Subject {
-  id: string;
-  user_id: string;
+export interface TarotCard {
+  id: number;
   name: string;
-  color: string;
-  icon: string;
-  is_default: boolean;
-  sort_order: number;
+  nameTh: string;
+  arcana: "major" | "minor";
+  suit: "wands" | "cups" | "swords" | "pents" | null;
+  number: number;
+  imageFile: string;
+  keywords: string[];
+  meaningUpright: string;
+  meaningReversed: string;
+}
+
+export interface DrawnCard {
+  card: TarotCard;
+  position: string;
+  reversed: boolean;
+}
+
+export interface Reading {
+  id: string;
+  user_id: string;
+  spread_type: "single" | "three_card" | "celtic";
+  cards: DrawnCard[];
+  question: string;
+  interpretation: string;
+  points_spent: number;
   created_at: string;
 }
 
-export interface Assignment {
+export interface Profile {
+  id: string;
+  display_name: string;
+  avatar_url: string;
+  points: number;
+  is_admin: boolean;
+  created_at: string;
+}
+
+export interface PointTransaction {
   id: string;
   user_id: string;
-  subject_id: string | null;
-  title: string;
+  amount: number;
+  type: "admin_grant" | "reading_purchase" | "daily_bonus" | "referral";
   description: string;
-  due_date: string | null;
-  priority: Priority;
-  status: Status;
-  estimated_minutes: number | null;
+  admin_id: string | null;
   created_at: string;
-  updated_at: string;
-  subtasks: Subtask[];
-  recurring: Recurring;
-  actual_minutes: number | null;
-  tags: string[];
 }
+
+export type SpreadType = "single" | "three_card" | "celtic";

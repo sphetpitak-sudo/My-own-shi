@@ -492,6 +492,7 @@ body {
 .d1 { animation-delay: 0.04s; }
 
 /* ============ SKELETON ============ */
+@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 .shimmer {
   background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
@@ -765,4 +766,91 @@ button:focus-visible {
   body { background: white !important; color: black !important; }
   .card { border: 1px solid #ccc !important; box-shadow: none !important; }
   * { color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+
+/* ============ STARFIELD ============ */
+.starfield {
+  position: relative;
+  background: radial-gradient(ellipse at center, #1a1025 0%, #0f0a1a 100%);
+  overflow: hidden;
+}
+
+.starfield::before,
+.starfield::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.starfield::before {
+  box-shadow:
+    25vw 10vh 0 0 rgba(255,255,255,0.6),
+    50vw 20vh 0 0 rgba(255,255,255,0.4),
+    75vw 15vh 0 0 rgba(255,255,255,0.5),
+    10vw 30vh 0 0 rgba(255,255,255,0.3),
+    85vw 25vh 0 0 rgba(255,255,255,0.6),
+    40vw 40vh 0 0 rgba(255,255,255,0.4),
+    60vw 35vh 0 0 rgba(255,255,255,0.5),
+    15vw 50vh 0 0 rgba(255,255,255,0.3),
+    90vw 45vh 0 0 rgba(255,255,255,0.6),
+    30vw 55vh 0 0 rgba(255,255,255,0.4),
+    70vw 50vh 0 0 rgba(255,255,255,0.5),
+    5vw 65vh 0 0 rgba(255,255,255,0.3),
+    55vw 60vh 0 0 rgba(255,255,255,0.6),
+    80vw 70vh 0 0 rgba(255,255,255,0.4),
+    20vw 75vh 0 0 rgba(255,255,255,0.5),
+    45vw 80vh 0 0 rgba(255,255,255,0.3),
+    65vw 85vh 0 0 rgba(255,255,255,0.6),
+    95vw 90vh 0 0 rgba(255,255,255,0.4),
+    35vw 95vh 0 0 rgba(255,255,255,0.5),
+    12vw 12vh 0 0 rgba(255,255,255,0.7),
+    88vw 8vh 0 0 rgba(255,255,255,0.5),
+    42vw 72vh 0 0 rgba(255,255,255,0.6),
+    78vw 62vh 0 0 rgba(255,255,255,0.4),
+    18vw 88vh 0 0 rgba(255,255,255,0.5),
+    62vw 18vh 0 0 rgba(255,255,255,0.6),
+    33vw 48vh 0 0 rgba(255,255,255,0.3),
+    57vw 78vh 0 0 rgba(255,255,255,0.5),
+    82vw 38vh 0 0 rgba(255,255,255,0.4),
+    8vw 58vh 0 0 rgba(255,255,255,0.6);
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+.starfield::after {
+  box-shadow:
+    22vw 18vh 0 0 rgba(255,255,255,0.5),
+    48vw 28vh 0 0 rgba(255,255,255,0.3),
+    72vw 22vh 0 0 rgba(255,255,255,0.6),
+    8vw 42vh 0 0 rgba(255,255,255,0.4),
+    88vw 32vh 0 0 rgba(255,255,255,0.5),
+    38vw 52vh 0 0 rgba(255,255,255,0.3),
+    62vw 42vh 0 0 rgba(255,255,255,0.6),
+    18vw 62vh 0 0 rgba(255,255,255,0.4),
+    92vw 55vh 0 0 rgba(255,255,255,0.5),
+    28vw 68vh 0 0 rgba(255,255,255,0.3),
+    75vw 58vh 0 0 rgba(255,255,255,0.6),
+    52vw 75vh 0 0 rgba(255,255,255,0.4),
+    15vw 82vh 0 0 rgba(255,255,255,0.5),
+    68vw 88vh 0 0 rgba(255,255,255,0.3),
+    35vw 15vh 0 0 rgba(255,255,255,0.6),
+    85vw 78vh 0 0 rgba(255,255,255,0.4),
+    45vw 92vh 0 0 rgba(255,255,255,0.5),
+    95vw 12vh 0 0 rgba(255,255,255,0.3),
+    25vw 85vh 0 0 rgba(255,255,255,0.6),
+    78vw 48vh 0 0 rgba(255,255,255,0.4),
+    55vw 8vh 0 0 rgba(255,255,255,0.5),
+    40vw 65vh 0 0 rgba(255,255,255,0.3),
+    90vw 68vh 0 0 rgba(255,255,255,0.6),
+    10vw 95vh 0 0 rgba(255,255,255,0.4),
+    65vw 32vh 0 0 rgba(255,255,255,0.5);
+  animation: twinkle 3s ease-in-out 1s infinite alternate;
+}
+
+@keyframes twinkle {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
 }
