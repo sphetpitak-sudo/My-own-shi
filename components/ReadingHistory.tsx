@@ -79,11 +79,11 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
     return (
       <div className="empty">
         <div className="empty-icon">
-          <BookOpen size={24} />
+          <BookOpen size={22} />
         </div>
         <div className="empty-title">ยังไม่มีการทำนาย</div>
         <div className="empty-sub">เริ่มทำนายไพ่ทาโรต์เพื่อดูประวัติของคุณ</div>
-        <a href="/dashboard" className="btn btn-primary mt-4">
+        <a href="/dashboard" className="btn btn-primary mt-4 text-[13px]">
           เริ่มทำนาย
         </a>
       </div>
@@ -107,7 +107,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                 className="item-icon flex-shrink-0 mt-0.5"
                 style={{ background: "var(--amber-soft)" }}
               >
-                <CreditCard size={18} style={{ color: "var(--amber)" }} />
+                <CreditCard size={16} style={{ color: "var(--amber)" }} />
               </div>
 
               <div className="flex-1 min-w-0">
@@ -160,7 +160,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                     การทำนาย
                   </div>
                   <p
-                    className="text-[13px] leading-relaxed whitespace-pre-line"
+                    className="text-[13px] leading-[1.7] whitespace-pre-line"
                     style={{ color: "var(--text-secondary)" }}
                   >
                     {r.interpretation}

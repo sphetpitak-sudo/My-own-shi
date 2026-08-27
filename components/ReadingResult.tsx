@@ -13,6 +13,13 @@ interface Props {
   onDone: () => void;
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/^#+\s/gm, "")
+    .replace(/^[-*]\s/gm, "");
+}
+
 export default function ReadingResult({ cards, spreadType, question, onDone }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -103,97 +110,96 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
   }, [text]);
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
-        <button
-          onClick={onDone}
-          className="flex items-center gap-2 mb-6 transition-colors"
-          style={{ color: "var(--text-muted)" }}
-        >
-          <ArrowLeft size={16} />
-          <span className="text-sm">กลับ</span>
-        </button>
+    <div>
+      <button
+        onClick={onDone}
+        className="flex items-center gap-2 mb-6 transition-colors"
+        style={{ color: "var(--text-muted)" }}
+      >
+        <ArrowLeft size={16} />
+        <span className="text-[13px]">กลับ</span>
+      </button>
 
-        <div className="text-center mb-8">
-          <h2 className="text-xl font-bold mb-1" style={{ color: "var(--text)" }}>
-            {spread?.nameTh}
-          </h2>
-          {question && (
-            <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>
-              &ldquo;{question}&rdquo;
-            </p>
-          )}
-        </div>
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--text)" }}>
+          {spread?.nameTh}
+        </h2>
+        {question && (
+          <p className="text-[13px] italic" style={{ color: "var(--text-muted)" }}>
+            &ldquo;{question}&rdquo;
+          </p>
+        )}
+      </div>
 
-        <div
-          className={cn(
-            "flex gap-3 justify-center mb-8 flex-wrap",
-            spreadType === "celtic" && "gap-2"
-          )}
-        >
-          {cards.map((c, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <TarotCard
-                card={c.card}
-                reversed={c.reversed}
-                flipped={true}
-                size={spreadType === "celtic" ? "sm" : "md"}
-              />
-              <span className="text-[10px] text-center max-w-[80px]" style={{ color: "var(--text-muted)" }}>
-                {c.card.nameTh}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles size={18} style={{ color: "var(--primary)" }} />
-            <h3 className="font-semibold" style={{ color: "var(--text)" }}>คำทำนาย</h3>
+      {/* Revealed cards - horizontal strip */}
+      <div
+        className={cn(
+          "flex gap-3 justify-center mb-8 flex-wrap",
+          spreadType === "celtic" && "gap-2"
+        )}
+      >
+        {cards.map((c, i) => (
+          <div key={i} className="flex flex-col items-center gap-1">
+            <TarotCard
+              card={c.card}
+              reversed={c.reversed}
+              flipped={true}
+              size={spreadType === "celtic" ? "sm" : "md"}
+            />
+            <span className="text-[10px] text-center max-w-[80px]" style={{ color: "var(--text-muted)" }}>
+              {c.card.nameTh}
+            </span>
           </div>
+        ))}
+      </div>
 
-          {error ? (
-            <div className="text-center py-8">
-              <p className="mb-4" style={{ color: "var(--red)" }}>{error}</p>
-              <div className="flex gap-3 justify-center">
-                <button onClick={startReading} className="btn btn-primary">
-                  <RefreshCw size={14} />
-                  ลองใหม่
-                </button>
-                <button onClick={onDone} className="btn btn-ghost">
-                  กลับ
-                </button>
-              </div>
+      <div className="card p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <Sparkles size={16} style={{ color: "var(--primary)" }} />
+          <h3 className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>คำทำนาย</h3>
+        </div>
+
+        {error ? (
+          <div className="text-center py-8">
+            <p className="mb-4 text-[14px]" style={{ color: "var(--red)" }}>{error}</p>
+            <div className="flex gap-3 justify-center">
+              <button onClick={startReading} className="btn btn-primary">
+                <RefreshCw size={14} />
+                ลองใหม่
+              </button>
+              <button onClick={onDone} className="btn btn-ghost">
+                กลับ
+              </button>
             </div>
-          ) : (
-            <>
-              <div
-                ref={textRef}
-                className="leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-y-auto"
-                style={{ color: "var(--text)" }}
-              >
-                {text}
-                {loading && !text && (
-                  <div className="flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>กำลังทำนาย...</span>
-                  </div>
-                )}
-                {loading && text && (
-                  <span className="inline-block w-2 h-4 animate-pulse ml-0.5" style={{ background: "var(--primary)" }} />
-                )}
-              </div>
-
-              {done && (
-                <div className="mt-6 text-center">
-                  <button onClick={onDone} className="btn btn-primary">
-                    กลับหน้าหลัก
-                  </button>
+          </div>
+        ) : (
+          <>
+            <div
+              ref={textRef}
+              className="leading-[1.8] whitespace-pre-wrap max-h-[500px] overflow-y-auto text-[14px]"
+              style={{ color: "var(--text)", lineHeight: "1.8" }}
+            >
+              {stripMarkdown(text)}
+              {loading && !text && (
+                <div className="flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-[13px]">กำลังทำนาย...</span>
                 </div>
               )}
-            </>
-          )}
-        </div>
+              {loading && text && (
+                <span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-text-bottom" style={{ background: "var(--primary)" }} />
+              )}
+            </div>
+
+            {done && (
+              <div className="mt-6 text-center">
+                <button onClick={onDone} className="btn btn-primary">
+                  กลับหน้าหลัก
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

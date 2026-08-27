@@ -8,9 +8,19 @@ import SpreadSelector from "@/components/SpreadSelector";
 import QuestionInput from "@/components/QuestionInput";
 import CardDraw from "@/components/CardDraw";
 import ReadingResult from "@/components/ReadingResult";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { SPREADS, type SpreadType, type DrawnCard } from "@/lib/cards";
 import { useBeforeUnload } from "@/lib/useBeforeUnload";
+import { cn } from "@/lib/cn";
+
+const STEPS = [
+  { key: "spread", label: "เลือกSpread" },
+  { key: "question", label: "ถามคำถาม" },
+  { key: "draw", label: "จั่วไพ่" },
+  { key: "result", label: "คำทำนาย" },
+] as const;
+
+type StepKey = typeof STEPS[number]["key"];
 
 export default function ReadingPage() {
   const router = useRouter();
@@ -20,7 +30,7 @@ export default function ReadingPage() {
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const [step, setStep] = useState<"spread" | "question" | "draw" | "result">("spread");
+  const [step, setStep] = useState<StepKey>("spread");
   const [spreadType, setSpreadType] = useState<SpreadType>("single");
   const [question, setQuestion] = useState("");
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
@@ -44,7 +54,6 @@ export default function ReadingPage() {
     init();
   }, [supabase, router]);
 
-  // Warn before leaving during active reading
   useBeforeUnload(
     step === "draw" || step === "result",
     "คุณกำลังอ่านไพ่อยู่ หากออกจะสูญเสียแต้ม"
@@ -61,6 +70,7 @@ export default function ReadingPage() {
   }
 
   const spread = SPREADS[spreadType];
+  const stepIndex = STEPS.findIndex((s) => s.key === step);
 
   const handleSpreadSelect = (type: SpreadType) => {
     setSpreadType(type);
@@ -92,15 +102,37 @@ export default function ReadingPage() {
     <DashboardShell>
       <div className="p-4 md:p-8">
         <div className="max-w-3xl mx-auto">
-          {/* Step indicator */}
-          <div className="mb-6 flex gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
-            <span style={step === "spread" ? { color: "var(--primary)", fontWeight: 600 } : {}}>1. เลือกSpread</span>
-            <span className="hidden sm:inline">→</span>
-            <span style={step === "question" ? { color: "var(--primary)", fontWeight: 600 } : {}}>2. ถามคำถาม</span>
-            <span className="hidden sm:inline">→</span>
-            <span style={step === "draw" ? { color: "var(--primary)", fontWeight: 600 } : {}}>3. จั่วไพ่</span>
-            <span className="hidden sm:inline">→</span>
-            <span style={step === "result" ? { color: "var(--primary)", fontWeight: 600 } : {}}>4. คำทำนาย</span>
+          {/* Visual step indicator */}
+          <div className="mb-8">
+            <div className="step-indicator justify-center">
+              {STEPS.map((s, i) => (
+                <div key={s.key} className="contents">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div
+                      className={cn(
+                        "step-dot",
+                        i < stepIndex && "done",
+                        i === stepIndex && "active"
+                      )}
+                    >
+                      {i < stepIndex ? <Check size={14} /> : i + 1}
+                    </div>
+                    <span
+                      className={cn(
+                        "step-label",
+                        i === stepIndex && "active",
+                        i < stepIndex && "done"
+                      )}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div className={cn("step-line", i < stepIndex && "done")} style={{ marginBottom: 18 }} />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Content */}
@@ -114,10 +146,10 @@ export default function ReadingPage() {
 
           {step === "question" && (
             <div className="card p-6">
-              <h2 className="text-xl font-bold mb-4" style={{ color: "var(--text)" }}>
-                {spread.nameTh} ({spread.name})
+              <h2 className="text-lg font-bold mb-2" style={{ color: "var(--text)" }}>
+                {spread.nameTh}
               </h2>
-              <p className="mb-6" style={{ color: "var(--text-muted)" }}>
+              <p className="text-[13px] mb-5" style={{ color: "var(--text-muted)" }}>
                 {spread.descriptionTh} — {spread.cardCount} ใบ ใช้ {spread.cost} แต้ม
               </p>
               <QuestionInput
@@ -127,7 +159,7 @@ export default function ReadingPage() {
               />
               <button
                 onClick={() => setStep("spread")}
-                className="btn btn-ghost mt-4"
+                className="btn btn-ghost mt-3 text-[13px]"
               >
                 <ArrowLeft size={14} />
                 เลือกSpreadใหม่

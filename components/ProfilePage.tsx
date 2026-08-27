@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { User, Calendar, BookOpen, Coins, ArrowUpRight, ArrowDownLeft, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import PointsBalance from "./PointsBalance";
 import DailyBonus from "./DailyBonus";
 import type { Profile, PointTransaction } from "@/lib/types";
 
@@ -72,11 +71,10 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="shimmer h-[160px] w-full rounded-2xl" />
-        <div className="shimmer h-[80px] w-full rounded-2xl" />
+        <div className="shimmer h-[140px] w-full rounded-2xl" />
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="shimmer h-[56px] w-full" />
+            <div key={i} className="shimmer h-[52px] w-full" />
           ))}
         </div>
       </div>
@@ -84,12 +82,12 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Profile Card */}
-      <div className="card p-6">
+      <div className="card p-5">
         <div className="flex items-center gap-4">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+            className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
             style={{ background: "var(--primary)", color: "var(--text-invert)" }}
           >
             {profile?.avatar_url ? (
@@ -99,16 +97,16 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User size={28} />
+              <User size={24} />
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[17px] font-bold truncate" style={{ color: "var(--text)" }}>
+            <div className="text-[16px] font-bold truncate" style={{ color: "var(--text)" }}>
               {profile?.display_name || "ผู้ใช้"}
             </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Calendar size={12} style={{ color: "var(--text-muted)" }} />
-              <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Calendar size={11} style={{ color: "var(--text-muted)" }} />
+              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                 เป็นสมาชิกตั้งแต่{" "}
                 {profile?.created_at
                   ? new Date(profile.created_at).toLocaleDateString("th-TH", {
@@ -121,33 +119,28 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
           </div>
           <a
             href="/dashboard/settings"
-            className="btn btn-ghost text-[13px] flex-shrink-0"
+            className="btn btn-ghost text-[12px] flex-shrink-0"
           >
-            <Settings size={14} />
+            <Settings size={13} />
             ตั้งค่า
           </a>
         </div>
-      </div>
-
-      {/* Points */}
-      <div className="card p-6">
-        <PointsBalance points={profile?.points ?? 0} />
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="stat-card text-center">
           <div className="flex items-center justify-center mb-2">
-            <Coins size={18} style={{ color: "var(--amber)" }} />
+            <Coins size={16} style={{ color: "var(--amber)" }} />
           </div>
-          <div className="stat-value">{profile?.points ?? 0}</div>
+          <div className="stat-value text-[20px]">{profile?.points ?? 0}</div>
           <div className="stat-label">คะแนนคงเหลือ</div>
         </div>
         <div className="stat-card text-center">
           <div className="flex items-center justify-center mb-2">
-            <BookOpen size={18} style={{ color: "var(--blue)" }} />
+            <BookOpen size={16} style={{ color: "var(--blue)" }} />
           </div>
-          <div className="stat-value">{transactions.filter((t) => t.type === "reading_purchase").length}</div>
+          <div className="stat-value text-[20px]">{transactions.filter((t) => t.type === "reading_purchase").length}</div>
           <div className="stat-label">การทำนายทั้งหมด</div>
         </div>
       </div>
@@ -161,12 +154,12 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
         {transactions.length === 0 ? (
           <div className="empty py-6">
             <div className="empty-icon">
-              <Coins size={22} />
+              <Coins size={20} />
             </div>
             <div className="empty-title">ยังไม่มีธุรกรรม</div>
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {transactions.map((tx) => {
               const meta = txTypeLabels[tx.type] || {
                 label: tx.type,
@@ -183,7 +176,7 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
                     }}
                   >
                     <Icon
-                      size={16}
+                      size={14}
                       style={{ color: meta.positive ? "var(--green)" : "var(--red)" }}
                     />
                   </div>

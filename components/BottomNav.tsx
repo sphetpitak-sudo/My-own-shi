@@ -2,21 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Sparkles, Shield, User } from "lucide-react";
+import { Home, Calendar, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface BottomNavProps {
-  isAdmin?: boolean;
+  isAdmin?: boolean; // kept for API compatibility
 }
 
-export default function BottomNav({ isAdmin }: BottomNavProps) {
+export default function BottomNav() {
   const pathname = usePathname();
 
   const items = [
     { href: "/dashboard", label: "หน้าหลัก", icon: Home },
     { href: "/dashboard/reading", label: "ไพ่", icon: Sparkles },
     { href: "/dashboard/history", label: "ประวัติ", icon: Calendar },
-    ...(isAdmin ? [{ href: "/admin", label: "แอดมิน", icon: Shield }] : []),
     { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
   ];
 

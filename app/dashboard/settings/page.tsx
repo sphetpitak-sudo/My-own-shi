@@ -20,9 +20,11 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <DashboardShell>
-        <div className="space-y-4">
-          <div className="shimmer h-[120px] w-full rounded-2xl" />
-          <div className="shimmer h-[200px] w-full rounded-2xl" />
+        <div className="p-4 md:p-8">
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="shimmer h-[120px] w-full rounded-2xl" />
+            <div className="shimmer h-[200px] w-full rounded-2xl" />
+          </div>
         </div>
       </DashboardShell>
     );
@@ -31,8 +33,10 @@ export default function SettingsPage() {
   if (!userId) {
     return (
       <DashboardShell>
-        <div className="empty">
-          <div className="empty-title">กรุณาเข้าสู่ระบบ</div>
+        <div className="p-4 md:p-8">
+          <div className="empty">
+            <div className="empty-title">กรุณาเข้าสู่ระบบ</div>
+          </div>
         </div>
       </DashboardShell>
     );
@@ -40,11 +44,15 @@ export default function SettingsPage() {
 
   return (
     <DashboardShell>
-      <div className="page-header">
-        <h1 className="page-title">ตั้งค่าบัญชี</h1>
-        <p className="page-sub">จัดการข้อมูลส่วนตัวและความปลอดภัย</p>
+      <div className="p-4 md:p-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="page-header">
+            <h1 className="page-title">ตั้งค่าบัญชี</h1>
+            <p className="page-sub">จัดการข้อมูลส่วนตัวและความปลอดภัย</p>
+          </div>
+          <AccountSettings userId={userId} />
+        </div>
       </div>
-      <AccountSettings userId={userId} />
     </DashboardShell>
   );
 }

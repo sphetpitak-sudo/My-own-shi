@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "@/lib/theme";
-import { Moon, Sun, Menu, Coins, Bell } from "lucide-react";
+import { Moon, Sun, Menu, Coins } from "lucide-react";
 
 interface TopbarProps {
   userName?: string;
@@ -49,15 +49,6 @@ export default function Topbar({ userName, userAvatar, points = 0, onMenuClick }
           <Coins size={14} />
           <span>{points.toLocaleString()}</span>
         </div>
-
-        {/* Notification */}
-        <button className="btn-icon relative" aria-label="การแจ้งเตือน">
-          <Bell size={18} />
-          <span
-            className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-            style={{ background: "var(--red)" }}
-          />
-        </button>
 
         {/* Theme toggle */}
         <button onClick={toggle} className="btn-icon" aria-label="toggle theme">

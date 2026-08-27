@@ -16,7 +16,6 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Password change
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -104,15 +103,15 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="shimmer h-[120px] w-full rounded-2xl" />
-        <div className="shimmer h-[200px] w-full rounded-2xl" />
-        <div className="shimmer h-[200px] w-full rounded-2xl" />
+        <div className="shimmer h-[100px] w-full rounded-2xl" />
+        <div className="shimmer h-[180px] w-full rounded-2xl" />
+        <div className="shimmer h-[180px] w-full rounded-2xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Message Toast */}
       {message && (
         <div
@@ -122,32 +121,32 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
             color: message.type === "success" ? "var(--green)" : "var(--red)",
           }}
         >
-          {message.type === "success" ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+          {message.type === "success" ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
           {message.text}
         </div>
       )}
 
       {/* Profile Section */}
-      <div className="card p-6">
+      <div className="card p-5">
         <div className="sec-title mb-4">ข้อมูลโปรไฟล์</div>
 
         {/* Avatar */}
         <div className="flex items-center gap-4 mb-5">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+            className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
             style={{ background: "var(--primary)", color: "var(--text-invert)" }}
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User size={28} />
+              <User size={24} />
             )}
           </div>
           <div>
             <div className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
               รูปโปรไฟล์
             </div>
-            <div className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
               ดึงรูปจากบัญชี Google ของคุณ
             </div>
           </div>
@@ -170,23 +169,23 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
           disabled={saving}
           className="btn btn-primary w-full"
         >
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
           {saving ? "กำลังบันทึก..." : "บันทึก"}
         </button>
       </div>
 
       {/* Account Section */}
-      <div className="card p-6">
+      <div className="card p-5">
         <div className="sec-title mb-4">บัญชี</div>
 
         {/* Email */}
-        <div className="field mb-5">
+        <div className="field mb-4">
           <label className="label">อีเมล</label>
           <div
-            className="flex items-center gap-2 p-3 rounded-xl text-[14px]"
+            className="flex items-center gap-2 p-3 rounded-xl text-[13px]"
             style={{ background: "var(--bg)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
           >
-            <Mail size={16} style={{ color: "var(--text-muted)" }} />
+            <Mail size={14} style={{ color: "var(--text-muted)" }} />
             {email}
           </div>
         </div>
@@ -229,7 +228,7 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
           disabled={changingPassword || !newPassword}
           className="btn btn-ghost w-full"
         >
-          {changingPassword ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+          {changingPassword ? <Loader2 size={15} className="animate-spin" /> : <Lock size={15} />}
           {changingPassword ? "กำลังเปลี่ยน..." : "เปลี่ยนรหัสผ่าน"}
         </button>
       </div>
@@ -240,7 +239,7 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
         className="btn btn-ghost w-full"
         style={{ color: "var(--red)", borderColor: "var(--red-soft)" }}
       >
-        <LogOut size={16} />
+        <LogOut size={15} />
         ออกจากระบบ
       </button>
     </div>

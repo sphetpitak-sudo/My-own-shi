@@ -20,9 +20,11 @@ export default function ProfilePageRoute() {
   if (loading) {
     return (
       <DashboardShell>
-        <div className="space-y-3">
-          <div className="shimmer h-[200px] w-full" />
-          <div className="shimmer h-[100px] w-full" />
+        <div className="p-4 md:p-8">
+          <div className="max-w-3xl mx-auto space-y-3">
+            <div className="shimmer h-[200px] w-full" />
+            <div className="shimmer h-[100px] w-full" />
+          </div>
         </div>
       </DashboardShell>
     );
@@ -31,8 +33,10 @@ export default function ProfilePageRoute() {
   if (!userId) {
     return (
       <DashboardShell>
-        <div className="empty">
-          <div className="empty-title">กรุณาเข้าสู่ระบบ</div>
+        <div className="p-4 md:p-8">
+          <div className="empty">
+            <div className="empty-title">กรุณาเข้าสู่ระบบ</div>
+          </div>
         </div>
       </DashboardShell>
     );
@@ -40,7 +44,11 @@ export default function ProfilePageRoute() {
 
   return (
     <DashboardShell>
-      <ProfilePage userId={userId} />
+      <div className="p-4 md:p-8">
+        <div className="max-w-3xl mx-auto">
+          <ProfilePage userId={userId} />
+        </div>
+      </div>
     </DashboardShell>
   );
 }

@@ -12,7 +12,6 @@ interface DashboardShellProps {
 
 export default function DashboardShell({ children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{
     display_name: string;
     avatar_url: string;
@@ -24,7 +23,6 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }: { data: { user: { id: string } | null } }) => {
       if (data.user) {
-        setUserId(data.user.id);
         supabase
           .from("profiles")
           .select("display_name, avatar_url, points, is_admin")
@@ -36,10 +34,6 @@ export default function DashboardShell({ children }: DashboardShellProps) {
       }
     });
   }, []);
-
-  const handlePointsChange = (newPoints: number) => {
-    setProfile((prev) => (prev ? { ...prev, points: newPoints } : prev));
-  };
 
   return (
     <div className="app-shell">
@@ -62,7 +56,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
         </main>
       </div>
 
-      <BottomNav isAdmin={profile?.is_admin} />
+      <BottomNav />
     </div>
   );
 }

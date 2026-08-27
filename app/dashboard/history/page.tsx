@@ -20,10 +20,12 @@ export default function HistoryPage() {
   if (loading) {
     return (
       <DashboardShell>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="shimmer h-[72px] w-full" />
-          ))}
+        <div className="p-4 md:p-8">
+          <div className="max-w-3xl mx-auto space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="shimmer h-[72px] w-full" />
+            ))}
+          </div>
         </div>
       </DashboardShell>
     );
@@ -32,8 +34,10 @@ export default function HistoryPage() {
   if (!userId) {
     return (
       <DashboardShell>
-        <div className="empty">
-          <div className="empty-title">กรุณาเข้าสู่ระบบ</div>
+        <div className="p-4 md:p-8">
+          <div className="empty">
+            <div className="empty-title">กรุณาเข้าสู่ระบบ</div>
+          </div>
         </div>
       </DashboardShell>
     );
@@ -41,11 +45,15 @@ export default function HistoryPage() {
 
   return (
     <DashboardShell>
-      <div className="page-header">
-        <h1 className="page-title">ประวัติการทำนาย</h1>
-        <p className="page-sub">ดูการทำนายทั้งหมดของคุณ</p>
+      <div className="p-4 md:p-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="page-header">
+            <h1 className="page-title">ประวัติการทำนาย</h1>
+            <p className="page-sub">ดูการทำนายทั้งหมดของคุณ</p>
+          </div>
+          <ReadingHistory userId={userId} />
+        </div>
       </div>
-      <ReadingHistory userId={userId} />
     </DashboardShell>
   );
 }

@@ -32,7 +32,6 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
     try {
       const supabase = createClient();
 
-      // Use RPC for atomic increment
       await supabase.rpc("increment_points", {
         p_user_id: userId,
         p_amount: BONUS_AMOUNT,
@@ -64,9 +63,9 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
       <button
         onClick={handleClaim}
         disabled={claimed || loading}
-        className="btn w-full justify-center gap-2.5 py-3.5 text-[15px] relative overflow-hidden"
+        className="btn w-full justify-center gap-2 py-3 text-[14px] relative overflow-hidden"
         style={{
-          background: claimed ? "var(--surface)" : "linear-gradient(135deg, #f6c944, #e8a917)",
+          background: claimed ? "var(--bg)" : "linear-gradient(135deg, #f6c944, #e8a917)",
           color: claimed ? "var(--text-muted)" : "#5a3e00",
           border: claimed ? "1px solid var(--border)" : "1px solid #d4960a",
           cursor: claimed ? "default" : "pointer",
@@ -74,19 +73,19 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
       >
         {claimed ? (
           <>
-            <Check size={18} />
+            <Check size={16} />
             มารับใหม่พรุ่งนี้
           </>
         ) : loading ? (
           <span className="animate-pulse">กำลังดำเนินการ...</span>
         ) : (
           <>
-            <Gift size={18} />
+            <Gift size={16} />
             รับโบนัสรายวัน
             <span
-              className="ml-1 px-2 py-0.5 rounded-full text-[12px] font-bold"
+              className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
               style={{
-                background: "rgba(90, 62, 0, 0.15)",
+                background: "rgba(90, 62, 0, 0.12)",
                 color: "#5a3e00",
               }}
             >
@@ -106,7 +105,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
             animationDelay: `${id * 0.08}s`,
           }}
         >
-          <Coins size={16} style={{ color: "#d4960a" }} />
+          <Coins size={14} style={{ color: "#d4960a" }} />
         </div>
       ))}
     </div>

@@ -54,16 +54,14 @@ export default function CardDraw({ spread, onComplete }: Props) {
                 size={spread.cardCount === 10 ? "sm" : spread.cardCount === 1 ? "lg" : "md"}
                 onClick={() => handleFlip(i)}
               />
-              {isFlipped && (
-                <span className="text-[10px] text-[var(--text-muted)] font-medium text-center max-w-[100px] leading-tight animate-in">
-                  {dc.position.labelTh}
-                </span>
-              )}
-              {!isFlipped && (
-                <span className="text-[10px] text-[var(--text-muted)] opacity-60">
-                  {dc.position.labelTh}
-                </span>
-              )}
+              <span
+                className={cn(
+                  "text-[10px] font-medium text-center max-w-[100px] leading-tight transition-opacity duration-300",
+                  isFlipped ? "text-[var(--text-secondary)] opacity-100" : "text-[var(--text-muted)] opacity-50"
+                )}
+              >
+                {dc.position.labelTh}
+              </span>
             </div>
           );
         })}
@@ -72,19 +70,18 @@ export default function CardDraw({ spread, onComplete }: Props) {
       {/* Instruction / button */}
       <div className="flex flex-col items-center gap-3">
         {!allFlipped ? (
-          <p className="text-sm text-[var(--text-secondary)] animate-pulse">
+          <p className="text-[13px] text-[var(--text-secondary)] animate-pulse">
             แตะไพ่เพื่อเปิด — {flippedIndices.size}/{spread.cardCount}
           </p>
         ) : (
           <button
             onClick={() => onComplete(drawnCards)}
-            className={cn(
-              "px-6 py-3 rounded-xl text-sm font-bold",
-              "bg-[#c9a84c] text-[#1a0a2e]",
-              "hover:bg-[#d4b45c] transition-all duration-200",
-              "shadow-[0_4px_20px_rgba(201,168,76,0.35)]",
-              "animate-in"
-            )}
+            className="btn px-6 py-3 text-[14px] font-bold animate-in"
+            style={{
+              background: "linear-gradient(135deg, #c9a84c, #b8962e)",
+              color: "#1a0a2e",
+              boxShadow: "0 4px 16px rgba(201,168,76,0.3)",
+            }}
           >
             ✦ ดูคำทำนาย
           </button>
