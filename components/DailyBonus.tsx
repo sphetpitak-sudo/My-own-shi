@@ -14,6 +14,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
   const [loading, setLoading] = useState(false);
   const [flyCoins, setFlyCoins] = useState<number[]>([]);
   const [bonusAmount, setBonusAmount] = useState(10);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchBonusAmount() {
@@ -74,6 +75,9 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
       if (!res.ok) {
         if (res.status === 400 && data.error === "Already claimed today") {
           setClaimed(true);
+        } else {
+          setError(data.error || "ไม่สามารถรับโบนัสได้");
+          setTimeout(() => setError(""), 3000);
         }
         return;
       }
@@ -92,6 +96,12 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
 
   return (
     <div className="relative">
+      {error && (
+        <div className="absolute -top-10 left-0 right-0 text-center text-[12px] font-medium px-3 py-1.5 rounded-lg"
+          style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+          {error}
+        </div>
+      )}
       <button
         onClick={handleClaim}
         disabled={claimed || loading}
