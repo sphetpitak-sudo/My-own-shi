@@ -760,12 +760,279 @@ button:focus-visible {
 .avatar-primary { background: var(--primary); color: var(--text-invert); }
 .line-through-done { text-decoration: line-through; }
 
-/* ============ PRINT ============ */
-@media print {
-  .no-print, nav, .sidebar, .bottom-nav, button { display: none !important; }
-  body { background: white !important; color: black !important; }
-  .card { border: 1px solid #ccc !important; box-shadow: none !important; }
-  * { color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* ============ DASHBOARD HOME ============ */
+.dashboard-home {
+  padding: 0;
+  min-height: 100vh;
+}
+
+.daily-bonus-section {
+  background: linear-gradient(135deg, #2d1548 0%, #1a0a2e 100%);
+  padding: 24px 16px 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.daily-bonus-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(168, 85, 247, 0.15), transparent 60%);
+  pointer-events: none;
+}
+
+.daily-bonus-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.daily-bonus-title {
+  color: #d4a017;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.daily-bonus-sub {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+/* Sections */
+.dashboard-section {
+  padding: 16px;
+}
+
+.section-header {
+  margin-bottom: 12px;
+}
+
+.section-title-lg {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.section-title-sm {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+/* Spread Cards */
+.spread-card-main {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(124, 58, 237, 0.06));
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.spread-card-main:hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(124, 58, 237, 0.1));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
+}
+
+.spread-card-secondary {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.spread-card-secondary:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.spread-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.spread-card-icon {
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spread-card-icon-small {
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.spread-card-label {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.spread-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.spread-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.spread-card-label-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.label-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.05em;
+}
+
+.label-badge-new {
+  font-size: 10px;
+  font-weight: 700;
+  color: #d4a017;
+  background: rgba(212, 160, 23, 0.12);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.spread-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.spread-card-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+/* Oracle Card */
+.oracle-card {
+  background: linear-gradient(135deg, #2d1548 0%, #1a0a2e 100%);
+  border: 1px solid rgba(212, 160, 23, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.spread-card-name-oracle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0e6d0;
+}
+
+.spread-card-desc-oracle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+.spread-card-arrow-oracle {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 300;
+}
+
+/* Feature Grid */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  position: relative;
+}
+
+.feature-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.feature-icon {
+  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.feature-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.feature-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.feature-badge-new {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #d4a017;
+  background: rgba(212, 160, 23, 0.12);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* Bottom Nav */
+.bottom-nav-item.active {
+  color: var(--primary);
 }
 
 /* ============ STARFIELD ============ */

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, Sparkles, User, Shield } from "lucide-react";
+import { Home, Calendar, Sparkles, Users, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface BottomNavProps {
@@ -13,10 +13,10 @@ export default function BottomNav({ isAdmin }: BottomNavProps) {
   const pathname = usePathname();
 
   const items = [
-    { href: "/dashboard", label: "หน้าหลัก", icon: LayoutDashboard },
+    { href: "/dashboard", label: "หน้าหลัก", icon: Home },
+    { href: "/dashboard/history", label: "ดวงวันนี้", icon: Calendar },
     { href: "/dashboard/reading", label: "ไพ่", icon: Sparkles },
-    { href: "/dashboard/history", label: "ประวัติ", icon: Calendar },
-    ...(isAdmin ? [{ href: "/admin", label: "แอดมิน", icon: Shield }] : []),
+    { href: "/dashboard/stats", label: "ดูดวง", icon: Users },
     { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
   ];
 

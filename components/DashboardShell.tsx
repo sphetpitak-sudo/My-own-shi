@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import DailyBonus from "./DailyBonus";
 import PointsBalance from "./PointsBalance";
 import SpreadSelector from "./SpreadSelector";
+import { Sparkles, CreditCard, LayoutDashboard } from "lucide-react";
 
 interface DashboardShellProps {
   children?: React.ReactNode;
@@ -62,23 +63,114 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           onMenuClick={() => setSidebarOpen(true)}
         />
 
-        <main className="content">
+        <main className="content" style={{ padding: 0 }}>
           {children ?? (
             <div className="dashboard-home">
-              {/* Daily Bonus */}
-              <DailyBonus userId="" onClaim={handleDailyBonus} />
+              {/* Daily Bonus Section */}
+              <div className="daily-bonus-section">
+                <div className="daily-bonus-inner">
+                  <div className="daily-bonus-title">+ โบนัสรายวัน +</div>
+                  <div className="daily-bonus-sub">แต้มBonusทุกวัน</div>
+                  <DailyBonus userId="" onClaim={handleDailyBonus} />
+                </div>
+              </div>
 
-              {/* Spread Selector */}
-              <div className="section-title">เลือกการทำนาย</div>
-              <SpreadSelector
-                onSelect={handleSpreadSelect}
-                selectedSpread={null}
-                userPoints={profile?.points ?? 0}
-              />
+              {/* Tarot Section */}
+              <div className="dashboard-section">
+                <div className="section-header">
+                  <h2 className="section-title-lg">ไพ่ทาโรส</h2>
+                </div>
+                <div className="spread-card-main" onClick={() => handleSpreadSelect("three_card")}>
+                  <div className="spread-card-content">
+                    <div className="spread-card-icon">🔮</div>
+                    <div>
+                      <div className="spread-card-label">ไพ่ทาโรส</div>
+                      <div className="spread-card-name">อ่านไพ่ทาโรส</div>
+                      <div className="spread-card-desc">ดูดวงชะตา และรับคำทำนาย</div>
+                    </div>
+                  </div>
+                  <div className="spread-card-arrow">›</div>
+                </div>
+              </div>
 
-              {/* Points */}
-              <div className="section-title">คะแนนของฉัน</div>
-              <PointsBalance points={profile?.points ?? 0} />
+              {/* Birth Chart Section */}
+              <div className="dashboard-section">
+                <div className="section-header">
+                  <h2 className="section-title-sm">แผนที่ดวงชะตาราศี และ ไพ่ทาโรต์ ๗</h2>
+                </div>
+                <div className="spread-card-secondary">
+                  <div className="spread-card-content">
+                    <div className="spread-card-icon-small">♈</div>
+                    <div>
+                      <div className="spread-card-label-tag">
+                        <span className="label-tag">BIRTH CHART</span>
+                        <span className="label-badge-new">+ ใหม่</span>
+                      </div>
+                      <div className="spread-card-name">แผนที่ดวงชะตาราศี</div>
+                      <div className="spread-card-sub">Sun · Moon · Ascendant</div>
+                    </div>
+                  </div>
+                  <div className="spread-card-arrow">›</div>
+                </div>
+              </div>
+
+              {/* Oracle Section */}
+              <div className="dashboard-section">
+                <div className="oracle-card">
+                  <div className="spread-card-content">
+                    <div className="spread-card-icon-small">🌙</div>
+                    <div>
+                      <div className="spread-card-label-tag">
+                        <span className="label-tag">ORACLE</span>
+                      </div>
+                      <div className="spread-card-name-oracle">อยากฝันรึเปล่ามาก답</div>
+                      <div className="spread-card-desc-oracle">เปิดดวงชะตา นอนนี้ฝันอะไรเอ่ย</div>
+                    </div>
+                  </div>
+                  <div className="spread-card-arrow-oracle">›</div>
+                </div>
+              </div>
+
+              {/* Quick Features Grid */}
+              <div className="dashboard-section">
+                <div className="feature-grid">
+                  <div className="feature-card" onClick={() => handleSpreadSelect("single")}>
+                    <div className="feature-icon">✨</div>
+                    <div>
+                      <div className="feature-title">Yes / No</div>
+                      <div className="feature-desc">คำถามสั้นๆ</div>
+                    </div>
+                  </div>
+                  <div className="feature-card">
+                    <div className="feature-icon">💕</div>
+                    <div>
+                      <div className="feature-title">ความรัก</div>
+                      <div className="feature-desc">ดวงความรัก</div>
+                    </div>
+                    <span className="feature-badge-new">ใหม่</span>
+                  </div>
+                  <div className="feature-card">
+                    <div className="feature-icon">🌙</div>
+                    <div>
+                      <div className="feature-title">ดูดวง.ai</div>
+                      <div className="feature-desc">ดูดวงAI</div>
+                    </div>
+                  </div>
+                  <div className="feature-card">
+                    <div className="feature-icon">🔮</div>
+                    <div>
+                      <div className="feature-title">เบอร์โทรส์</div>
+                      <div className="feature-desc">เช็คดวงเบอร์</div>
+                    </div>
+                    <span className="feature-badge-new">ใหม่</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Points Section */}
+              <div className="dashboard-section">
+                <PointsBalance points={profile?.points ?? 0} />
+              </div>
             </div>
           )}
         </main>
