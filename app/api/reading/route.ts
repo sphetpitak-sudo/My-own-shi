@@ -2,11 +2,6 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPEN_TYPHOON_API_KEY,
-  baseURL: "https://api.opentyphoon.ai/v1",
-});
-
 const SYSTEM_PROMPT = `คุณเป็นนักอ่านไพ่ทาโรต์ผู้มีประสบการณ์ชื่อ "หมอดูทิพย์"
 คุณเชี่ยวชาญการทำนายไพ่ทาโรต์แบบ Rider-Waite
 คุณอ่านไพ่เป็นภาษาไทยอย่างเป็นธรรมชาติ มีความลึกซึ้ง และให้คำแนะนำที่เป็นประโยชน์
@@ -20,6 +15,13 @@ const SYSTEM_PROMPT = `คุณเป็นนักอ่านไพ่ทา
 - ใช้ภาษาที่เข้าใจง่าย ไม่ซับซ้อนเกินไป
 - ความยาวประมาณ 200-400 คำ
 - เน้นการเล่าเรื่อง ไม่ต้องมี bullet points มาก`;
+
+function getOpenAI() {
+  return new OpenAI({
+    apiKey: process.env.OPEN_TYPHOON_API_KEY,
+    baseURL: "https://api.opentyphoon.ai/v1",
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -86,7 +88,7 @@ export async function POST(request: Request) {
 
     const userPrompt = `คำถาม: ${question || "ไม่มีคำถามเฉพาะ ดูโดยรวม"}\n\nไพ่ที่จั่วได้:\n${cardDescriptions}\n\nกรุณาทำนายและให้คำแนะนำ`;
 
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: "typhoon-v2.5-30b-a3b-instruct",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
