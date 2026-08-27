@@ -3,6 +3,28 @@ import { createServerClient } from "@supabase/ssr";
 import OpenAI from "openai";
 import { SPREADS, type SpreadType, type TarotCard } from "@/lib/cards";
 
+// In-memory rate limiter (per-serverless-instance, acceptable for basic protection)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 5; // 5 readings per minute per user
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
 const SYSTEM_PROMPT = `
 คุณคือ "หมอดูทิพย์" นักอ่านไพ่ทาโรต์มืออาชีพที่เชี่ยวชาญศาสตร์ Rider-Waite-Smith
 
@@ -236,6 +258,12 @@ function getOpenAI() {
 
 type ContextCategory = "love" | "career" | "study" | "finance" | "general";
 
+interface ReadingCardInput {
+  card: TarotCard;
+  position: { labelTh?: string; label?: string };
+  reversed: boolean;
+}
+
 function detectContext(question: string): ContextCategory {
   const q = question.toLowerCase();
   if (/รัก|แฟน|คนรัก|ชอบ|หึง|นอกใจ|เลิก|กลับมา|สัมพันธ์|คบ|จีบ|สารภาพ|Date|Love|Heart|Crush|เขาคิด|เขารัก/.test(q)) return "love";
@@ -317,6 +345,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (!checkRateLimit(user.id)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment before trying again." },
+        { status: 429 }
+      );
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("points")
@@ -346,7 +381,7 @@ export async function POST(request: Request) {
 
     const context = detectContext(question || "");
 
-    const cardData = cards.map((c: any) => ({
+    const cardData = cards.map((c: ReadingCardInput) => ({
       name: c.card.name,
       nameTh: c.card.nameTh,
       position: c.position?.labelTh || c.position?.label || "",
@@ -396,6 +431,22 @@ export async function POST(request: Request) {
             points_spent: cost,
           });
         } catch (err) {
+          // Refund points if streaming fails
+          try {
+            await supabase.rpc("increment_points", {
+              p_user_id: user.id,
+              p_amount: cost,
+            });
+            await supabase.from("point_transactions").insert({
+              user_id: user.id,
+              amount: cost,
+              type: "admin_grant",
+              description: "Refund: reading failed",
+            });
+          } catch {
+            // Refund failed — log but can't do more
+            console.error("Failed to refund points after reading failure");
+          }
           controller.error(err);
         }
       },
@@ -408,10 +459,11 @@ export async function POST(request: Request) {
         "Connection": "keep-alive",
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to generate reading";
     console.error("Reading error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to generate reading" },
+      { error: message },
       { status: 500 }
     );
   }

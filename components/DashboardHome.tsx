@@ -49,8 +49,14 @@ export default function DashboardHome() {
       </div>
 
       {/* Main Tarot CTA */}
-      <div className="dashboard-section" style={{ paddingTop: 20 }}>
-        <div className="spread-card-main" onClick={() => handleSpreadSelect("three_card")}>
+      <div className="dashboard-section" style={{ paddingTop: 24 }}>
+        <div
+          className="spread-card-main"
+          onClick={() => handleSpreadSelect("three_card")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && handleSpreadSelect("three_card")}
+        >
           <div className="spread-card-content">
             <div className="spread-card-icon">🔮</div>
             <div>
@@ -65,13 +71,16 @@ export default function DashboardHome() {
 
       {/* Spread Selection Grid */}
       <div className="dashboard-section">
-        <h2 className="section-title-lg" style={{ marginBottom: 10 }}>เลือกการทำนาย</h2>
+        <h2 className="section-title-lg" style={{ marginBottom: 12 }}>เลือกการทำนาย</h2>
         <div className="feature-grid">
           {spreads.map(([key, spread]) => (
             <div
               key={key}
               className="feature-card"
               onClick={() => handleSpreadSelect(key)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && handleSpreadSelect(key)}
             >
               <div className="feature-icon">
                 {key === "single" ? "✨" : key === "three_card" ? "🃏" : "🔮"}
@@ -85,11 +94,11 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Coming Soon - compact single row */}
+      {/* Coming Soon */}
       <div className="dashboard-section">
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {[
-            { icon: "♈", label: " Birth Chart" },
+            { icon: "♈", label: "Birth Chart" },
             { icon: "🌙", label: "Oracle" },
             { icon: "💕", label: "ความรัก" },
             { icon: "🎴", label: "Horoscope" },
@@ -100,7 +109,7 @@ export default function DashboardHome() {
               style={{
                 background: "var(--bg-card)",
                 border: "1px solid var(--border)",
-                opacity: 0.6,
+                opacity: 0.55,
               }}
             >
               <span className="text-sm">{item.icon}</span>

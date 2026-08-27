@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Gift, Check, Coins } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,66 +9,81 @@ interface DailyBonusProps {
   onClaim: (amount: number) => void;
 }
 
-const BONUS_AMOUNT = 10;
-
 export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
-  const [claimed, setClaimed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const last = localStorage.getItem("lastDailyBonus");
-    if (last) {
-      const lastDate = new Date(last).toDateString();
-      const today = new Date().toDateString();
-      return lastDate === today;
-    }
-    return false;
-  });
+  const [claimed, setClaimed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flyCoins, setFlyCoins] = useState<number[]>([]);
+
+  // Check server-side if already claimed today
+  useEffect(() => {
+    async function checkClaimed() {
+      try {
+        const supabase = createClient();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const { data } = await supabase
+          .from("point_transactions")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("type", "daily_bonus")
+          .gte("created_at", today.toISOString())
+          .lt("created_at", tomorrow.toISOString())
+          .limit(1);
+
+        if (data && data.length > 0) {
+          setClaimed(true);
+        }
+      } catch {
+        // If check fails, allow user to try claiming (server will reject if already claimed)
+      }
+    }
+    checkClaimed();
+  }, [userId]);
 
   const handleClaim = useCallback(async () => {
     if (claimed || loading) return;
     setLoading(true);
 
     try {
-      const supabase = createClient();
+      const res = await fetch("/api/daily-bonus", { method: "POST" });
+      const data = await res.json();
 
-      await supabase.rpc("increment_points", {
-        p_user_id: userId,
-        p_amount: BONUS_AMOUNT,
-      });
-
-      await supabase.from("point_transactions").insert({
-        user_id: userId,
-        amount: BONUS_AMOUNT,
-        type: "daily_bonus",
-        description: "Daily bonus",
-      });
-
-      localStorage.setItem("lastDailyBonus", new Date().toISOString());
+      if (!res.ok) {
+        if (res.status === 400 && data.error === "Already claimed today") {
+          setClaimed(true);
+        }
+        return;
+      }
 
       setFlyCoins([1, 2, 3]);
       setTimeout(() => setFlyCoins([]), 800);
 
       setClaimed(true);
-      onClaim(BONUS_AMOUNT);
+      onClaim(data.amount || 10);
     } catch {
       // Silently fail — user can retry
     } finally {
       setLoading(false);
     }
-  }, [claimed, loading, userId, onClaim]);
+  }, [claimed, loading, onClaim]);
 
   return (
     <div className="relative">
       <button
         onClick={handleClaim}
         disabled={claimed || loading}
-        className="btn w-full justify-center gap-2 py-3 text-[14px] relative overflow-hidden"
+        className="btn w-full justify-center gap-2.5 py-3.5 text-[14px] relative overflow-hidden"
         style={{
-          background: claimed ? "var(--bg)" : "linear-gradient(135deg, #f6c944, #e8a917)",
-          color: claimed ? "var(--text-muted)" : "#5a3e00",
-          border: claimed ? "1px solid var(--border)" : "1px solid #d4960a",
+          background: claimed
+            ? "rgba(255,255,255,0.06)"
+            : "linear-gradient(135deg, #f6c944, #d4af37, #b8942a)",
+          color: claimed ? "rgba(255,255,255,0.4)" : "#4a3800",
+          border: claimed ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(212, 175, 55, 0.4)",
           cursor: claimed ? "default" : "pointer",
+          boxShadow: claimed ? "none" : "0 4px 16px rgba(212, 175, 55, 0.25)",
         }}
       >
         {claimed ? (
@@ -77,7 +92,10 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
             มารับใหม่พรุ่งนี้
           </>
         ) : loading ? (
-          <span className="animate-pulse">กำลังดำเนินการ...</span>
+          <span className="flex items-center gap-2">
+            <span className="w-4 h-4 border-2 border-[#4a3800]/30 border-t-[#4a3800] rounded-full animate-spin" />
+            กำลังดำเนินการ...
+          </span>
         ) : (
           <>
             <Gift size={16} />
@@ -85,11 +103,11 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
             <span
               className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
               style={{
-                background: "rgba(90, 62, 0, 0.12)",
-                color: "#5a3e00",
+                background: "rgba(74, 56, 0, 0.12)",
+                color: "#4a3800",
               }}
             >
-              +{BONUS_AMOUNT}
+              +10
             </span>
           </>
         )}
@@ -105,7 +123,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
             animationDelay: `${id * 0.08}s`,
           }}
         >
-          <Coins size={14} style={{ color: "#d4960a" }} />
+          <Coins size={14} style={{ color: "#d4af37" }} />
         </div>
       ))}
     </div>

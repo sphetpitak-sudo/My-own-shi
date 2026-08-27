@@ -29,10 +29,38 @@ export default function CardDraw({ spread, onComplete }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-8">
+      {/* Instruction header */}
+      {!allFlipped && (
+        <div className="text-center animate-in">
+          <p className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>
+            เลือกไพ่ของคุณ
+          </p>
+          <p className="text-[13px] mt-1" style={{ color: "var(--text-muted)" }}>
+            แตะไพ่เพื่อเปิดเผยคำตอบ
+          </p>
+          <div className="flex items-center justify-center gap-1.5 mt-3">
+            {Array.from({ length: spread.cardCount }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "w-2 h-2 rounded-full transition-all duration-300",
+                  flippedIndices.has(i)
+                    ? "scale-100"
+                    : "scale-75 opacity-40"
+                )}
+                style={{
+                  background: flippedIndices.has(i) ? "var(--gold)" : "var(--text-muted)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Cards area */}
       <div
         className={cn(
-          "relative flex items-center justify-center flex-wrap gap-4",
+          "relative flex items-center justify-center flex-wrap gap-5",
           spread.cardCount === 10 && "max-w-[700px]"
         )}
       >
@@ -41,10 +69,10 @@ export default function CardDraw({ spread, onComplete }: Props) {
           return (
             <div
               key={i}
-              className="flex flex-col items-center gap-2"
+              className="flex flex-col items-center gap-3"
               style={{
-                animationDelay: `${i * 0.05}s`,
-                animation: "fadeUp 0.4s ease both",
+                animationDelay: `${i * 0.08}s`,
+                animation: "fadeUp 0.5s var(--ease) both",
               }}
             >
               <TarotCard
@@ -56,9 +84,12 @@ export default function CardDraw({ spread, onComplete }: Props) {
               />
               <span
                 className={cn(
-                  "text-[10px] font-medium text-center max-w-[100px] leading-tight transition-opacity duration-300",
-                  isFlipped ? "text-[var(--text-secondary)] opacity-100" : "text-[var(--text-muted)] opacity-50"
+                  "text-[11px] font-medium text-center max-w-[100px] leading-tight transition-all duration-500",
+                  isFlipped
+                    ? "text-[var(--text-secondary)] opacity-100 translate-y-0"
+                    : "text-[var(--text-muted)] opacity-50 translate-y-1"
                 )}
+                style={{ fontWeight: isFlipped ? 600 : 500 }}
               >
                 {dc.position.labelTh}
               </span>
@@ -70,21 +101,24 @@ export default function CardDraw({ spread, onComplete }: Props) {
       {/* Instruction / button */}
       <div className="flex flex-col items-center gap-3">
         {!allFlipped ? (
-          <p className="text-[13px] text-[var(--text-secondary)] animate-pulse">
-            แตะไพ่เพื่อเปิด — {flippedIndices.size}/{spread.cardCount}
+          <p className="text-[14px] font-medium animate-pulse" style={{ color: "var(--text-muted)" }}>
+            {flippedIndices.size}/{spread.cardCount} ใบ
           </p>
         ) : (
-          <button
-            onClick={() => onComplete(drawnCards)}
-            className="btn px-6 py-3 text-[14px] font-bold animate-in"
-            style={{
-              background: "linear-gradient(135deg, #c9a84c, #b8962e)",
-              color: "#1a0a2e",
-              boxShadow: "0 4px 16px rgba(201,168,76,0.3)",
-            }}
-          >
-            ✦ ดูคำทำนาย
-          </button>
+          <div className="animate-in" style={{ animationDelay: "0.2s" }}>
+            <button
+              onClick={() => onComplete(drawnCards)}
+              className="btn px-8 py-3.5 text-[15px] font-bold"
+              style={{
+                background: "linear-gradient(135deg, #d4af37, #b8942a)",
+                color: "#1a0a2e",
+                boxShadow: "0 4px 20px rgba(212, 175, 55, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              ดูคำทำนาย
+            </button>
+          </div>
         )}
       </div>
     </div>

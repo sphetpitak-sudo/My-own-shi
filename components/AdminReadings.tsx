@@ -130,9 +130,9 @@ export default function AdminReadings() {
                         <div>
                           <span className="text-[11px] font-semibold text-muted">CARDS</span>
                           <div className="flex flex-wrap gap-2 mt-1">
-                            {(r.cards as any[]).map((c: any, i: number) => (
+                            {(r.cards as Array<{ card?: { name?: string }; position?: { label?: string } | string; reversed?: boolean }>).map((c, i) => (
                               <span key={i} className="badge badge-neutral">
-                                {c.card?.name || c.position?.label || c.position} {c.reversed ? "(R)" : ""}
+                                {c.card?.name || (typeof c.position === "object" ? c.position?.label : c.position) || ""} {c.reversed ? "(R)" : ""}
                               </span>
                             ))}
                           </div>

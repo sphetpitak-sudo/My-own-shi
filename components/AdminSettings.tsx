@@ -35,8 +35,8 @@ export default function AdminSettings() {
     const { data } = await supabase.from("admin_settings").select("key, value");
 
     const map: Record<string, ReadingCosts | { amount: number } | { enabled: boolean }> = {};
-    data?.forEach((row: { key: string; value: ReadingCosts | { amount: number } | { enabled: boolean } }) => {
-      map[row.key] = row.value;
+    data?.forEach((row: { key: string; value: Record<string, unknown> }) => {
+      map[row.key] = row.value as ReadingCosts | { amount: number } | { enabled: boolean };
     });
 
     setSettings({

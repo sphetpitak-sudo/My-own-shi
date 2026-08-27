@@ -75,40 +75,45 @@ export default function AuthForm() {
   };
 
   return (
-    <div className="flex items-center justify-center p-4 pb-12" style={{ minHeight: "50vh" }}>
-      <div className="w-full max-w-[380px]">
-        <div className="text-center mb-6 animate-in">
+    <div className="flex items-center justify-center p-4 pb-16" style={{ minHeight: "50vh" }}>
+      <div className="w-full max-w-[400px]">
+        {/* Auth header */}
+        <div className="text-center mb-8 animate-in">
           <div
-            className="w-11 h-11 rounded-[12px] flex items-center justify-center mx-auto mb-3"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+            className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{
+              background: "linear-gradient(135deg, #6d28d9, #a78bfa)",
+              boxShadow: "0 4px 20px rgba(109, 40, 217, 0.3)",
+            }}
           >
             <Sparkles size={20} className="text-white" />
           </div>
-          <h1 className="text-[24px] font-bold tracking-tight">Sealo</h1>
-          <p className="text-[13px] mt-1" style={{ color: "var(--text-secondary)" }}>
+          <h1 className="text-[26px] font-extrabold tracking-tight" style={{ letterSpacing: "-0.03em" }}>Sealo</h1>
+          <p className="text-[13px] mt-1.5" style={{ color: "var(--text-secondary)" }}>
             เปิดไพ่ชะตาของคุณ
           </p>
         </div>
 
-        <div className="card p-6 animate-in d1">
-          <h2 className="text-[16px] font-bold text-center mb-4">
+        {/* Auth card */}
+        <div className="card p-6 animate-in" style={{ animationDelay: "0.1s" }}>
+          <h2 className="text-[17px] font-bold text-center mb-5" style={{ letterSpacing: "-0.01em" }}>
             {forgotMode ? "รีเซ็ตรหัสผ่าน" : isSignUp ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
           </h2>
 
           {error && (
-            <div id="auth-error" role="alert" className="mb-4 p-3 rounded-xl text-[13px] font-medium"
-              style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+            <div id="auth-error" role="alert" className="mb-4 p-3.5 rounded-xl text-[13px] font-medium"
+              style={{ background: "var(--red-soft)", color: "var(--red)", border: "1px solid rgba(194, 65, 48, 0.1)" }}>
               {error}
             </div>
           )}
           {message && (
-            <div className="mb-4 p-3 rounded-xl text-[13px] font-medium"
-              style={{ background: "var(--green-soft)", color: "var(--green)" }}>
+            <div className="mb-4 p-3.5 rounded-xl text-[13px] font-medium"
+              style={{ background: "var(--green-soft)", color: "var(--green)", border: "1px solid rgba(45, 122, 79, 0.1)" }}>
               {message}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3" aria-describedby={error ? "auth-error" : undefined}>
+          <form onSubmit={handleSubmit} className="space-y-3.5" aria-describedby={error ? "auth-error" : undefined}>
             <div className="field">
               <label className="label">อีเมล</label>
               <div className="relative">
@@ -139,14 +144,14 @@ export default function AuthForm() {
                   </button>
                 </div>
                 {isSignUp && password && (
-                  <div className="mt-1.5">
+                  <div className="mt-2">
                     <div className="flex gap-1 mb-1">
                       {[0, 1, 2, 3].map((i) => (
-                        <div key={i} className="h-1 flex-1 rounded-full transition-colors duration-200"
+                        <div key={i} className="h-1 flex-1 rounded-full transition-colors duration-300"
                           style={{ background: i < getPasswordStrength(password).score ? getPasswordStrength(password).color : "var(--border)" }} />
                       ))}
                     </div>
-                    <p className="text-[11px]" style={{ color: getPasswordStrength(password).color }}>
+                    <p className="text-[11px] font-medium" style={{ color: getPasswordStrength(password).color }}>
                       {getPasswordStrength(password).label}
                     </p>
                   </div>
@@ -167,8 +172,18 @@ export default function AuthForm() {
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="btn btn-primary w-full mt-2">
-              {loading ? <span className="animate-pulse">กำลังโหลด...</span> : (
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary w-full mt-3"
+              style={{ padding: "12px 20px" }}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  กำลังโหลด...
+                </span>
+              ) : (
                 <>
                   {forgotMode ? "ส่งลิงก์รีเซ็ต" : isSignUp ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
                   <ArrowRight size={15} />
@@ -178,20 +193,20 @@ export default function AuthForm() {
           </form>
 
           {!isSignUp && !forgotMode && (
-            <div className="mt-2.5 text-center">
+            <div className="mt-3 text-center">
               <button onClick={() => {
                 if (!email) { setError("กรุณากรอกอีเมลก่อน"); return; }
                 setForgotMode(true);
-              }} className="text-[12px] hover:underline" style={{ color: "var(--text-muted)" }}>
+              }} className="text-[12px] font-medium hover:underline" style={{ color: "var(--text-muted)" }}>
                 ลืมรหัสผ่าน?
               </button>
             </div>
           )}
 
           {forgotMode && (
-            <div className="mt-2.5 text-center">
+            <div className="mt-3 text-center">
               <button onClick={() => { setForgotMode(false); setError(""); setMessage(""); }}
-                className="text-[12px] hover:underline" style={{ color: "var(--text-muted)" }}>
+                className="text-[12px] font-medium hover:underline" style={{ color: "var(--text-muted)" }}>
                 กลับไปเข้าสู่ระบบ
               </button>
             </div>
@@ -199,13 +214,17 @@ export default function AuthForm() {
 
           {!forgotMode && (
             <>
-              <div className="flex items-center gap-3 my-4">
+              <div className="flex items-center gap-4 my-5">
                 <div className="flex-1 divider" />
-                <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>หรือ</span>
+                <span className="text-[11px] font-semibold tracking-wide" style={{ color: "var(--text-muted)" }}>หรือ</span>
                 <div className="flex-1 divider" />
               </div>
 
-              <button onClick={handleGoogleLogin} className="btn btn-ghost w-full">
+              <button
+                onClick={handleGoogleLogin}
+                className="btn btn-ghost w-full"
+                style={{ gap: "10px" }}
+              >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -215,12 +234,12 @@ export default function AuthForm() {
                 เข้าสู่ระบบด้วย Google
               </button>
 
-              <div className="mt-4 text-center">
+              <div className="mt-5 text-center">
                 <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>
                   {isSignUp ? "มีบัญชีอยู่แล้ว? " : "ยังไม่มีบัญชี? "}
                 </span>
                 <button onClick={() => { setIsSignUp(!isSignUp); setError(""); setMessage(""); }}
-                  className="text-[13px] font-semibold hover:underline" style={{ color: "var(--text)" }}>
+                  className="text-[13px] font-bold hover:underline" style={{ color: "var(--text)" }}>
                   {isSignUp ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
                 </button>
               </div>

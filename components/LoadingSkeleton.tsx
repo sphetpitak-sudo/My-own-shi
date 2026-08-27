@@ -7,8 +7,16 @@ interface Props {
 export default function LoadingSkeleton({ variant }: Props) {
   if (variant === "full") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--border)", borderTopColor: "transparent" }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: "var(--border)", borderTopColor: "transparent" }}
+          />
+          <p className="text-[13px] font-medium" style={{ color: "var(--text-muted)" }}>
+            กำลังโหลด...
+          </p>
+        </div>
       </div>
     );
   }

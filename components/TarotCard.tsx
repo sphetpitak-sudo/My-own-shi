@@ -13,8 +13,8 @@ interface Props {
 
 const SIZES = {
   sm: { w: 100, h: 160 },
-  md: { w: 140, h: 220 },
-  lg: { w: 180, h: 280 },
+  md: { w: 140, h: 224 },
+  lg: { w: 180, h: 288 },
 };
 
 export default function TarotCard({
@@ -31,11 +31,16 @@ export default function TarotCard({
     <div
       className={cn(
         "relative cursor-pointer select-none",
-        onClick && !flipped && "hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(147,97,203,0.35)]",
-        "transition-all duration-300 ease-out",
+        onClick && !flipped && "hover:-translate-y-2",
+        "transition-all duration-300",
         className
       )}
-      style={{ width: dim.w, height: dim.h, perspective: 800 }}
+      style={{
+        width: dim.w,
+        height: dim.h,
+        perspective: 900,
+        filter: onClick && !flipped ? "drop-shadow(0 4px 12px rgba(0,0,0,0.2))" : undefined,
+      }}
       onClick={onClick}
     >
       {/* Inner card that rotates */}
@@ -44,7 +49,7 @@ export default function TarotCard({
         style={{
           transformStyle: "preserve-3d",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: "transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         {/* ===== BACK ===== */}
@@ -53,44 +58,65 @@ export default function TarotCard({
           style={{
             backfaceVisibility: "hidden",
             borderRadius: 10,
-            border: "2px solid #c9a84c",
+            border: "1.5px solid #c9a84c",
             background:
-              "linear-gradient(155deg, #1a0a2e 0%, #2d1548 40%, #1e0e3a 70%, #14082a 100%)",
+              "linear-gradient(160deg, #1e0e3a 0%, #2d1548 30%, #1a0a2e 60%, #14082a 100%)",
             boxShadow:
-              "inset 0 0 16px rgba(147,97,203,0.1), 0 2px 8px rgba(0,0,0,0.35)",
+              "inset 0 0 20px rgba(147,97,203,0.08), 0 2px 8px rgba(0,0,0,0.4)",
           }}
         >
-          {/* Inner border */}
+          {/* Inner border frame */}
           <div
             className="absolute"
             style={{
-              inset: 4,
-              border: "1px solid rgba(201,168,76,0.25)",
-              borderRadius: 6,
+              inset: 5,
+              border: "1px solid rgba(201,168,76,0.18)",
+              borderRadius: 5,
             }}
           />
 
-          {/* Center decoration - simplified */}
+          {/* Corner decorations */}
+          {[
+            { top: 7, left: 7 },
+            { top: 7, right: 7 },
+            { bottom: 7, left: 7 },
+            { bottom: 7, right: 7 },
+          ].map((pos, i) => (
+            <div
+              key={i}
+              className="absolute"
+              style={{
+                ...pos,
+                width: 6,
+                height: 6,
+                border: "1px solid rgba(201,168,76,0.15)",
+                borderRadius: 1,
+              }}
+            />
+          ))}
+
+          {/* Center decoration */}
           <div className="absolute inset-0 flex items-center justify-center">
-            {/* Outer ring */}
+            {/* Outer circle */}
             <div
               className="absolute"
               style={{
-                width: dim.w * 0.5,
-                height: dim.h * 0.5,
+                width: dim.w * 0.55,
+                height: dim.h * 0.35,
                 borderRadius: "50%",
-                border: "1px solid rgba(201,168,76,0.2)",
+                border: "1px solid rgba(201,168,76,0.12)",
               }}
             />
-            {/* Inner star - single clean shape */}
+
+            {/* Inner star - 8 pointed */}
             <div
               className="relative"
-              style={{ width: dim.w * 0.22, height: dim.h * 0.22 }}
+              style={{ width: dim.w * 0.2, height: dim.h * 0.14 }}
             >
               <div
                 className="absolute inset-0"
                 style={{
-                  background: "rgba(201,168,76,0.15)",
+                  background: "rgba(201,168,76,0.12)",
                   clipPath:
                     "polygon(50% 0%, 61% 35%, 100% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 0% 35%, 39% 35%)",
                 }}
@@ -99,33 +125,34 @@ export default function TarotCard({
               <div
                 className="absolute rounded-full"
                 style={{
-                  width: dim.w * 0.05,
-                  height: dim.h * 0.05,
+                  width: 4,
+                  height: 4,
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",
-                  background: "rgba(201,168,76,0.4)",
+                  background: "rgba(201,168,76,0.35)",
                 }}
               />
             </div>
+
             {/* Vertical line */}
             <div
               className="absolute"
               style={{
                 width: 1,
-                height: dim.h * 0.45,
+                height: dim.h * 0.4,
                 background:
-                  "linear-gradient(to bottom, transparent, rgba(201,168,76,0.12), transparent)",
+                  "linear-gradient(to bottom, transparent, rgba(201,168,76,0.08), transparent)",
               }}
             />
             {/* Horizontal line */}
             <div
               className="absolute"
               style={{
-                width: dim.w * 0.45,
+                width: dim.w * 0.4,
                 height: 1,
                 background:
-                  "linear-gradient(to right, transparent, rgba(201,168,76,0.12), transparent)",
+                  "linear-gradient(to right, transparent, rgba(201,168,76,0.08), transparent)",
               }}
             />
           </div>
@@ -133,13 +160,16 @@ export default function TarotCard({
 
         {/* ===== FRONT ===== */}
         <div
-          className="absolute inset-0 overflow-hidden"
+          className={cn(
+            "absolute inset-0 overflow-hidden",
+            flipped && "card-reveal-glow"
+          )}
           style={{
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
             borderRadius: 10,
-            border: "2px solid #c9a84c",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
+            border: "1.5px solid #c9a84c",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.35)",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -154,6 +184,20 @@ export default function TarotCard({
               background: "#0e0e14",
             }}
           />
+
+          {/* Reversed indicator */}
+          {reversed && flipped && (
+            <div
+              className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[8px] font-bold"
+              style={{
+                background: "rgba(0,0,0,0.7)",
+                color: "rgba(201,168,76,0.9)",
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              กลับ
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Sparkles,
@@ -36,7 +37,7 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
       {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-[99] lg:hidden"
+          className="overlay lg:hidden"
           onClick={onClose}
         />
       )}
@@ -48,9 +49,11 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
         )}
       >
         <div className="sidebar-brand">
-          <img
+          <Image
             src="/LOGO.png"
             alt="Sealo"
+            width={36}
+            height={36}
             className="w-9 h-9 rounded-xl"
           />
           <span className="text-[15px] font-bold tracking-tight text-white">
@@ -58,7 +61,7 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
           </span>
           <button
             onClick={onClose}
-            className="ml-auto lg:hidden text-[#8a867d] hover:text-white"
+            className="ml-auto lg:hidden text-white/30 hover:text-white/80 transition-colors"
             aria-label="ปิดเมนู"
           >
             <X size={18} />

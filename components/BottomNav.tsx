@@ -5,10 +5,6 @@ import { usePathname } from "next/navigation";
 import { Home, Calendar, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-interface BottomNavProps {
-  isAdmin?: boolean; // kept for API compatibility
-}
-
 export default function BottomNav() {
   const pathname = usePathname();
 

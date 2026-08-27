@@ -16,7 +16,13 @@ export default function QuestionInput({
 }: Props) {
   return (
     <div className="w-full">
-      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-strong)" }}>
+      <div
+        className="rounded-xl overflow-hidden relative"
+        style={{
+          border: "1px solid var(--border-strong)",
+          background: "var(--bg-card)",
+        }}
+      >
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -30,20 +36,22 @@ export default function QuestionInput({
             "placeholder:text-[var(--text-muted)]",
             "disabled:opacity-50"
           )}
-          style={{ fontFamily: "inherit" }}
+          style={{ fontFamily: "inherit", letterSpacing: "-0.005em" }}
         />
 
         {/* Bottom bar */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 border-t"
-          style={{ borderColor: "var(--border)" }}>
-          <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+        <div
+          className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 border-t"
+          style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}
+        >
+          <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
             {value.length}/500
           </span>
           <button
             onClick={onSubmit}
             disabled={!value.trim() || loading}
             className={cn(
-              "px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-200",
+              "px-5 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-200",
               value.trim() && !loading
                 ? "bg-[var(--primary)] text-white hover:opacity-90 shadow-sm"
                 : "bg-[var(--border)] text-[var(--text-muted)] cursor-not-allowed"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { User, Mail, Lock, Save, Loader2, CheckCircle, AlertCircle, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -111,14 +112,15 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Message Toast */}
       {message && (
         <div
-          className="flex items-center gap-2 p-3 rounded-xl text-[13px] font-medium animate-in"
+          className="flex items-center gap-2 p-3.5 rounded-xl text-[13px] font-medium animate-in"
           style={{
             background: message.type === "success" ? "var(--green-soft)" : "var(--red-soft)",
             color: message.type === "success" ? "var(--green)" : "var(--red)",
+            border: `1px solid ${message.type === "success" ? "rgba(45, 122, 79, 0.1)" : "rgba(194, 65, 48, 0.1)"}`,
           }}
         >
           {message.type === "success" ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
@@ -127,33 +129,36 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
       )}
 
       {/* Profile Section */}
-      <div className="card p-5">
-        <div className="sec-title mb-4">ข้อมูลโปรไฟล์</div>
+      <div className="card p-6">
+        <div className="sec-title mb-5">ข้อมูลโปรไฟล์</div>
 
         {/* Avatar */}
         <div className="flex items-center gap-4 mb-5">
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
-            style={{ background: "var(--primary)", color: "var(--text-invert)" }}
+            className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, var(--primary), #a78bfa)",
+              boxShadow: "0 4px 16px rgba(109, 40, 217, 0.2)",
+            }}
           >
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <Image src={avatarUrl} alt="Avatar" width={64} height={64} unoptimized className="w-full h-full object-cover" />
             ) : (
-              <User size={24} />
+              <User size={26} className="text-white" />
             )}
           </div>
           <div>
-            <div className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+            <div className="text-[14px] font-semibold" style={{ color: "var(--text-secondary)" }}>
               รูปโปรไฟล์
             </div>
-            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <div className="text-[12px] mt-0.5" style={{ color: "var(--text-muted)" }}>
               ดึงรูปจากบัญชี Google ของคุณ
             </div>
           </div>
         </div>
 
         {/* Display Name */}
-        <div className="field mb-4">
+        <div className="field mb-5">
           <label className="label">ชื่อที่แสดง</label>
           <input
             type="text"
@@ -175,11 +180,11 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
       </div>
 
       {/* Account Section */}
-      <div className="card p-5">
-        <div className="sec-title mb-4">บัญชี</div>
+      <div className="card p-6">
+        <div className="sec-title mb-5">บัญชี</div>
 
         {/* Email */}
-        <div className="field mb-4">
+        <div className="field mb-5">
           <label className="label">อีเมล</label>
           <div
             className="flex items-center gap-2 p-3 rounded-xl text-[13px]"
@@ -191,7 +196,7 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
         </div>
 
         {/* Change Password */}
-        <div className="sec-title text-[13px] mb-3">เปลี่ยนรหัสผ่าน</div>
+        <div className="sec-title text-[14px] mb-4">เปลี่ยนรหัสผ่าน</div>
 
         <div className="field mb-3">
           <label className="label">รหัสผ่านใหม่</label>
@@ -208,7 +213,7 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
           </div>
         </div>
 
-        <div className="field mb-4">
+        <div className="field mb-5">
           <label className="label">ยืนยันรหัสผ่านใหม่</label>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />

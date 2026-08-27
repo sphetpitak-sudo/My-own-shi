@@ -113,19 +113,29 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
     <div>
       <button
         onClick={onDone}
-        className="flex items-center gap-2 mb-6 transition-colors"
+        className="flex items-center gap-2 mb-6 transition-colors group"
         style={{ color: "var(--text-muted)" }}
       >
-        <ArrowLeft size={16} />
-        <span className="text-[13px]">กลับ</span>
+        <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+        <span className="text-[13px] font-medium">กลับ</span>
       </button>
 
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--text)" }}>
+      {/* Reading header */}
+      <div className="text-center mb-8">
+        <h2
+          className="text-2xl font-bold mb-2"
+          style={{
+            color: "var(--text)",
+            letterSpacing: "-0.02em",
+          }}
+        >
           {spread?.nameTh}
         </h2>
         {question && (
-          <p className="text-[13px] italic" style={{ color: "var(--text-muted)" }}>
+          <p
+            className="text-[14px] italic max-w-md mx-auto"
+            style={{ color: "var(--text-muted)", lineHeight: 1.6 }}
+          >
             &ldquo;{question}&rdquo;
           </p>
         )}
@@ -139,29 +149,72 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
         )}
       >
         {cards.map((c, i) => (
-          <div key={i} className="flex flex-col items-center gap-1">
+          <div
+            key={i}
+            className="flex flex-col items-center gap-2"
+            style={{
+              animation: `fadeUp 0.4s var(--ease) ${i * 0.06}s both`,
+            }}
+          >
             <TarotCard
               card={c.card}
               reversed={c.reversed}
               flipped={true}
               size={spreadType === "celtic" ? "sm" : "md"}
             />
-            <span className="text-[10px] text-center max-w-[80px]" style={{ color: "var(--text-muted)" }}>
-              {c.card.nameTh}
-            </span>
+            <div className="text-center">
+              <span
+                className="text-[11px] font-semibold block"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {c.card.nameTh}
+              </span>
+              {c.reversed && (
+                <span className="text-[9px] font-medium" style={{ color: "var(--text-muted)" }}>
+                  กลับ
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="card p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <Sparkles size={16} style={{ color: "var(--primary)" }} />
-          <h3 className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>คำทำนาย</h3>
+      {/* Decorative divider */}
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, var(--border))" }} />
+        <Sparkles size={14} style={{ color: "var(--gold)" }} />
+        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, var(--border), transparent)" }} />
+      </div>
+
+      {/* AI Interpretation */}
+      <div className="card p-6 sm:p-8">
+        <div className="flex items-center gap-2.5 mb-6">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, rgba(109, 40, 217, 0.1), rgba(167, 139, 250, 0.05))",
+              border: "1px solid rgba(109, 40, 217, 0.1)",
+            }}
+          >
+            <Sparkles size={14} style={{ color: "var(--primary)" }} />
+          </div>
+          <h3
+            className="font-bold text-[16px]"
+            style={{ color: "var(--text)", letterSpacing: "-0.01em" }}
+          >
+            คำทำนาย
+          </h3>
         </div>
 
         {error ? (
-          <div className="text-center py-8">
-            <p className="mb-4 text-[14px]" style={{ color: "var(--red)" }}>{error}</p>
+          <div className="text-center py-10">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: "var(--red-soft)" }}
+            >
+              <RefreshCw size={20} style={{ color: "var(--red)" }} />
+            </div>
+            <p className="mb-5 text-[14px] font-medium" style={{ color: "var(--red)" }}>{error}</p>
             <div className="flex gap-3 justify-center">
               <button onClick={startReading} className="btn btn-primary">
                 <RefreshCw size={14} />
@@ -176,24 +229,28 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
           <>
             <div
               ref={textRef}
-              className="leading-[1.8] whitespace-pre-wrap max-h-[500px] overflow-y-auto text-[14px]"
-              style={{ color: "var(--text)", lineHeight: "1.8" }}
+              className="reading-text max-h-[500px] overflow-y-auto text-[15px]"
+              style={{
+                color: "var(--text)",
+                lineHeight: 1.85,
+                letterSpacing: "-0.005em",
+              }}
             >
               {stripMarkdown(text)}
               {loading && !text && (
-                <div className="flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span className="text-[13px]">กำลังทำนาย...</span>
+                <div className="flex items-center gap-2.5 py-2" style={{ color: "var(--text-muted)" }}>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span className="text-[13px] font-medium">กำลังทำนาย...</span>
                 </div>
               )}
               {loading && text && (
-                <span className="inline-block w-0.5 h-4 animate-pulse ml-0.5 align-text-bottom" style={{ background: "var(--primary)" }} />
+                <span className="reading-cursor" />
               )}
             </div>
 
             {done && (
-              <div className="mt-6 text-center">
-                <button onClick={onDone} className="btn btn-primary">
+              <div className="mt-8 text-center">
+                <button onClick={onDone} className="btn btn-primary px-8">
                   กลับหน้าหลัก
                 </button>
               </div>

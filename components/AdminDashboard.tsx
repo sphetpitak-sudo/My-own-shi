@@ -58,7 +58,7 @@ export default function AdminDashboard() {
       totalPoints,
       activeToday: activeRes.data?.length || 0,
     });
-    setRecentReadings((recentRes.data as RecentReading[]) || []);
+    setRecentReadings(recentRes.data || []);
     setLoading(false);
   }, [supabase]);
 

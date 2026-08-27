@@ -63,7 +63,15 @@ export default function ReadingPage() {
     return (
       <DashboardShell>
         <div className="flex items-center justify-center" style={{ minHeight: "50vh" }}>
-          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }} />
+          <div className="flex flex-col items-center gap-3">
+            <div
+              className="w-8 h-8 border-2 rounded-full animate-spin"
+              style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }}
+            />
+            <p className="text-[13px] font-medium" style={{ color: "var(--text-muted)" }}>
+              กำลังโหลด...
+            </p>
+          </div>
         </div>
       </DashboardShell>
     );
@@ -103,7 +111,7 @@ export default function ReadingPage() {
       <div className="p-4 md:p-8">
         <div className="max-w-3xl mx-auto">
           {/* Visual step indicator */}
-          <div className="mb-8">
+          <div className="mb-10">
             <div className="step-indicator justify-center">
               {STEPS.map((s, i) => (
                 <div key={s.key} className="contents">
@@ -145,11 +153,14 @@ export default function ReadingPage() {
           )}
 
           {step === "question" && (
-            <div className="card p-6">
-              <h2 className="text-lg font-bold mb-2" style={{ color: "var(--text)" }}>
+            <div className="card p-6 sm:p-8 animate-in">
+              <h2
+                className="text-xl font-bold mb-2"
+                style={{ color: "var(--text)", letterSpacing: "-0.01em" }}
+              >
                 {spread.nameTh}
               </h2>
-              <p className="text-[13px] mb-5" style={{ color: "var(--text-muted)" }}>
+              <p className="text-[13px] mb-6" style={{ color: "var(--text-muted)" }}>
                 {spread.descriptionTh} — {spread.cardCount} ใบ ใช้ {spread.cost} แต้ม
               </p>
               <QuestionInput
@@ -159,7 +170,7 @@ export default function ReadingPage() {
               />
               <button
                 onClick={() => setStep("spread")}
-                className="btn btn-ghost mt-3 text-[13px]"
+                className="btn btn-ghost mt-4 text-[13px]"
               >
                 <ArrowLeft size={14} />
                 เลือกSpreadใหม่

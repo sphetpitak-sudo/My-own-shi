@@ -28,16 +28,19 @@ export default function AdminGrantPoints({ user, onClose, onGrant }: Props) {
     if (!admin) { setError("Not authenticated"); setLoading(false); return; }
 
     const delta = mode === "grant" ? amount : -amount;
-    const newPoints = user.points + delta;
 
-    if (newPoints < 0) { setError("Cannot deduct more than available points"); setLoading(false); return; }
+    if (mode === "deduct" && amount > user.points) {
+      setError("Cannot deduct more than available points");
+      setLoading(false);
+      return;
+    }
 
-    const { error: updateErr } = await supabase
-      .from("profiles")
-      .update({ points: newPoints })
-      .eq("id", user.id);
+    const { error: rpcErr } = await supabase.rpc("increment_points", {
+      p_user_id: user.id,
+      p_amount: delta,
+    });
 
-    if (updateErr) { setError(updateErr.message); setLoading(false); return; }
+    if (rpcErr) { setError(rpcErr.message); setLoading(false); return; }
 
     const { error: txErr } = await supabase.from("point_transactions").insert({
       user_id: user.id,

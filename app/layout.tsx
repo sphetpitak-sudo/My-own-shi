@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
+import { LangProvider } from "@/lib/i18n";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://catarot.love"),
@@ -46,6 +48,12 @@ export default function RootLayout({
   return (
     <html lang="th" suppressHydrationWarning className="h-full antialiased">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=K2D:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
         <script dangerouslySetInnerHTML={{ __html: `
           const theme = localStorage.getItem('theme');
           if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -61,7 +69,11 @@ export default function RootLayout({
           </div>
         </noscript>
         <ThemeProvider>
-          {children}
+          <LangProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </LangProvider>
         </ThemeProvider>
       </body>
     </html>

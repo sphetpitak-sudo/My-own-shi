@@ -69,7 +69,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="shimmer h-[72px] w-full" />
+          <div key={i} className="shimmer h-[72px] w-full rounded-xl" />
         ))}
       </div>
     );
@@ -91,7 +91,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {readings.map((r) => {
         const isExpanded = expandedId === r.id;
         const spread = SPREADS[r.spread_type];
@@ -105,9 +105,9 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
             >
               <div
                 className="item-icon flex-shrink-0 mt-0.5"
-                style={{ background: "var(--amber-soft)" }}
+                style={{ background: "var(--gold-soft)" }}
               >
-                <CreditCard size={16} style={{ color: "var(--amber)" }} />
+                <CreditCard size={16} style={{ color: "var(--gold)" }} />
               </div>
 
               <div className="flex-1 min-w-0">
