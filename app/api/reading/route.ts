@@ -63,8 +63,12 @@ const SYSTEM_PROMPT = `
 `;
 
 function getOpenAI() {
+  const apiKey = process.env.OPEN_TYPHOON_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPEN_TYPHOON_API_KEY is not set in environment variables");
+  }
   return new OpenAI({
-    apiKey: process.env.OPEN_TYPHOON_API_KEY,
+    apiKey,
     baseURL: "https://api.opentyphoon.ai/v1",
   });
 }
