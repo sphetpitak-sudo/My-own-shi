@@ -98,16 +98,19 @@ INSERT INTO admin_settings (key, value) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 DO $$ BEGIN
+  DROP POLICY IF EXISTS "Admin settings select" ON admin_settings;
   CREATE POLICY "Admin settings select" ON admin_settings
     FOR SELECT USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
+  DROP POLICY IF EXISTS "Admin settings update" ON admin_settings;
   CREATE POLICY "Admin settings update" ON admin_settings
     FOR UPDATE USING (auth.uid() IN (SELECT id FROM profiles WHERE is_admin));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
+  DROP POLICY IF EXISTS "Admin settings insert" ON admin_settings;
   CREATE POLICY "Admin settings insert" ON admin_settings
     FOR INSERT WITH CHECK (auth.uid() IN (SELECT id FROM profiles WHERE is_admin));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
