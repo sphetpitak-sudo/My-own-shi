@@ -527,6 +527,25 @@ body {
 }
 .bar > div { animation: barGrow 0.8s var(--ease) both; }
 
+/* ============ COIN FLY ============ */
+@keyframes coinFly {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -120px) scale(0.5); }
+}
+.coin-fly { animation: coinFly 0.7s ease-out forwards; }
+
+/* ============ COMING SOON ============ */
+.coming-soon-card { opacity: 0.7; pointer-events: none; }
+.coming-soon-badge {
+  background: rgba(255,255,255,0.9); color: #7c3aed; font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+}
+.coming-soon-badge.coming-soon-dark { background: rgba(30,20,50,0.8); color: #d4a017; }
+.coming-soon-badge-sm {
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--primary-soft); color: var(--primary); white-space: nowrap;
+}
+
 /* ============ CHARTS ============ */
 .chart-tooltip {
   background: var(--bg-card);

@@ -1,26 +1,11 @@
-export interface TarotCard {
-  id: number;
-  name: string;
-  nameTh: string;
-  arcana: "major" | "minor";
-  suit: "wands" | "cups" | "swords" | "pents" | null;
-  number: number;
-  imageFile: string;
-  keywords: string[];
-  meaningUpright: string;
-  meaningReversed: string;
-}
+import type { DrawnCard, SpreadType } from "@/lib/cards";
 
-export interface DrawnCard {
-  card: TarotCard;
-  position: string;
-  reversed: boolean;
-}
+export type { DrawnCard, SpreadType };
 
 export interface Reading {
   id: string;
   user_id: string;
-  spread_type: "single" | "three_card" | "celtic";
+  spread_type: SpreadType;
   cards: DrawnCard[];
   question: string;
   interpretation: string;
@@ -46,5 +31,3 @@ export interface PointTransaction {
   admin_id: string | null;
   created_at: string;
 }
-
-export type SpreadType = "single" | "three_card" | "celtic";

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import OpenAI from "openai";
+import { SPREADS, type SpreadType } from "@/lib/cards";
 
 const SYSTEM_PROMPT = `
 คุณคือ "หมอดูทิพย์" นักอ่านไพ่ทาโรต์ชาวไทยผู้มีประสบการณ์
@@ -115,13 +116,7 @@ export async function POST(request: Request) {
     }
 
     // Spread info
-    const spreadInfo: Record<string, { name: string; nameTh: string; cost: number }> = {
-      single: { name: "single", nameTh: "ไพ่ใบเดียว", cost: 5 },
-      three_card: { name: "three_card", nameTh: "ไพ่สามใบ", cost: 15 },
-      celtic: { name: "celtic", nameTh: "กางเขนเซลติก", cost: 50 },
-    };
-
-    const spreadInfo_ = spreadInfo[spreadType] || spreadInfo.single;
+    const spread = SPREADS[spreadType as SpreadType] || SPREADS.single;
 
     // Supabase auth
     const supabase = createServerClient(
@@ -153,8 +148,7 @@ export async function POST(request: Request) {
       .eq("id", user.id)
       .single();
 
-    const costs: Record<string, number> = { single: 5, three_card: 15, celtic: 50 };
-    const cost = costs[spreadType] || 5;
+    const cost = spread.cost;
 
     if (!profile || profile.points < cost) {
       return NextResponse.json(
@@ -163,11 +157,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Deduct points
-    await supabase
-      .from("profiles")
-      .update({ points: profile.points - cost })
-      .eq("id", user.id);
+    // Deduct points atomically via RPC
+    await supabase.rpc("increment_points", {
+      p_user_id: user.id,
+      p_amount: -cost,
+    });
 
     await supabase.from("point_transactions").insert({
       user_id: user.id,
@@ -178,8 +172,8 @@ export async function POST(request: Request) {
 
     // Build structured card data for AI
     const cardData = cards.map((c: any) => ({
-      position: c.position,
-      positionTh: c.positionTh || c.position,
+      position: c.position?.label || c.position || "",
+      positionTh: c.position?.labelTh || c.position?.label || c.position || "",
       name: c.card.name,
       nameTh: c.card.nameTh,
       reversed: c.reversed,
@@ -190,7 +184,7 @@ export async function POST(request: Request) {
     const userPrompt = buildUserPrompt({
       question: question || "ไม่มีคำถามเฉพาะ ดูโดยรวม",
       spreadType,
-      spreadNameTh: spreadInfo_.nameTh,
+      spreadNameTh: spread.nameTh,
       cards: cardData,
     });
 

@@ -55,7 +55,7 @@ export const SPREADS: Record<SpreadType, Spread> = {
     name: "Three Card",
     nameTh: "ไพ่สามใบ",
     cardCount: 3,
-    cost: 10,
+    cost: 15,
     description: "Past, Present, Future — see the full timeline.",
     descriptionTh: "อดีต ปัจจุบัน อนาคต — ดูไทม์ไลน์ทั้งหมด",
     positions: [
@@ -69,7 +69,7 @@ export const SPREADS: Record<SpreadType, Spread> = {
     name: "Celtic Cross",
     nameTh: "กางเขนเคลติก",
     cardCount: 10,
-    cost: 25,
+    cost: 50,
     description: "The classic 10-card spread for deep insight.",
     descriptionTh: "Spread Classic 10 ใบ สำหรับการวิเคราะห์ลึก",
     positions: [
@@ -175,6 +175,9 @@ const wands: TarotCard[] = [
   { id: 72, name: "Nine of Wands", nameTh: "เก้าแห่งไม้", suit: "wands", imageFile: "Wands09.jpg", upright: "Resilience, grit, last stand, persistence, boundaries", uprightTh: "ความยืดหยุ่น ความอดทน การต่อสู้ครั้งสุดท้าย ความเพียร ขอบเขต", reversed: "Exhaustion, fatigue, paranoia, defensiveness", reversedTh: "ความเหนื่อยล้า ความอ่อนเพลี ความหวาดระแวง การป้องกันตัว" },
   { id: 73, name: "Ten of Wands", nameTh: "สิบแห่งไม้", suit: "wands", imageFile: "Wands10.jpg", upright: "Burden, extra responsibility, hard work, completion", uprightTh: "ภาระ ความรับผิดชอบเพิ่มเติม การทำงานหนัก ความสมบูรณ์", reversed: "Releasing burdens, delegating, burnout avoided", reversedTh: "การปล่อยภาระ การมอบหมาย การหลีกเลี่ยงการเผาไหม้หมด" },
   { id: 74, name: "Page of Wands", nameTh: "เพจแห่งไม้", suit: "wands", imageFile: "Wands11.jpg", upright: "Enthusiasm, exploration, discovery, free spirit", uprightTh: "ความกระตือรือร้น การสำรวจ การค้นพบ จิตใจอิสระ", reversed: "Setbacks to new ideas, lack of direction, procrastination", reversedTh: "อุปสรรคต่อความคิดใหม่ ไม่มีทิศทาง การผัดวันประกันพรุ่ง" },
+  { id: 75, name: "Knight of Wands", nameTh: "อัศวินแห่งไม้", suit: "wands", imageFile: "Wands12.jpg", upright: "Energy, passion, inspired action, adventure, impulsiveness", uprightTh: "พลังงาน ความหลงใหล การกระทำที่ได้รับแรงบันดาลใจ การผจญภัย ความหุนหันพลันแล่น", reversed: "Haste, scattered energy, frustration, delays", reversedTh: "ความเร่งรีบ พลังงานที่กระจัดกระจาย ความหงุดหงิด ความล่าช้า" },
+  { id: 76, name: "Queen of Wands", nameTh: "ควีนแห่งไม้", suit: "wands", imageFile: "Wands13.jpg", upright: "Courage, confidence, independence, determination, warmth", uprightTh: "ความกล้าหาญ ความมั่นใจ ความเป็นอิสระ ความมุ่งมั่น ความอบอุ่น", reversed: "Selfishness, jealousy, insecure, demanding", reversedTh: "ความเห็นแก่ตัว ความหึงหวง ความไม่มั่นคง ความเรียกร้อง" },
+  { id: 77, name: "King of Wands", nameTh: "คิงแห่งไม้", suit: "wands", imageFile: "Wands14.jpg", upright: "Natural-born leader, vision, respect, integrity", uprightTh: "ผู้นำโดยธรรมชาติ วิสัยทัศน์ ความเคารพ ความซื่อสัตย์", reversed: "Impulsive, overbearing, unrealistic expectations", reversedTh: "หุนหันพลันแล่น เจ้ากี้เจ้าการ ความคาดหวังที่ไม่สมจริง" },
 ];
 
 export const ALL_CARDS: TarotCard[] = [

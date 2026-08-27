@@ -6,12 +6,6 @@ import { Reading } from "@/lib/types";
 import { Search, BookOpen, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import LoadingSkeleton from "./LoadingSkeleton";
 
-interface DrawnCard {
-  card: { name: string };
-  position: string;
-  reversed: boolean;
-}
-
 interface ReadingWithUser extends Reading {
   profiles: { display_name: string } | null;
 }
@@ -136,9 +130,9 @@ export default function AdminReadings() {
                         <div>
                           <span className="text-[11px] font-semibold text-muted">CARDS</span>
                           <div className="flex flex-wrap gap-2 mt-1">
-                            {(r.cards as DrawnCard[]).map((c, i) => (
+                            {(r.cards as any[]).map((c: any, i: number) => (
                               <span key={i} className="badge badge-neutral">
-                                {c.card?.name || c.position} {c.reversed ? "(R)" : ""}
+                                {c.card?.name || c.position?.label || c.position} {c.reversed ? "(R)" : ""}
                               </span>
                             ))}
                           </div>

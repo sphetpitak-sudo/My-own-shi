@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Clock, ChevronDown, ChevronUp, CreditCard, BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { SPREADS } from "@/lib/spreads";
+import { SPREADS } from "@/lib/cards";
 import type { Reading } from "@/lib/types";
 
 interface ReadingHistoryProps {

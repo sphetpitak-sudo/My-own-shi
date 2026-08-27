@@ -32,25 +32,18 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
     try {
       const supabase = createClient();
 
+      // Use RPC for atomic increment
+      await supabase.rpc("increment_points", {
+        p_user_id: userId,
+        p_amount: BONUS_AMOUNT,
+      });
+
       await supabase.from("point_transactions").insert({
         user_id: userId,
         amount: BONUS_AMOUNT,
         type: "daily_bonus",
         description: "Daily bonus",
       });
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("points")
-        .eq("id", userId)
-        .single();
-
-      if (data) {
-        await supabase
-          .from("profiles")
-          .update({ points: data.points + BONUS_AMOUNT })
-          .eq("id", userId);
-      }
 
       localStorage.setItem("lastDailyBonus", new Date().toISOString());
 
@@ -73,7 +66,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
         disabled={claimed || loading}
         className="btn w-full justify-center gap-2.5 py-3.5 text-[15px] relative overflow-hidden"
         style={{
-          background: claimed ? "var(--bg)" : "linear-gradient(135deg, #f6c944, #e8a917)",
+          background: claimed ? "var(--surface)" : "linear-gradient(135deg, #f6c944, #e8a917)",
           color: claimed ? "var(--text-muted)" : "#5a3e00",
           border: claimed ? "1px solid var(--border)" : "1px solid #d4960a",
           cursor: claimed ? "default" : "pointer",
@@ -106,30 +99,16 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
       {flyCoins.map((id) => (
         <div
           key={id}
-          className="absolute pointer-events-none"
+          className="absolute pointer-events-none coin-fly"
           style={{
             left: "50%",
             top: "50%",
-            animation: "coinFly 0.7s ease-out forwards",
             animationDelay: `${id * 0.08}s`,
           }}
         >
           <Coins size={16} style={{ color: "#d4960a" }} />
         </div>
       ))}
-
-      <style jsx>{`
-        @keyframes coinFly {
-          0% {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -120px) scale(0.5);
-          }
-        }
-      `}</style>
     </div>
   );
 }
