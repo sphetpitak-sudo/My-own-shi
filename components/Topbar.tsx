@@ -30,8 +30,13 @@ export default function Topbar({ userName, userAvatar, points = 0, onMenuClick }
         >
           <Menu size={18} />
         </button>
+        <img
+          src="/LOGO.png"
+          alt="Catarot"
+          className="w-7 h-7 rounded-lg lg:hidden"
+        />
         <span className="text-[15px] font-bold tracking-tight hidden sm:block">
-          Tarot Destiny
+          Catarot
         </span>
       </div>
 

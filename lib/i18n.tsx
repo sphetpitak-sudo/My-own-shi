@@ -4,8 +4,8 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 
 const translations = {
   en: {
-    app_name: "StudyHub",
-    manage_homework: "Manage your homework, subjects & time",
+    app_name: "Catarot",
+    manage_homework: "Discover your destiny with tarot cards",
     login: "Log In",
     signup: "Sign Up",
     login_button: "Log In",
@@ -29,9 +29,9 @@ const translations = {
     strong: "Strong",
     show_password: "Show password",
     hide_password: "Hide password",
-    // Tarot
-    tarot_destiny: "Tarot Destiny",
-    tarot_subtitle: "Discover your future with tarot cards",
+    // Catarot
+    catarot: "Catarot",
+    catarot_subtitle: "Discover your destiny with tarot cards",
     start_reading: "Start Reading",
     ai_reading: "AI Reading",
     ai_reading_desc: "Get personalized interpretations powered by AI",
@@ -41,8 +41,8 @@ const translations = {
     daily_bonus_desc: "Log in every day to claim free points",
   },
   th: {
-    app_name: "StudyHub",
-    manage_homework: "จัดการงานบ้าน วิชา และเวลาเรียนของคุณ",
+    app_name: "Catarot",
+    manage_homework: "ค้นพบชะตาของคุณด้วยไพ่ทาโรต์",
     login: "เข้าสู่ระบบ",
     signup: "สมัครสมาชิก",
     login_button: "เข้าสู่ระบบ",
@@ -66,9 +66,9 @@ const translations = {
     strong: "แข็งแรง",
     show_password: "แสดงรหัสผ่าน",
     hide_password: "ซ่อนรหัสผ่าน",
-    // Tarot
-    tarot_destiny: "Tarot Destiny",
-    tarot_subtitle: "ค้นพบอนาคตของคุณด้วยไพ่ทาโรต์",
+    // Catarot
+    catarot: "Catarot",
+    catarot_subtitle: "ค้นพบชะตาของคุณด้วยไพ่ทาโรต์",
     start_reading: "เริ่มทำนาย",
     ai_reading: "AI ทำนาย",
     ai_reading_desc: "รับคำทำนายส่วนตัวที่ขับเคลื่อนด้วย AI",

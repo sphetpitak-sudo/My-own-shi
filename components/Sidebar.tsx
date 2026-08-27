@@ -46,14 +46,13 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
         )}
       >
         <div className="sidebar-brand">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
-          >
-            <Sparkles size={18} className="text-white" />
-          </div>
+          <img
+            src="/LOGO.png"
+            alt="Catarot"
+            className="w-9 h-9 rounded-xl"
+          />
           <span className="text-[15px] font-bold tracking-tight text-white">
-            Tarot Destiny
+            Catarot
           </span>
           <button
             onClick={onClose}

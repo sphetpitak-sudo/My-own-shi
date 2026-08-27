@@ -42,11 +42,11 @@ export default function LandingHero() {
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-in d1 tracking-tight">
-          {t.tarot_destiny}
+          {t.catarot}
         </h1>
 
         <p className="text-lg sm:text-xl text-purple-200/80 mb-8 max-w-md animate-in d1">
-          {t.tarot_subtitle}
+          {t.catarot_subtitle}
         </p>
 
         <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent mb-12 animate-in d1" />
