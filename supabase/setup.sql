@@ -209,12 +209,21 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
--- 9. MAKE YOURSELF ADMIN
--- Run this AFTER you have signed up at least once
+-- 9. MAKE YOURSELF ADMIN + FIX EXISTING USERS
 -- ============================================
-UPDATE profiles SET is_admin = true WHERE id = (
-  SELECT id FROM auth.users WHERE email = 'sphetpitak@gmail.com'
-);
+
+-- Create profiles for users who signed up before the trigger existed
+INSERT INTO profiles (id, display_name, avatar_url, points, is_admin)
+SELECT
+  u.id,
+  COALESCE(u.raw_user_meta_data->>'display_name', u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1)),
+  COALESCE(u.raw_user_meta_data->>'avatar_url', ''),
+  0,
+  (u.email = 'sphetpitak@gmail.com')
+FROM auth.users u
+ON CONFLICT (id) DO UPDATE SET
+  is_admin = EXCLUDED.is_admin,
+  display_name = EXCLUDED.display_name;
 
 -- ============================================
 -- DONE
