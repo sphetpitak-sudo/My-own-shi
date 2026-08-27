@@ -962,6 +962,12 @@ button:focus-visible {
   font-size: 20px;
   color: var(--text-muted);
   font-weight: 300;
+  transition: transform 0.2s var(--ease);
+}
+
+.spread-card-main:hover .spread-card-arrow,
+.spread-card-secondary:hover .spread-card-arrow {
+  transform: translateX(3px);
 }
 
 /* Oracle Card */
@@ -1012,11 +1018,17 @@ button:focus-visible {
   cursor: pointer;
   transition: all 0.2s var(--ease);
   position: relative;
+  user-select: none;
 }
 
 .feature-card:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.feature-card:active {
+  transform: scale(0.98);
 }
 
 .feature-icon {

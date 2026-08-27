@@ -35,10 +35,12 @@ export default function LandingHero() {
       {/* Hero */}
       <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-20 pb-16">
         <div className="mb-6 animate-in">
-          <div className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)" }}>
-            <span className="text-4xl">&#x1F52E;</span>
-          </div>
+          <img
+            src="/LOGO.png"
+            alt="Sealo"
+            className="w-20 h-20 mx-auto rounded-2xl object-cover mb-6"
+            style={{ boxShadow: "0 0 30px rgba(124, 58, 237, 0.4)" }}
+          />
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-in d1 tracking-tight">

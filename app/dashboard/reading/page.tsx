@@ -10,6 +10,7 @@ import CardDraw from "@/components/CardDraw";
 import ReadingResult from "@/components/ReadingResult";
 import { ArrowLeft } from "lucide-react";
 import { SPREADS, type SpreadType, type DrawnCard } from "@/lib/cards";
+import { useBeforeUnload } from "@/lib/useBeforeUnload";
 
 export default function ReadingPage() {
   const router = useRouter();
@@ -42,6 +43,12 @@ export default function ReadingPage() {
     };
     init();
   }, [supabase, router]);
+
+  // Warn before leaving during active reading
+  useBeforeUnload(
+    step === "draw" || step === "result",
+    "คุณกำลังอ่านไพ่อยู่ หากออกจะสูญเสียแต้ม"
+  );
 
   if (loading) {
     return (
