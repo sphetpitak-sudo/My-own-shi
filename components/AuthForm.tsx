@@ -75,23 +75,23 @@ export default function AuthForm() {
   };
 
   return (
-    <div className="flex items-center justify-center p-4" style={{ minHeight: "60vh" }}>
+    <div className="flex items-center justify-center p-4 pb-12" style={{ minHeight: "50vh" }}>
       <div className="w-full max-w-[380px]">
-        <div className="text-center mb-8 animate-in">
+        <div className="text-center mb-6 animate-in">
           <div
-            className="w-12 h-12 rounded-[14px] flex items-center justify-center mx-auto mb-4"
+            className="w-11 h-11 rounded-[12px] flex items-center justify-center mx-auto mb-3"
             style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
           >
-            <Sparkles size={22} className="text-white" />
+            <Sparkles size={20} className="text-white" />
           </div>
-          <h1 className="text-[26px] font-bold tracking-tight">Sealo</h1>
-          <p className="text-[14px] mt-1.5" style={{ color: "var(--text-secondary)" }}>
+          <h1 className="text-[24px] font-bold tracking-tight">Sealo</h1>
+          <p className="text-[13px] mt-1" style={{ color: "var(--text-secondary)" }}>
             เปิดไพ่ชะตาของคุณ
           </p>
         </div>
 
-        <div className="card p-7 animate-in d1">
-          <h2 className="text-[17px] font-bold text-center mb-5">
+        <div className="card p-6 animate-in d1">
+          <h2 className="text-[16px] font-bold text-center mb-4">
             {forgotMode ? "รีเซ็ตรหัสผ่าน" : isSignUp ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
           </h2>
 
@@ -108,7 +108,7 @@ export default function AuthForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5" aria-describedby={error ? "auth-error" : undefined}>
+          <form onSubmit={handleSubmit} className="space-y-3" aria-describedby={error ? "auth-error" : undefined}>
             <div className="field">
               <label className="label">อีเมล</label>
               <div className="relative">
@@ -139,14 +139,14 @@ export default function AuthForm() {
                   </button>
                 </div>
                 {isSignUp && password && (
-                  <div className="mt-1">
+                  <div className="mt-1.5">
                     <div className="flex gap-1 mb-1">
                       {[0, 1, 2, 3].map((i) => (
-                        <div key={i} className="h-1 flex-1 rounded-full"
+                        <div key={i} className="h-1 flex-1 rounded-full transition-colors duration-200"
                           style={{ background: i < getPasswordStrength(password).score ? getPasswordStrength(password).color : "var(--border)" }} />
                       ))}
                     </div>
-                    <p className="text-xs" style={{ color: getPasswordStrength(password).color }}>
+                    <p className="text-[11px]" style={{ color: getPasswordStrength(password).color }}>
                       {getPasswordStrength(password).label}
                     </p>
                   </div>
@@ -167,7 +167,7 @@ export default function AuthForm() {
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="btn btn-primary w-full mt-1">
+            <button type="submit" disabled={loading} className="btn btn-primary w-full mt-2">
               {loading ? <span className="animate-pulse">กำลังโหลด...</span> : (
                 <>
                   {forgotMode ? "ส่งลิงก์รีเซ็ต" : isSignUp ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
@@ -178,20 +178,20 @@ export default function AuthForm() {
           </form>
 
           {!isSignUp && !forgotMode && (
-            <div className="mt-3 text-center">
+            <div className="mt-2.5 text-center">
               <button onClick={() => {
                 if (!email) { setError("กรุณากรอกอีเมลก่อน"); return; }
                 setForgotMode(true);
-              }} className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+              }} className="text-[12px] hover:underline" style={{ color: "var(--text-muted)" }}>
                 ลืมรหัสผ่าน?
               </button>
             </div>
           )}
 
           {forgotMode && (
-            <div className="mt-3 text-center">
+            <div className="mt-2.5 text-center">
               <button onClick={() => { setForgotMode(false); setError(""); setMessage(""); }}
-                className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                className="text-[12px] hover:underline" style={{ color: "var(--text-muted)" }}>
                 กลับไปเข้าสู่ระบบ
               </button>
             </div>
@@ -201,7 +201,7 @@ export default function AuthForm() {
             <>
               <div className="flex items-center gap-3 my-4">
                 <div className="flex-1 divider" />
-                <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>หรือ</span>
+                <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>หรือ</span>
                 <div className="flex-1 divider" />
               </div>
 
@@ -215,12 +215,12 @@ export default function AuthForm() {
                 เข้าสู่ระบบด้วย Google
               </button>
 
-              <div className="mt-5 text-center">
+              <div className="mt-4 text-center">
                 <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>
                   {isSignUp ? "มีบัญชีอยู่แล้ว? " : "ยังไม่มีบัญชี? "}
                 </span>
                 <button onClick={() => { setIsSignUp(!isSignUp); setError(""); setMessage(""); }}
-                  className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                  className="text-[13px] font-semibold hover:underline" style={{ color: "var(--text)" }}>
                   {isSignUp ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
                 </button>
               </div>

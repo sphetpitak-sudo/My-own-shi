@@ -32,50 +32,51 @@ export default function LandingHero() {
 
   return (
     <div className="starfield relative overflow-hidden" style={{ minHeight: "100vh" }}>
-      {/* Hero */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-20 pb-16">
-        <div className="mb-6 animate-in">
+      {/* Hero content - centered */}
+      <div className="relative z-10 flex flex-col items-center text-center px-4 pt-16 sm:pt-20 pb-12">
+        <div className="mb-5 animate-in">
           <img
             src="/LOGO.png"
             alt="Sealo"
-            className="w-20 h-20 mx-auto rounded-2xl object-cover mb-6"
-            style={{ boxShadow: "0 0 30px rgba(124, 58, 237, 0.4)" }}
+            className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl object-cover mb-5"
+            style={{ boxShadow: "0 0 24px rgba(124, 58, 237, 0.3)" }}
           />
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-in d1 tracking-tight">
+        <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3 animate-in d1 tracking-tight">
           {t.catarot}
         </h1>
 
-        <p className="text-lg sm:text-xl text-purple-200/80 mb-8 max-w-md animate-in d1">
+        <p className="text-base sm:text-lg text-purple-200/70 mb-6 max-w-sm animate-in d1 leading-relaxed">
           {t.catarot_subtitle}
         </p>
 
-        <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent mb-12 animate-in d1" />
-      </div>
+        <div className="w-12 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent mb-10 animate-in d1" />
 
-      {/* Features */}
-      <div className="relative z-10 max-w-4xl mx-auto px-4 pb-20">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {features.map((f, i) => (
-            <div
-              key={f.title}
-              className="rounded-2xl p-6 text-center animate-in"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                backdropFilter: "blur(12px)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                animationDelay: `${0.1 + i * 0.08}s`,
-              }}
-            >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: f.color }}>
-                <f.icon size={22} style={{ color: f.iconColor }} />
+        {/* Features - compact row */}
+        <div className="w-full max-w-md animate-in d1">
+          <div className="grid grid-cols-3 gap-3">
+            {features.map((f, i) => (
+              <div
+                key={f.title}
+                className="rounded-xl p-4 text-center"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  animationDelay: `${0.15 + i * 0.06}s`,
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3"
+                  style={{ background: f.color }}
+                >
+                  <f.icon size={18} style={{ color: f.iconColor }} />
+                </div>
+                <h3 className="text-white font-bold text-[13px] mb-1">{f.title}</h3>
+                <p className="text-purple-200/50 text-[11px] leading-snug">{f.desc}</p>
               </div>
-              <h3 className="text-white font-bold text-[15px] mb-2">{f.title}</h3>
-              <p className="text-purple-200/60 text-[13px] leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

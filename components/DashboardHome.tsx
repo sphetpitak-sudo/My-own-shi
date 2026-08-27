@@ -48,15 +48,14 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Main Spread Card */}
-      <div className="dashboard-section">
-        <h2 className="section-title-lg">ไพ่ทาโรส</h2>
+      {/* Main Tarot CTA */}
+      <div className="dashboard-section" style={{ paddingTop: 20 }}>
         <div className="spread-card-main" onClick={() => handleSpreadSelect("three_card")}>
           <div className="spread-card-content">
             <div className="spread-card-icon">🔮</div>
             <div>
-              <div className="spread-card-label">ไพ่ทาโรส</div>
-              <div className="spread-card-name">อ่านไพ่ทาโรส</div>
+              <div className="spread-card-label">ไพ่ทาโรต์</div>
+              <div className="spread-card-name">อ่านไพ่ทาโรต์</div>
               <div className="spread-card-desc">ดูดวงชะตา และรับคำทำนาย</div>
             </div>
           </div>
@@ -64,44 +63,9 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Birth Chart - Coming Soon */}
+      {/* Spread Selection Grid */}
       <div className="dashboard-section">
-        <div className="spread-card-secondary coming-soon-card">
-          <div className="spread-card-content">
-            <div className="spread-card-icon-small">♈</div>
-            <div>
-              <div className="spread-card-label-tag">
-                <span className="label-tag">BIRTH CHART</span>
-                <span className="label-badge-new">+ ใหม่</span>
-              </div>
-              <div className="spread-card-name">แผนที่ดวงชะตาราศี</div>
-              <div className="spread-card-sub">Sun · Moon · Ascendant</div>
-            </div>
-          </div>
-          <span className="coming-soon-badge">เร็วๆ นี้</span>
-        </div>
-      </div>
-
-      {/* Oracle - Coming Soon */}
-      <div className="dashboard-section">
-        <div className="oracle-card coming-soon-card">
-          <div className="spread-card-content">
-            <div className="spread-card-icon-small">🌙</div>
-            <div>
-              <div className="spread-card-label-tag">
-                <span className="label-tag-oracle">ORACLE</span>
-              </div>
-              <div className="spread-card-name-oracle">ทำนายฝัน</div>
-              <div className="spread-card-desc-oracle">เปิดดวงชะตา ทำนายความฝัน</div>
-            </div>
-          </div>
-          <span className="coming-soon-badge coming-soon-dark">เร็วๆ นี้</span>
-        </div>
-      </div>
-
-      {/* Quick Spread Selection */}
-      <div className="dashboard-section">
-        <h2 className="section-title-lg mb-3">เลือกการทำนาย</h2>
+        <h2 className="section-title-lg" style={{ marginBottom: 10 }}>เลือกการทำนาย</h2>
         <div className="feature-grid">
           {spreads.map(([key, spread]) => (
             <div
@@ -121,41 +85,34 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Coming Soon Features */}
+      {/* Coming Soon - compact single row */}
       <div className="dashboard-section">
-        <div className="feature-grid">
-          <div className="feature-card coming-soon-card">
-            <div className="feature-icon">💕</div>
-            <div className="flex-1 min-w-0">
-              <div className="feature-title">ความรัก</div>
-              <div className="feature-desc">ดวงความรัก</div>
+        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {[
+            { icon: "♈", label: " Birth Chart" },
+            { icon: "🌙", label: "Oracle" },
+            { icon: "💕", label: "ความรัก" },
+            { icon: "🎴", label: "Horoscope" },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg flex-shrink-0"
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                opacity: 0.6,
+              }}
+            >
+              <span className="text-sm">{item.icon}</span>
+              <span className="text-[12px] font-medium whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
+                {item.label}
+              </span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>
+                เร็วๆ นี้
+              </span>
             </div>
-            <span className="coming-soon-badge-sm">เร็วๆ นี้</span>
-          </div>
-          <div className="feature-card coming-soon-card">
-            <div className="feature-icon">🌙</div>
-            <div className="flex-1 min-w-0">
-              <div className="feature-title">ดูดวง.ai</div>
-              <div className="feature-desc">AI ทำนาย</div>
-            </div>
-            <span className="coming-soon-badge-sm">เร็วๆ นี้</span>
-          </div>
-          <div className="feature-card coming-soon-card">
-            <div className="feature-icon">📞</div>
-            <div className="flex-1 min-w-0">
-              <div className="feature-title">เบอร์โทรศัพท์</div>
-              <div className="feature-desc">เช็คดวงเบอร์</div>
-            </div>
-            <span className="coming-soon-badge-sm">เร็วๆ นี้</span>
-          </div>
-          <div className="feature-card coming-soon-card">
-            <div className="feature-icon">🎴</div>
-            <div className="flex-1 min-w-0">
-              <div className="feature-title">Horoscope</div>
-              <div className="feature-desc">ดวงรายวัน</div>
-            </div>
-            <span className="coming-soon-badge-sm">เร็วๆ นี้</span>
-          </div>
+          ))}
         </div>
       </div>
 
