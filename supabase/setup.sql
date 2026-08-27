@@ -1,5 +1,5 @@
 -- ============================================
--- Tarot Destiny — Complete Database Setup
+-- Sealo — Complete Database Setup
 -- Safe to re-run (IF NOT EXISTS + EXCEPTION)
 -- Run this entire file in Supabase SQL Editor
 -- ============================================
@@ -78,7 +78,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_point_tx_user ON point_transactions(user_id);
 
 -- ============================================
--- 4. ADMIN SETTINGS (with RLS + Admin policies)
+-- 4. ADMIN SETTINGS
 -- ============================================
 CREATE TABLE IF NOT EXISTS admin_settings (
   key TEXT PRIMARY KEY,
@@ -88,7 +88,6 @@ CREATE TABLE IF NOT EXISTS admin_settings (
 
 ALTER TABLE admin_settings ENABLE ROW LEVEL SECURITY;
 
--- Default settings
 INSERT INTO admin_settings (key, value) VALUES
   ('reading_costs', '{"single": 5, "three_card": 15, "celtic": 50}'::jsonb),
   ('daily_bonus', '{"amount": 10}'::jsonb),
@@ -96,19 +95,14 @@ INSERT INTO admin_settings (key, value) VALUES
   ('maintenance_mode', '{"enabled": false}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
--- Admin policies for admin_settings
 DO $$ BEGIN
   CREATE POLICY "Admin settings select" ON admin_settings
-    FOR SELECT USING (
-      auth.uid() IN (SELECT id FROM profiles WHERE is_admin)
-    );
+    FOR SELECT USING (auth.uid() IN (SELECT id FROM profiles WHERE is_admin));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   CREATE POLICY "Admin settings update" ON admin_settings
-    FOR UPDATE USING (
-      auth.uid() IN (SELECT id FROM profiles WHERE is_admin)
-    );
+    FOR UPDATE USING (auth.uid() IN (SELECT id FROM profiles WHERE is_admin));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================
@@ -134,13 +128,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================
--- 6. MAKE YOURSELF ADMIN (run AFTER signup)
--- ============================================
--- Replace with your email:
--- UPDATE profiles SET is_admin = true WHERE email = 'sphetpitak@gmail.com';
-
--- ============================================
--- 7. RPC: safe points increment (used by API)
+-- 6. RPC: safe points increment
 -- ============================================
 CREATE OR REPLACE FUNCTION increment_points(p_user_id UUID, p_amount INTEGER)
 RETURNS void AS $$
@@ -150,5 +138,13 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
--- DONE — All tables, RLS, policies, triggers, and functions created
+-- 7. MAKE YOURSELF ADMIN
+-- Run this AFTER you have signed up at least once
+-- ============================================
+UPDATE profiles SET is_admin = true WHERE id = (
+  SELECT id FROM auth.users WHERE email = 'sphetpitak@gmail.com'
+);
+
+-- ============================================
+-- DONE
 -- ============================================
