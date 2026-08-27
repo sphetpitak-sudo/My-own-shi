@@ -84,7 +84,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
         </main>
       </div>
 
-      <BottomNav />
+      <BottomNav isAdmin={profile?.is_admin} />
     </div>
   );
 }

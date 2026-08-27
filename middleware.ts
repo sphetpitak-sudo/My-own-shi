@@ -27,17 +27,8 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Exchange OAuth code
-  if (request.nextUrl.searchParams.get("code")) {
-    const { error } = await supabase.auth.exchangeCodeForSession(
-      request.nextUrl.searchParams.get("code")!
-    );
-    if (!error) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
-
   // Auth redirects
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/", request.url));
   }
@@ -57,5 +48,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|auth/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

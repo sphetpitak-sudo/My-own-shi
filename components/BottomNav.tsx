@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, Sparkles, User, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Calendar, Sparkles, User, Shield } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-const items = [
-  { href: "/dashboard", label: "หน้าหลัก", icon: LayoutDashboard },
-  { href: "/dashboard/reading", label: "ไพ่", icon: Sparkles },
-  { href: "/dashboard/history", label: "ประวัติ", icon: Calendar },
-  { href: "/dashboard/stats", label: "สถิติ", icon: BarChart3 },
-  { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
-];
+interface BottomNavProps {
+  isAdmin?: boolean;
+}
 
-export default function BottomNav() {
+export default function BottomNav({ isAdmin }: BottomNavProps) {
   const pathname = usePathname();
+
+  const items = [
+    { href: "/dashboard", label: "หน้าหลัก", icon: LayoutDashboard },
+    { href: "/dashboard/reading", label: "ไพ่", icon: Sparkles },
+    { href: "/dashboard/history", label: "ประวัติ", icon: Calendar },
+    ...(isAdmin ? [{ href: "/admin", label: "แอดมิน", icon: Shield }] : []),
+    { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
+  ];
 
   return (
     <nav className="bottom-nav">

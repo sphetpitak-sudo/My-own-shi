@@ -91,9 +91,9 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
           <>
             <div className="sidebar-label">จัดการ</div>
             <Link
-              href="/dashboard/admin"
+              href="/admin"
               onClick={onClose}
-              className={cn("nav-item", pathname.startsWith("/dashboard/admin") && "active")}
+              className={cn("nav-item", pathname.startsWith("/admin") && "active")}
             >
               <span className="nav-icon">
                 <Shield size={18} />
