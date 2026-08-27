@@ -25,9 +25,9 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentReadings, setRecentReadings] = useState<RecentReading[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   const loadStats = useCallback(async () => {
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
     });
     setRecentReadings(recentRes.data || []);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     loadStats();
@@ -69,18 +69,18 @@ export default function AdminDashboard() {
   if (loading) return <LoadingSkeleton variant="stats" />;
 
   const statCards = [
-    { label: "Total Users", value: stats?.totalUsers ?? 0, icon: Users, color: "var(--blue-soft)", iconColor: "var(--blue)" },
-    { label: "Total Readings", value: stats?.totalReadings ?? 0, icon: BookOpen, color: "var(--green-soft)", iconColor: "var(--green)" },
-    { label: "Points Circulation", value: stats?.totalPoints ?? 0, icon: Coins, color: "var(--amber-soft)", iconColor: "var(--amber)" },
-    { label: "Active Today", value: stats?.activeToday ?? 0, icon: Activity, color: "var(--red-soft)", iconColor: "var(--red)" },
+    { label: "ผู้ใช้ทั้งหมด", value: stats?.totalUsers ?? 0, icon: Users, color: "var(--blue-soft)", iconColor: "var(--blue)" },
+    { label: "การทำนายทั้งหมด", value: stats?.totalReadings ?? 0, icon: BookOpen, color: "var(--green-soft)", iconColor: "var(--green)" },
+    { label: "คะแนนหมุนเวียน", value: stats?.totalPoints ?? 0, icon: Coins, color: "var(--amber-soft)", iconColor: "var(--amber)" },
+    { label: "ใช้งานวันนี้", value: stats?.activeToday ?? 0, icon: Activity, color: "var(--red-soft)", iconColor: "var(--red)" },
   ];
 
   return (
     <div className="tab-content">
       <div className="page-header mb-6">
         <div>
-          <h1 className="page-title">Admin Dashboard</h1>
-          <p className="page-sub">Overview of your tarot platform</p>
+          <h1 className="page-title">แดชบอร์ดแอดมิน</h1>
+          <p className="page-sub">ภาพรวมแพลตฟอร์มทำนายไพ่ทาโรต์</p>
         </div>
       </div>
 
@@ -97,11 +97,11 @@ export default function AdminDashboard() {
       </div>
 
       <div className="card p-5">
-        <h2 className="sec-title mb-4">Recent Readings</h2>
+        <h2 className="sec-title mb-4">การทำนายล่าสุด</h2>
         {recentReadings.length === 0 ? (
           <div className="empty">
             <div className="empty-icon"><BookOpen size={22} /></div>
-            <div className="empty-title">No readings yet</div>
+            <div className="empty-title">ยังไม่มีการทำนาย</div>
           </div>
         ) : (
           <div className="space-y-1">
@@ -111,8 +111,8 @@ export default function AdminDashboard() {
                   <BookOpen size={16} style={{ color: "var(--blue)" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold truncate">{r.profiles?.display_name || "Unknown"}</div>
-                  <div className="text-[12px] text-muted truncate">{r.question || "No question"}</div>
+                  <div className="text-[13px] font-semibold truncate">{r.profiles?.display_name || "ไม่ทราบ"}</div>
+                  <div className="text-[12px] text-muted truncate">{r.question || "ไม่มีคำถาม"}</div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <span className="badge badge-blue">{r.spread_type}</span>

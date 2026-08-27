@@ -53,13 +53,15 @@ export default function Topbar({ userName, userAvatar, points = 0, onMenuClick }
             color: "var(--gold)",
             border: "1px solid rgba(212, 175, 55, 0.1)",
           }}
+          role="status"
+          aria-label={`คะแนนคงเหลือ ${points.toLocaleString()}`}
         >
           <Coins size={14} />
           <span>{points.toLocaleString()}</span>
         </div>
 
         {/* Theme toggle */}
-        <button onClick={toggle} className="btn-icon" aria-label="toggle theme">
+        <button onClick={toggle} className="btn-icon" aria-label={theme === "light" ? "โหมดมืด" : "โหมดสว่าง"}>
           {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
         </button>
 

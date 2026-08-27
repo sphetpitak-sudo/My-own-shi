@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT,
   avatar_url TEXT,
-  points INTEGER NOT NULL DEFAULT 0,
+  points INTEGER NOT NULL DEFAULT 0 CHECK (points >= 0),
   is_admin BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -52,6 +52,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE INDEX IF NOT EXISTS idx_readings_user ON readings(user_id);
+CREATE INDEX IF NOT EXISTS idx_readings_created ON readings(created_at DESC);
 
 -- ============================================
 -- 3. POINT TRANSACTIONS
@@ -76,6 +77,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE INDEX IF NOT EXISTS idx_point_tx_user ON point_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_point_tx_type_date ON point_transactions(user_id, type, created_at);
 
 -- ============================================
 -- 4. ADMIN SETTINGS
@@ -128,17 +130,81 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================
--- 6. RPC: safe points increment
+-- 6. RPC: safe points increment (with balance floor)
 -- ============================================
 CREATE OR REPLACE FUNCTION increment_points(p_user_id UUID, p_amount INTEGER)
 RETURNS void AS $$
 BEGIN
-  UPDATE profiles SET points = points + p_amount WHERE id = p_user_id;
+  UPDATE profiles
+  SET points = points + p_amount
+  WHERE id = p_user_id AND (points + p_amount) >= 0;
+
+  -- If the update affected no rows, the balance would have gone negative
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Insufficient points or user not found';
+  END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
--- 7. MAKE YOURSELF ADMIN
+-- 7. RPC: spend points atomically (check + deduct)
+-- ============================================
+CREATE OR REPLACE FUNCTION spend_points(p_user_id UUID, p_amount INTEGER)
+RETURNS boolean AS $$
+DECLARE
+  current_points INTEGER;
+BEGIN
+  SELECT points INTO current_points FROM profiles WHERE id = p_user_id FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found';
+  END IF;
+
+  IF current_points < p_amount THEN
+    RETURN false;
+  END IF;
+
+  UPDATE profiles SET points = points - p_amount WHERE id = p_user_id;
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- 8. RPC: claim daily bonus atomically
+-- ============================================
+CREATE OR REPLACE FUNCTION claim_daily_bonus(p_user_id UUID, p_amount INTEGER)
+RETURNS boolean AS $$
+DECLARE
+  today_start TIMESTAMPTZ;
+  existing_tx RECORD;
+BEGIN
+  today_start := date_trunc('day', now());
+
+  -- Check if already claimed today
+  SELECT id INTO existing_tx
+  FROM point_transactions
+  WHERE user_id = p_user_id
+    AND type = 'daily_bonus'
+    AND created_at >= today_start
+  LIMIT 1;
+
+  IF FOUND THEN
+    RETURN false;
+  END IF;
+
+  -- Award points
+  UPDATE profiles SET points = points + p_amount WHERE id = p_user_id;
+
+  -- Record transaction
+  INSERT INTO point_transactions (user_id, amount, type, description)
+  VALUES (p_user_id, p_amount, 'daily_bonus', 'Daily bonus');
+
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- 9. MAKE YOURSELF ADMIN
 -- Run this AFTER you have signed up at least once
 -- ============================================
 UPDATE profiles SET is_admin = true WHERE id = (

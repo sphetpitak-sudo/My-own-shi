@@ -8,10 +8,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/readings", label: "Readings", icon: BookOpen },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin", label: "แดชบอร์ด", icon: LayoutDashboard },
+  { href: "/admin/users", label: "ผู้ใช้", icon: Users },
+  { href: "/admin/readings", label: "ประวัติ", icon: BookOpen },
+  { href: "/admin/settings", label: "ตั้งค่า", icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -19,9 +19,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
 
   const checkAuth = useCallback(async () => {
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/"); return; }
 
@@ -30,13 +30,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     setAuthorized(true);
     setLoading(false);
-  }, [supabase, router]);
+  }, [router]);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   async function handleLogout() {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   }
@@ -58,10 +59,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
               <ArrowLeft size={16} />
-              Back
+              กลับ
             </Link>
             <div className="h-5 w-px" style={{ background: "var(--border)" }} />
-            <span className="text-[14px] font-bold" style={{ color: "var(--text)" }}>Admin Panel</span>
+            <span className="text-[14px] font-bold" style={{ color: "var(--text)" }}>แผงแอดมิน</span>
           </div>
 
           <nav className="hidden sm:flex items-center gap-1">
@@ -72,7 +73,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   key={item.href}
                   href={item.href}
                   className="nav-item"
-                  style={active ? { background: "var(--sidebar-active)", color: "#fff" } : {}}
+                  style={active ? { background: "var(--primary)", color: "white" } : {}}
                 >
                   <item.icon size={16} />
                   {item.label}
@@ -87,15 +88,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </header>
 
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex" style={{ background: "var(--bg-card)", borderColor: "var(--border)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         {navItems.map((item) => {
           const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 flex flex-col items-center gap-1 py-2"
-              style={{ color: active ? "var(--text)" : "var(--text-muted)" }}
+              className="flex-1 flex flex-col items-center gap-1 py-2.5"
+              style={{ color: active ? "var(--primary)" : "var(--text-muted)" }}
             >
               <item.icon size={18} />
               <span className="text-[10px] font-semibold">{item.label}</span>

@@ -727,9 +727,9 @@ body {
 /* --- Mobile forms: better spacing --- */
 @media (max-width: 640px) {
   .form-card { padding: 14px !important; }
-  .input { padding: 10px 12px; font-size: 16px; }
-  .select { padding: 10px 36px 10px 12px; font-size: 16px; }
-  .btn { padding: 10px 14px; font-size: 13px; }
+  .input { padding: 12px 12px; font-size: 16px; }
+  .select { padding: 12px 36px 12px 12px; font-size: 16px; }
+  .btn { padding: 12px 16px; font-size: 13px; min-height: 44px; }
 }
 
 /* --- Mobile calendar: compact --- */

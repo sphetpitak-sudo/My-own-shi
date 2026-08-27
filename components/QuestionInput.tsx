@@ -14,6 +14,13 @@ export default function QuestionInput({
   onSubmit,
   loading = false,
 }: Props) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && value.trim() && !loading) {
+      e.preventDefault();
+      onSubmit();
+    }
+  };
+
   return (
     <div className="w-full">
       <div
@@ -26,12 +33,14 @@ export default function QuestionInput({
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="ถามไพ่ทาโรต์... เช่น อนาคตความรักจะเป็นอย่างไร?"
-          rows={4}
+          rows={3}
           maxLength={500}
           disabled={loading}
+          aria-label="คำถามของคุณ"
           className={cn(
-            "w-full p-4 pb-12 bg-transparent resize-none outline-none",
+            "w-full p-4 pb-14 bg-transparent resize-none outline-none",
             "text-[var(--text)] text-[14px] leading-relaxed",
             "placeholder:text-[var(--text-muted)]",
             "disabled:opacity-50"
@@ -50,6 +59,7 @@ export default function QuestionInput({
           <button
             onClick={onSubmit}
             disabled={!value.trim() || loading}
+            aria-label="ทำนาย"
             className={cn(
               "px-5 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-200",
               value.trim() && !loading
@@ -68,6 +78,9 @@ export default function QuestionInput({
           </button>
         </div>
       </div>
+      <p className="text-[11px] mt-1.5" style={{ color: "var(--text-muted)" }}>
+        กด Enter เพื่อทำนาย กด Shift+Enter ขึ้นบรรทัดใหม่
+      </p>
     </div>
   );
 }

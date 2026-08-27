@@ -117,6 +117,7 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
               window.location.href = "/";
             }}
             className="nav-item"
+            aria-label="ออกจากระบบ"
           >
             <span className="nav-icon">
               <LogOut size={18} />

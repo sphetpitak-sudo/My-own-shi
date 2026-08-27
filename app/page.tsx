@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main>
       <LandingHero />
-      <div className="relative z-10 -mt-8">
+      <div className="relative z-10 -mt-6">
         <AuthForm />
       </div>
     </main>

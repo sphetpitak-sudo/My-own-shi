@@ -34,7 +34,7 @@ export default function AuthForm() {
 
     if (forgotMode) {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/` });
-      if (error) setError(error.message);
+      if (error) setError("ไม่สามารถส่งอีเมลได้ กรุณาลองใหม่");
       else setMessage("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลของคุณแล้ว");
       setLoading(false);
       return;
@@ -45,14 +45,21 @@ export default function AuthForm() {
     }
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({ email, password });
-      if (error) setError(error.message);
-      else setMessage("สมัครสมาชิกสำเร็จ กรุณาตรวจสอบอีเมลเพื่อยืนยัน");
+      if (error) {
+        setError(error.message.includes("already") || error.message.includes("registered")
+          ? "อีเมลนี้ถูกใช้งานแล้ว"
+          : "ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่");
+      } else {
+        setMessage("สมัครสมาชิกสำเร็จ กรุณาตรวจสอบอีเมลเพื่อยืนยัน");
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         const msg = error.message.includes("429") || error.message.toLowerCase().includes("rate")
           ? "ลองใหม่อีกครั้งในภายหลัง"
-          : error.message;
+          : error.message.includes("Invalid login credentials")
+            ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+            : "ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่";
         setError(msg); setLoading(false); return;
       }
       window.location.href = "/dashboard";
@@ -115,10 +122,10 @@ export default function AuthForm() {
 
           <form onSubmit={handleSubmit} className="space-y-3.5" aria-describedby={error ? "auth-error" : undefined}>
             <div className="field">
-              <label className="label">อีเมล</label>
+              <label className="label" htmlFor="auth-email">อีเมล</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                <input id="auth-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                   className="input" style={{ paddingLeft: "38px" }} placeholder="email@example.com"
                   aria-invalid={error?.includes("email") ? "true" : undefined}
                   aria-describedby={error ? "auth-error" : undefined} />
@@ -127,10 +134,10 @@ export default function AuthForm() {
 
             {!forgotMode && (
               <div className="field">
-                <label className="label">รหัสผ่าน</label>
+                <label className="label" htmlFor="auth-password">รหัสผ่าน</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
-                  <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
+                  <input id="auth-password" type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
                     className="input" style={{ paddingLeft: "38px", paddingRight: "38px" }} placeholder="••••••••"
                     aria-invalid={error?.includes("password") ? "true" : undefined}
                     aria-describedby={error ? "auth-error" : undefined} />
@@ -161,10 +168,10 @@ export default function AuthForm() {
 
             {isSignUp && !forgotMode && (
               <div className="field">
-                <label className="label">ยืนยันรหัสผ่าน</label>
+                <label className="label" htmlFor="auth-confirm-password">ยืนยันรหัสผ่าน</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
-                  <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                  <input id="auth-confirm-password" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                     className="input" style={{ paddingLeft: "38px" }} placeholder="••••••••"
                     aria-invalid={error?.includes("password") ? "true" : undefined}
                     aria-describedby={error ? "auth-error" : undefined} />
@@ -238,7 +245,7 @@ export default function AuthForm() {
                 <span className="text-[13px]" style={{ color: "var(--text-muted)" }}>
                   {isSignUp ? "มีบัญชีอยู่แล้ว? " : "ยังไม่มีบัญชี? "}
                 </span>
-                <button onClick={() => { setIsSignUp(!isSignUp); setError(""); setMessage(""); }}
+                <button onClick={() => { setIsSignUp(!isSignUp); setError(""); setMessage(""); setPassword(""); setConfirmPassword(""); }}
                   className="text-[13px] font-bold hover:underline" style={{ color: "var(--text)" }}>
                   {isSignUp ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
                 </button>

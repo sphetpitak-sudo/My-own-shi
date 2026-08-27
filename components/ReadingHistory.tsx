@@ -115,7 +115,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                   <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
                     {spreadLabels[r.spread_type] || r.spread_type}
                   </span>
-                  <span className="badge badge-amber text-[10px]">-{r.points_spent} pts</span>
+                  <span className="badge badge-amber text-[10px]">-{r.points_spent} แต้ม</span>
                 </div>
                 {r.question && (
                   <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-secondary)" }}>
@@ -167,19 +167,24 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                   </p>
                 </div>
 
-                {spread && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {(r.cards as { card: { nameTh: string }; reversed: boolean }[]).map(
-                      (c, i) => (
-                        <span
-                          key={i}
-                          className="badge badge-neutral text-[10px]"
-                        >
-                          {c.card.nameTh}
-                          {c.reversed && " (กลับ)"}
-                        </span>
-                      )
-                    )}
+                {spread && r.cards && Array.isArray(r.cards) && (
+                  <div className="mt-3">
+                    <div className="text-[11px] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                      ไพ่ที่เปิด
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(r.cards as { card: { nameTh: string }; reversed: boolean }[]).map(
+                        (c, i) => (
+                          <span
+                            key={i}
+                            className="badge badge-neutral text-[10px]"
+                          >
+                            {c.card.nameTh}
+                            {c.reversed && " (กลับ)"}
+                          </span>
+                        )
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

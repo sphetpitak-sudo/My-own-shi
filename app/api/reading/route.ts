@@ -1,32 +1,9 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
-import { SPREADS, type SpreadType, type TarotCard } from "@/lib/cards";
+import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 
-// In-memory rate limiter (per-serverless-instance, acceptable for basic protection)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 5; // 5 readings per minute per user
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
-const SYSTEM_PROMPT = `
-คุณคือ "หมอดูทิพย์" นักอ่านไพ่ทาโรต์มืออาชีพที่เชี่ยวชาญศาสตร์ Rider-Waite-Smith
+const systemPrompt = `คุณคือ "หมอดูทิพย์" นักอ่านไพ่ทาโรต์มืออาชีพที่เชี่ยวชาญศาสตร์ Rider-Waite-Smith
 
 บุคลิกของคุณ:
 - อบอุ่น เป็นกันเอง และคุยเหมือนหมอดูที่นั่งอ่านไพ่ให้ตรงหน้า
@@ -73,15 +50,6 @@ const SYSTEM_PROMPT = `
 8. สร้าง "เรื่องราวจากไพ่ทั้งหมด"
 9. หากมีไพ่หลายใบที่สื่อถึง theme เดียวกัน ให้ชี้ให้ผู้ใช้เห็น pattern นั้น
 10. หากไพ่ขัดแย้งกัน ให้พูดถึงความขัดแย้งนั้นแทนการพยายามทำให้ทุกใบดูเข้ากัน
-
-ตัวอย่าง:
-อย่าเขียนว่า
-"The Moon = ความไม่แน่นอน
-Two of Cups = ความสัมพันธ์
-Eight of Swords = ความกลัว"
-
-ให้ตีความเป็นเรื่องราว เช่น:
-"สิ่งที่เด่นมากในชุดนี้คือความรู้สึกมีอยู่จริง แต่ความไม่แน่ใจกลับทำให้ทั้งสองฝ่ายยังไม่กล้าขยับ..."
 
 ==================================================
 โครงสร้างคำตอบ
@@ -248,7 +216,7 @@ Cards:
 function getOpenAI() {
   const apiKey = process.env.OPEN_TYPHOON_API_KEY;
   if (!apiKey) {
-    throw new Error("OPEN_TYPHOON_API_KEY is not set in environment variables");
+    throw new Error("OPEN_TYPHOON_API_KEY is not set");
   }
   return new OpenAI({
     apiKey,
@@ -259,8 +227,8 @@ function getOpenAI() {
 type ContextCategory = "love" | "career" | "study" | "finance" | "general";
 
 interface ReadingCardInput {
-  card: TarotCard;
-  position: { labelTh?: string; label?: string };
+  cardId: number;
+  positionLabel: string;
   reversed: boolean;
 }
 
@@ -273,7 +241,7 @@ function detectContext(question: string): ContextCategory {
   return "general";
 }
 
-function getCardContextMeaning(card: TarotCard, reversed: boolean, context: ContextCategory): string {
+function getCardContextMeaning(card: (typeof ALL_CARDS)[0], reversed: boolean, context: ContextCategory): string {
   if (context === "general") {
     return reversed ? card.reversedTh : card.uprightTh;
   }
@@ -315,90 +283,119 @@ ${cardLines}
 
 export async function POST(request: Request) {
   try {
-    const { question, spreadType, cards } = await request.json();
+    const body = await request.json();
+    const { question, spreadType, cards } = body as {
+      question?: string;
+      spreadType?: string;
+      cards?: ReadingCardInput[];
+    };
 
+    // Validate input
     if (!cards || !Array.isArray(cards) || cards.length === 0) {
       return NextResponse.json({ error: "Invalid cards data" }, { status: 400 });
     }
 
-    const spread = SPREADS[spreadType as SpreadType] || SPREADS.single;
+    if (cards.length > 10) {
+      return NextResponse.json({ error: "Too many cards" }, { status: 400 });
+    }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        cookies: {
-          getAll() {
-            const cookieHeader = request.headers.get("cookie") || "";
-            return cookieHeader.split(";").filter(c => c.trim()).map(c => {
-              const [name, ...rest] = c.trim().split("=");
-              return { name, value: rest.join("=") };
-            });
-          },
-          setAll() {},
-        },
+    const spread = SPREADS[spreadType as SpreadType];
+    if (!spread) {
+      return NextResponse.json({ error: "Invalid spread type" }, { status: 400 });
+    }
+
+    if (cards.length !== spread.cardCount) {
+      return NextResponse.json({ error: "Card count does not match spread" }, { status: 400 });
+    }
+
+    // Validate question length server-side
+    const trimmedQuestion = (question || "").trim().slice(0, 500);
+
+    // Validate card IDs exist
+    const cardIdSet = new Set(ALL_CARDS.map(c => c.id));
+    for (const c of cards) {
+      if (typeof c.cardId !== "number" || !cardIdSet.has(c.cardId)) {
+        return NextResponse.json({ error: "Invalid card ID" }, { status: 400 });
       }
-    );
+      if (typeof c.reversed !== "boolean") {
+        return NextResponse.json({ error: "Invalid card data" }, { status: 400 });
+      }
+    }
+
+    // Check for duplicate card IDs
+    const seenIds = new Set<number>();
+    for (const c of cards) {
+      if (seenIds.has(c.cardId)) {
+        return NextResponse.json({ error: "Duplicate cards" }, { status: 400 });
+      }
+      seenIds.add(c.cardId);
+    }
+
+    const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!checkRateLimit(user.id)) {
-      return NextResponse.json(
-        { error: "Too many requests. Please wait a moment before trying again." },
-        { status: 429 }
-      );
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("points")
-      .eq("id", user.id)
+    // Fetch reading cost from admin_settings
+    const { data: costRow } = await supabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "reading_costs")
       .single();
 
-    const cost = spread.cost;
+    const costs = (costRow?.value as Record<string, number>) || { single: 5, three_card: 15, celtic: 50 };
+    const cost = costs[spreadType as SpreadType] || spread.cost;
 
-    if (!profile || profile.points < cost) {
+    // Atomic point spend using RPC
+    const { data: spent, error: spendError } = await supabase.rpc("spend_points", {
+      p_user_id: user.id,
+      p_amount: cost,
+    });
+
+    if (spendError) {
+      return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
+    }
+
+    if (!spent) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("points")
+        .eq("id", user.id)
+        .single();
+
       return NextResponse.json(
         { error: "Not enough points", needed: cost, current: profile?.points || 0 },
         { status: 400 }
       );
     }
 
-    await supabase.rpc("increment_points", {
-      p_user_id: user.id,
-      p_amount: -cost,
+    // Resolve cards from server-side data
+    const cardMap = new Map(ALL_CARDS.map(c => [c.id, c]));
+    const context = detectContext(trimmedQuestion);
+
+    const resolvedCards = cards.map(c => {
+      const card = cardMap.get(c.cardId)!;
+      return {
+        name: card.name,
+        nameTh: card.nameTh,
+        position: c.positionLabel,
+        reversed: c.reversed,
+        contextMeaning: getCardContextMeaning(card, c.reversed, context),
+      };
     });
-
-    await supabase.from("point_transactions").insert({
-      user_id: user.id,
-      amount: -cost,
-      type: "reading_purchase",
-      description: `${spreadType} reading`,
-    });
-
-    const context = detectContext(question || "");
-
-    const cardData = cards.map((c: ReadingCardInput) => ({
-      name: c.card.name,
-      nameTh: c.card.nameTh,
-      position: c.position?.labelTh || c.position?.label || "",
-      reversed: c.reversed,
-      contextMeaning: getCardContextMeaning(c.card, c.reversed, context),
-    }));
 
     const userPrompt = buildUserPrompt({
-      question: question || "ไม่มีคำถามเฉพาะ ดูโดยรวม",
+      question: trimmedQuestion || "ไม่มีคำถามเฉพาะ ดูโดยรวม",
       spreadNameTh: spread.nameTh,
-      cards: cardData,
+      cards: resolvedCards,
     });
 
     const stream = await getOpenAI().chat.completions.create({
       model: "typhoon-v2.5-30b-a3b-instruct",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       temperature: 0.8,
@@ -422,15 +419,24 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
 
+          // Record the reading
           await supabase.from("readings").insert({
             user_id: user.id,
             spread_type: spreadType,
             cards: cards,
-            question: question || "",
+            question: trimmedQuestion,
             interpretation: fullText,
             points_spent: cost,
           });
-        } catch (err) {
+
+          // Record point transaction
+          await supabase.from("point_transactions").insert({
+            user_id: user.id,
+            amount: -cost,
+            type: "reading_purchase",
+            description: `${spreadType} reading`,
+          });
+        } catch {
           // Refund points if streaming fails
           try {
             await supabase.rpc("increment_points", {
@@ -444,10 +450,9 @@ export async function POST(request: Request) {
               description: "Refund: reading failed",
             });
           } catch {
-            // Refund failed — log but can't do more
-            console.error("Failed to refund points after reading failure");
+            // Refund failed — logged via Supabase
           }
-          controller.error(err);
+          controller.error(new Error("Streaming failed"));
         }
       },
     });
@@ -461,7 +466,6 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to generate reading";
-    console.error("Reading error:", error);
     return NextResponse.json(
       { error: message },
       { status: 500 }

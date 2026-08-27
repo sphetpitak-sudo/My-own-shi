@@ -23,9 +23,9 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const supabase = createClient();
 
   const loadSettings = useCallback(async () => {
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -46,7 +46,7 @@ export default function AdminSettings() {
       maintenance_mode: (map.maintenance_mode as { enabled: boolean }) || { enabled: false },
     });
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     loadSettings();
@@ -56,6 +56,7 @@ export default function AdminSettings() {
     if (!settings) return;
     setSaving(true);
 
+    const supabase = createClient();
     const updates = [
       { key: "reading_costs", value: settings.reading_costs },
       { key: "daily_bonus", value: settings.daily_bonus },
@@ -78,18 +79,18 @@ export default function AdminSettings() {
     <div className="tab-content">
       <div className="page-header mb-6">
         <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="page-sub">Configure platform settings</p>
+          <h1 className="page-title">ตั้งค่า</h1>
+          <p className="page-sub">ตั้งค่าแพลตฟอร์ม</p>
         </div>
         <button onClick={handleSave} disabled={saving} className="btn btn-primary">
           <Save size={15} />
-          {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
+          {saving ? "กำลังบันทึก..." : saved ? "บันทึกแล้ว!" : "บันทึก"}
         </button>
       </div>
 
       <div className="space-y-6">
         <div className="card p-5">
-          <h2 className="sec-title mb-4">Reading Costs</h2>
+          <h2 className="sec-title mb-4">ค่าทำนาย</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {(["single", "three_card", "celtic"] as const).map((spread) => (
               <div key={spread} className="field">
@@ -110,10 +111,10 @@ export default function AdminSettings() {
         </div>
 
         <div className="card p-5">
-          <h2 className="sec-title mb-4">Bonuses</h2>
+          <h2 className="sec-title mb-4">โบนัส</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="field">
-              <label className="label">Daily Bonus Amount</label>
+              <label className="label">โบนัสรายวัน</label>
               <input
                 type="number"
                 min={0}
@@ -126,7 +127,7 @@ export default function AdminSettings() {
               />
             </div>
             <div className="field">
-              <label className="label">Referral Bonus Amount</label>
+              <label className="label">โบนัสแนะนำเพื่อน</label>
               <input
                 type="number"
                 min={0}
@@ -148,9 +149,9 @@ export default function AdminSettings() {
                 <AlertTriangle size={18} style={{ color: settings.maintenance_mode.enabled ? "var(--red)" : "var(--green)" }} />
               </div>
               <div>
-                <div className="text-[14px] font-semibold">Maintenance Mode</div>
+                <div className="text-[14px] font-semibold">โหมดปิดปรับปรุง</div>
                 <div className="text-[12px] text-muted">
-                  {settings.maintenance_mode.enabled ? "Site is in maintenance mode" : "Site is live"}
+                  {settings.maintenance_mode.enabled ? "เว็บไซต์อยู่ในโหมดปิดปรับปรุง" : "เว็บไซต์ทำงานปกติ"}
                 </div>
               </div>
             </div>

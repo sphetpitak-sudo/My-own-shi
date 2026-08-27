@@ -70,6 +70,9 @@ export default function CardDraw({ spread, onComplete }: Props) {
             <div
               key={i}
               className="flex flex-col items-center gap-3"
+              role="button"
+              aria-label={isFlipped ? `${dc.card.nameTh}${dc.reversed ? ' กลับหัว' : ''}` : `ไพ่ใบที่ ${i + 1} - ${dc.position.labelTh}`}
+              tabIndex={0}
               style={{
                 animationDelay: `${i * 0.08}s`,
                 animation: "fadeUp 0.5s var(--ease) both",
@@ -81,6 +84,7 @@ export default function CardDraw({ spread, onComplete }: Props) {
                 flipped={isFlipped}
                 size={spread.cardCount === 10 ? "sm" : spread.cardCount === 1 ? "lg" : "md"}
                 onClick={() => handleFlip(i)}
+                aria-label={isFlipped ? `${dc.card.nameTh}${dc.reversed ? ' กลับหัว' : ''}` : `ไพ่ใบที่ ${i + 1} - ${dc.position.labelTh}`}
               />
               <span
                 className={cn(
@@ -109,6 +113,7 @@ export default function CardDraw({ spread, onComplete }: Props) {
             <button
               onClick={() => onComplete(drawnCards)}
               className="btn px-8 py-3.5 text-[15px] font-bold"
+              autoFocus
               style={{
                 background: "linear-gradient(135deg, #d4af37, #b8942a)",
                 color: "#1a0a2e",

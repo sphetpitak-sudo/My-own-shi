@@ -159,8 +159,9 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
 
         {/* Display Name */}
         <div className="field mb-5">
-          <label className="label">ชื่อที่แสดง</label>
+          <label className="label" htmlFor="display-name">ชื่อที่แสดง</label>
           <input
+            id="display-name"
             type="text"
             className="input"
             value={displayName}
@@ -199,31 +200,35 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
         <div className="sec-title text-[14px] mb-4">เปลี่ยนรหัสผ่าน</div>
 
         <div className="field mb-3">
-          <label className="label">รหัสผ่านใหม่</label>
+          <label className="label" htmlFor="new-password">รหัสผ่านใหม่</label>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
             <input
+              id="new-password"
               type="password"
               className="input"
               style={{ paddingLeft: "38px" }}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="ใส่รหัสผ่านใหม่"
+              minLength={6}
             />
           </div>
         </div>
 
         <div className="field mb-5">
-          <label className="label">ยืนยันรหัสผ่านใหม่</label>
+          <label className="label" htmlFor="confirm-new-password">ยืนยันรหัสผ่านใหม่</label>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
             <input
+              id="confirm-new-password"
               type="password"
               className="input"
               style={{ paddingLeft: "38px" }}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="ใส่รหัสผ่านใหม่อีกครั้ง"
+              minLength={6}
             />
           </div>
         </div>
@@ -242,7 +247,7 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
       <button
         onClick={handleSignOut}
         className="btn btn-ghost w-full"
-        style={{ color: "var(--red)", borderColor: "var(--red-soft)" }}
+        style={{ color: "var(--red)", borderColor: "rgba(194, 65, 48, 0.2)" }}
       >
         <LogOut size={15} />
         ออกจากระบบ

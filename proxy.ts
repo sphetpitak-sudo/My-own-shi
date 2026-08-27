@@ -27,21 +27,68 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
+  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
+  const isApi = request.nextUrl.pathname.startsWith("/api");
+  const isRoot = request.nextUrl.pathname === "/";
+
   // Auth redirects
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+  if (!user && isDashboard) {
     return NextResponse.redirect(new URL("/", request.url));
   }
-  if (!user && request.nextUrl.pathname.startsWith("/admin")) {
+  if (!user && isAdmin) {
     return NextResponse.redirect(new URL("/", request.url));
   }
-  if (user && request.nextUrl.pathname === "/") {
+  if (user && isRoot) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Server-side admin check
+  if (user && isAdmin) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.is_admin) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
+  // Maintenance mode: block non-admin, non-auth pages
+  if (!isAdmin && !isApi) {
+    const { data: maintenanceRow } = await supabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "maintenance_mode")
+      .single();
+
+    const maintenance = maintenanceRow?.value as { enabled?: boolean } | undefined;
+    if (maintenance?.enabled && !isRoot) {
+      // Allow landing page during maintenance, block everything else
+      // Admin users can still access admin panel
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", user.id)
+          .single();
+
+        if (!profile?.is_admin) {
+          return NextResponse.redirect(new URL("/", request.url));
+        }
+      } else {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    }
   }
 
   // Security headers
   supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
   supabaseResponse.headers.set("X-Frame-Options", "DENY");
   supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  supabaseResponse.headers.set("X-XSS-Protection", "1; mode=block");
 
   return supabaseResponse;
 }

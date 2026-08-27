@@ -38,11 +38,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="toast-wrap fixed top-4 left-4 right-4 md:left-auto md:right-4 z-[100] flex flex-col gap-2 pointer-events-none" aria-live="polite" role="status">
+      <div className="toast-wrap fixed top-4 left-4 right-4 md:left-auto md:right-4 z-[100] flex flex-col gap-2" aria-live="polite" role="status">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`toast ${t.leaving ? "out" : ""}`}
+            className={`toast pointer-events-auto ${t.leaving ? "out" : ""}`}
             onMouseEnter={() => {
               const timer = timers.current.get(t.id);
               if (timer) { clearTimeout(timer); timers.current.delete(t.id); }

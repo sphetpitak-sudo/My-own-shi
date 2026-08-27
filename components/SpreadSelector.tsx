@@ -45,6 +45,7 @@ export default function SpreadSelector({
             key={key}
             disabled={disabled}
             onClick={() => onSelect(key)}
+            aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ ${spread.cost} แต้ม${disabled ? ' (คะแนนไม่พอ)' : ''}`}
             className={cn(
               "relative flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all duration-300",
               "text-left",
@@ -106,6 +107,13 @@ export default function SpreadSelector({
             <p className="text-[11px] text-[var(--text-muted)] text-center leading-relaxed">
               {spread.descriptionTh}
             </p>
+
+            {/* Disabled reason */}
+            {disabled && (
+              <p className="text-[10px] font-semibold text-center" style={{ color: "var(--red)" }}>
+                คะแนนไม่พอ
+              </p>
+            )}
 
             {/* Active indicator */}
             {active && (

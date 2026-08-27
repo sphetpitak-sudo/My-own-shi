@@ -129,7 +129,7 @@ export default function LandingHero() {
         {/* Scroll hint */}
         <div className="mt-12 animate-in" style={{ animationDelay: "0.5s" }}>
           <div className="flex flex-col items-center gap-2" style={{ color: "rgba(255,255,255,0.2)" }}>
-            <span className="text-[11px] font-medium tracking-wide uppercase">Discover</span>
+            <span className="text-[11px] font-medium tracking-wide uppercase">{t.start_reading}</span>
             <ChevronRight size={16} style={{ transform: "rotate(90deg)" }} />
           </div>
         </div>

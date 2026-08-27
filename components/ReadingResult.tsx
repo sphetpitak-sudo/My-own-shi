@@ -38,15 +38,25 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
       const res = await fetch("/api/reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cards, question, spreadType }),
+        body: JSON.stringify({
+          cards: cards.map((c) => ({
+            cardId: c.card.id,
+            positionLabel: c.position.labelTh || c.position.label,
+            reversed: c.reversed,
+          })),
+          question,
+          spreadType,
+        }),
       });
 
       if (!res.ok) {
         const data = await res.json();
         if (data.error === "Not enough points") {
           setError(`คะแนนไม่พอ (ต้องการ ${data.needed} มี ${data.current})`);
+        } else if (data.error === "Unauthorized") {
+          setError("กรุณาเข้าสู่ระบบใหม่");
         } else {
-          setError(data.error || "เกิดข้อผิดพลาด");
+          setError("ไม่สามารถทำนายได้ กรุณาลองใหม่");
         }
         setLoading(false);
         return;
@@ -112,12 +122,17 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
   return (
     <div>
       <button
-        onClick={onDone}
+        onClick={() => {
+          if (!loading || done) onDone();
+        }}
+        disabled={loading && !done}
         className="flex items-center gap-2 mb-6 transition-colors group"
-        style={{ color: "var(--text-muted)" }}
+        style={{ color: loading && !done ? "var(--text-muted)" : "var(--text-muted)" }}
       >
         <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
-        <span className="text-[13px] font-medium">กลับ</span>
+        <span className="text-[13px] font-medium">
+          {loading && !done ? "กำลังทำนาย..." : "กลับ"}
+        </span>
       </button>
 
       {/* Reading header */}
@@ -230,6 +245,9 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
             <div
               ref={textRef}
               className="reading-text max-h-[500px] overflow-y-auto text-[15px]"
+              role="region"
+              aria-live="polite"
+              aria-label="คำทำนายจาก AI"
               style={{
                 color: "var(--text)",
                 lineHeight: 1.85,

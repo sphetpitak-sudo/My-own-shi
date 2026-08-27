@@ -14,7 +14,7 @@ import { useBeforeUnload } from "@/lib/useBeforeUnload";
 import { cn } from "@/lib/cn";
 
 const STEPS = [
-  { key: "spread", label: "เลือกSpread" },
+  { key: "spread", label: "เลือก Spread" },
   { key: "question", label: "ถามคำถาม" },
   { key: "draw", label: "จั่วไพ่" },
   { key: "result", label: "คำทำนาย" },
@@ -24,7 +24,6 @@ type StepKey = typeof STEPS[number]["key"];
 
 export default function ReadingPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [points, setPoints] = useState(0);
@@ -36,6 +35,7 @@ export default function ReadingPage() {
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
 
   useEffect(() => {
+    const supabase = createClient();
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -52,7 +52,7 @@ export default function ReadingPage() {
       setLoading(false);
     };
     init();
-  }, [supabase, router]);
+  }, [router]);
 
   useBeforeUnload(
     step === "draw" || step === "result",
@@ -100,6 +100,7 @@ export default function ReadingPage() {
     setQuestion("");
     setStep("spread");
     if (userId) {
+      const supabase = createClient();
       supabase.from("profiles").select("points").eq("id", userId).single().then(({ data }: { data: { points: number } | null }) => {
         if (data) setPoints(data.points);
       });
@@ -173,7 +174,7 @@ export default function ReadingPage() {
                 className="btn btn-ghost mt-4 text-[13px]"
               >
                 <ArrowLeft size={14} />
-                เลือกSpreadใหม่
+                เลือก Spread ใหม่
               </button>
             </div>
           )}

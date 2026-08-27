@@ -26,6 +26,7 @@ export default function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
+            aria-label={item.label}
             className={cn("bottom-nav-item", isActive && "active")}
           >
             <item.icon size={20} />

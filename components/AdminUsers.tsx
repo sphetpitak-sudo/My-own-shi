@@ -16,9 +16,9 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserWithReadings | null>(null);
-  const supabase = createClient();
 
   const loadUsers = useCallback(async () => {
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -40,7 +40,7 @@ export default function AdminUsers() {
 
     setUsers(enriched);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     loadUsers();
@@ -59,8 +59,8 @@ export default function AdminUsers() {
     <div className="tab-content">
       <div className="page-header mb-6">
         <div>
-          <h1 className="page-title">Users</h1>
-          <p className="page-sub">{users.length} registered users</p>
+          <h1 className="page-title">ผู้ใช้</h1>
+          <p className="page-sub">{users.length} ผู้ใช้ทั้งหมด</p>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export default function AdminUsers() {
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
         <input
           type="text"
-          placeholder="Search by name..."
+          placeholder="ค้นหาชื่อ..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input"
@@ -80,7 +80,7 @@ export default function AdminUsers() {
         {filtered.length === 0 ? (
           <div className="empty">
             <div className="empty-icon"><UserPlus size={22} /></div>
-            <div className="empty-title">No users found</div>
+            <div className="empty-title">ไม่พบผู้ใช้</div>
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>
@@ -97,12 +97,12 @@ export default function AdminUsers() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold truncate">{u.display_name || "Unnamed"}</span>
-                    {u.is_admin && <span className="badge badge-amber">Admin</span>}
+                    <span className="text-[13px] font-semibold truncate">{u.display_name || "ไม่ระบุชื่อ"}</span>
+                    {u.is_admin && <span className="badge badge-amber">แอดมิน</span>}
                   </div>
                   <div className="flex items-center gap-3 text-[12px] text-muted mt-0.5">
-                    <span>{u.points} pts</span>
-                    <span className="flex items-center gap-1"><BookOpen size={10} />{u.reading_count} readings</span>
+                    <span>{u.points} แต้ม</span>
+                    <span className="flex items-center gap-1"><BookOpen size={10} />{u.reading_count} ครั้ง</span>
                     <span className="flex items-center gap-1"><Calendar size={10} />{new Date(u.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>

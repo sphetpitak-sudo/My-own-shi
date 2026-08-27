@@ -18,13 +18,14 @@ export default function PointsBalance({ points, className = "" }: PointsBalanceP
     fromRef.current = display;
     startRef.current = null;
     const duration = 600;
+    const targetPoints = points;
 
     const animate = (timestamp: number) => {
       if (!startRef.current) startRef.current = timestamp;
       const elapsed = timestamp - startRef.current;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(fromRef.current + (points - fromRef.current) * eased));
+      setDisplay(Math.round(fromRef.current + (targetPoints - fromRef.current) * eased));
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(animate);
       }
@@ -32,6 +33,7 @@ export default function PointsBalance({ points, className = "" }: PointsBalanceP
 
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points]);
 
   return (
@@ -60,7 +62,7 @@ export default function PointsBalance({ points, className = "" }: PointsBalanceP
           {display.toLocaleString()}
         </div>
         <div className="text-xs font-semibold mt-1" style={{ color: "var(--text-muted)", letterSpacing: "0.05em" }}>
-          Points
+          แต้ม
         </div>
       </div>
     </div>

@@ -16,9 +16,9 @@ export default function AdminReadings() {
   const [spreadFilter, setSpreadFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   const loadReadings = useCallback(async () => {
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -33,7 +33,7 @@ export default function AdminReadings() {
 
     setReadings((data as ReadingWithUser[]) || []);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     loadReadings();
@@ -54,8 +54,8 @@ export default function AdminReadings() {
     <div className="tab-content">
       <div className="page-header mb-6">
         <div>
-          <h1 className="page-title">Readings</h1>
-          <p className="page-sub">{readings.length} total readings</p>
+          <h1 className="page-title">ประวัติการทำนาย</h1>
+          <p className="page-sub">{readings.length} การทำนายทั้งหมด</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function AdminReadings() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
           <input
             type="text"
-            placeholder="Search by question..."
+            placeholder="ค้นหาคำถาม..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input"
@@ -79,10 +79,10 @@ export default function AdminReadings() {
             className="select"
             style={{ paddingLeft: "38px", minWidth: "160px" }}
           >
-            <option value="all">All Spreads</option>
-            <option value="single">Single Card</option>
-            <option value="three_card">Three Card</option>
-            <option value="celtic">Celtic Cross</option>
+            <option value="all">ทุก Spread</option>
+            <option value="single">ไพ่ใบเดียว</option>
+            <option value="three_card">ไพ่สามใบ</option>
+            <option value="celtic">กางเขนเซลติก</option>
           </select>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function AdminReadings() {
         {filtered.length === 0 ? (
           <div className="empty">
             <div className="empty-icon"><BookOpen size={22} /></div>
-            <div className="empty-title">No readings found</div>
+            <div className="empty-title">ไม่พบการทำนาย</div>
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border)" }}>
@@ -105,8 +105,8 @@ export default function AdminReadings() {
                     <BookOpen size={16} style={{ color: "var(--blue)" }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold truncate">{r.profiles?.display_name || "Unknown"}</div>
-                    <div className="text-[12px] text-muted truncate">{r.question || "No question"}</div>
+                    <div className="text-[13px] font-semibold truncate">{r.profiles?.display_name || "ไม่ทราบ"}</div>
+                    <div className="text-[12px] text-muted truncate">{r.question || "ไม่มีคำถาม"}</div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="badge badge-blue">{r.spread_type}</span>
@@ -116,19 +116,19 @@ export default function AdminReadings() {
                 </button>
 
                 {expandedId === r.id && (
-                  <div className="px-5 pb-4 pt-1 animate-in">
+                    <div className="px-5 pb-4 pt-1 animate-in">
                     <div className="p-4 rounded-xl text-[13px]" style={{ background: "var(--bg)" }}>
                       <div className="mb-3">
-                        <span className="text-[11px] font-semibold text-muted">QUESTION</span>
-                        <p className="mt-1">{r.question || "No question provided"}</p>
+                        <span className="text-[11px] font-semibold text-muted">คำถาม</span>
+                        <p className="mt-1">{r.question || "ไม่มีคำถาม"}</p>
                       </div>
                       <div className="mb-3">
-                        <span className="text-[11px] font-semibold text-muted">INTERPRETATION</span>
-                        <p className="mt-1 whitespace-pre-wrap">{r.interpretation || "No interpretation"}</p>
+                        <span className="text-[11px] font-semibold text-muted">คำทำนาย</span>
+                        <p className="mt-1 whitespace-pre-wrap">{r.interpretation || "ไม่มีคำทำนาย"}</p>
                       </div>
                       {r.cards && Array.isArray(r.cards) && (
                         <div>
-                          <span className="text-[11px] font-semibold text-muted">CARDS</span>
+                          <span className="text-[11px] font-semibold text-muted">ไพ่</span>
                           <div className="flex flex-wrap gap-2 mt-1">
                             {(r.cards as Array<{ card?: { name?: string }; position?: { label?: string } | string; reversed?: boolean }>).map((c, i) => (
                               <span key={i} className="badge badge-neutral">

@@ -21,18 +21,27 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }: { data: { user: { id: string } | null } }) => {
-      if (data.user) {
-        supabase
-          .from("profiles")
-          .select("display_name, avatar_url, points, is_admin")
-          .eq("id", data.user.id)
-          .single()
-          .then(({ data: p }: { data: { display_name: string; avatar_url: string; points: number; is_admin: boolean } | null }) => {
-            if (p) setProfile(p);
-          });
-      }
-    });
+
+    const loadProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url, points, is_admin")
+        .eq("id", user.id)
+        .single();
+
+      if (p) setProfile(p);
+    };
+
+    loadProfile();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") loadProfile();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   return (
