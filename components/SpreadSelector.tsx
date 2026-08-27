@@ -6,6 +6,7 @@ interface Props {
   onSelect: (spreadId: SpreadType) => void;
   selectedSpread: SpreadType | null;
   userPoints: number;
+  costs?: Record<string, number>;
 }
 
 const SPREAD_META: Record<SpreadType, { dots: number[][] }> = {
@@ -31,12 +32,14 @@ export default function SpreadSelector({
   onSelect,
   selectedSpread,
   userPoints,
+  costs = {},
 }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {(Object.keys(SPREADS) as SpreadType[]).map((key) => {
         const spread = SPREADS[key];
-        const disabled = userPoints < spread.cost;
+        const cost = costs[key] ?? spread.cost;
+        const disabled = userPoints < cost;
         const active = selectedSpread === key;
         const dots = SPREAD_META[key].dots;
 
@@ -45,7 +48,7 @@ export default function SpreadSelector({
             key={key}
             disabled={disabled}
             onClick={() => onSelect(key)}
-            aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ ${spread.cost} แต้ม${disabled ? ' (คะแนนไม่พอ)' : ''}`}
+            aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ ${cost} แต้ม${disabled ? ' (คะแนนไม่พอ)' : ''}`}
             className={cn(
               "relative flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all duration-300",
               "text-left",
@@ -99,7 +102,7 @@ export default function SpreadSelector({
               <span>{spread.cardCount} ใบ</span>
               <span className="w-1 h-1 rounded-full bg-[var(--text-muted)]" />
               <span className="font-semibold" style={{ color: "var(--gold)" }}>
-                {spread.cost} แต้ม
+                {cost} แต้ม
               </span>
             </div>
 

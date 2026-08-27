@@ -13,6 +13,26 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
   const [claimed, setClaimed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flyCoins, setFlyCoins] = useState<number[]>([]);
+  const [bonusAmount, setBonusAmount] = useState(10);
+
+  useEffect(() => {
+    async function fetchBonusAmount() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("admin_settings")
+          .select("value")
+          .eq("key", "daily_bonus")
+          .single();
+        if (data?.value && typeof data.value === "object" && "amount" in data.value) {
+          setBonusAmount((data.value as { amount: number }).amount || 10);
+        }
+      } catch {
+        // fallback to 10
+      }
+    }
+    fetchBonusAmount();
+  }, []);
 
   // Check server-side if already claimed today
   useEffect(() => {
@@ -107,7 +127,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
                 color: "#4a3800",
               }}
             >
-              +10
+              +{bonusAmount}
             </span>
           </>
         )}

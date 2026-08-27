@@ -28,6 +28,7 @@ export default function ReadingPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [costs, setCosts] = useState<Record<string, number>>({});
 
   const [step, setStep] = useState<StepKey>("spread");
   const [spreadType, setSpreadType] = useState<SpreadType>("single");
@@ -49,6 +50,16 @@ export default function ReadingPage() {
         .eq("id", user.id)
         .single();
       if (profile) setPoints(profile.points);
+
+      const { data: costRow } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "reading_costs")
+        .single();
+      if (costRow?.value && typeof costRow.value === "object") {
+        setCosts(costRow.value as Record<string, number>);
+      }
+
       setLoading(false);
     };
     init();
@@ -150,6 +161,7 @@ export default function ReadingPage() {
               onSelect={handleSpreadSelect}
               selectedSpread={null}
               userPoints={points}
+              costs={costs}
             />
           )}
 
@@ -162,7 +174,7 @@ export default function ReadingPage() {
                 {spread.nameTh}
               </h2>
               <p className="text-[13px] mb-6" style={{ color: "var(--text-muted)" }}>
-                {spread.descriptionTh} — {spread.cardCount} ใบ ใช้ {spread.cost} แต้ม
+                {spread.descriptionTh} — {spread.cardCount} ใบ ใช้ {costs[spreadType] ?? spread.cost} แต้ม
               </p>
               <QuestionInput
                 value={question}

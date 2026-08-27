@@ -99,7 +99,7 @@ ON CONFLICT (key) DO NOTHING;
 
 DO $$ BEGIN
   CREATE POLICY "Admin settings select" ON admin_settings
-    FOR SELECT USING (auth.uid() IN (SELECT id FROM profiles WHERE is_admin));
+    FOR SELECT USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN

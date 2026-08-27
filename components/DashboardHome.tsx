@@ -9,6 +9,7 @@ import { SPREADS, type SpreadType } from "@/lib/cards";
 export default function DashboardHome() {
   const [userId, setUserId] = useState<string | null>(null);
   const [points, setPoints] = useState(0);
+  const [costs, setCosts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const supabase = createClient();
@@ -25,6 +26,18 @@ export default function DashboardHome() {
           });
       }
     });
+
+    supabase
+      .from("admin_settings")
+      .select("key, value")
+      .in("key", ["reading_costs", "daily_bonus"])
+      .then(({ data }: { data: { key: string; value: Record<string, number> }[] | null }) => {
+        if (!data) return;
+        const costRow = data.find((r: { key: string; value: Record<string, number> }) => r.key === "reading_costs");
+        if (costRow?.value && typeof costRow.value === "object") {
+          setCosts(costRow.value as Record<string, number>);
+        }
+      });
   }, []);
 
   const handleDailyBonus = (amount: number) => {
@@ -87,7 +100,7 @@ export default function DashboardHome() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="feature-title">{spread.nameTh}</div>
-                <div className="feature-desc">{spread.cardCount} ใบ · {spread.cost} แต้ม</div>
+                <div className="feature-desc">{spread.cardCount} ใบ · {costs[key] ?? spread.cost} แต้ม</div>
               </div>
             </div>
           ))}
