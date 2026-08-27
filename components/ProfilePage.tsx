@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Calendar, BookOpen, Coins, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { User, Calendar, BookOpen, Coins, ArrowUpRight, ArrowDownLeft, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import PointsBalance from "./PointsBalance";
 import DailyBonus from "./DailyBonus";
@@ -102,7 +102,7 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
               <User size={28} />
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="text-[17px] font-bold truncate" style={{ color: "var(--text)" }}>
               {profile?.display_name || "ผู้ใช้"}
             </div>
@@ -119,6 +119,13 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
               </span>
             </div>
           </div>
+          <a
+            href="/dashboard/settings"
+            className="btn btn-ghost text-[13px] flex-shrink-0"
+          >
+            <Settings size={14} />
+            ตั้งค่า
+          </a>
         </div>
       </div>
 

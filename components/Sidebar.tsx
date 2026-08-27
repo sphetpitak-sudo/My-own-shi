@@ -10,6 +10,7 @@ import {
   Shield,
   LogOut,
   X,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/dashboard/reading", label: "ทำนายใหม่", icon: Sparkles },
   { href: "/dashboard/history", label: "ประวัติ", icon: Clock },
   { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
+  { href: "/dashboard/settings", label: "ตั้งค่า", icon: Settings },
 ];
 
 export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
