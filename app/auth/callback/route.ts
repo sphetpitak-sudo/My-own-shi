@@ -7,33 +7,36 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get("next") ?? "/dashboard";
 
   if (code) {
-    let supabaseResponse = NextResponse.next({ request });
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value)
-            );
-            supabaseResponse = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              supabaseResponse.cookies.set(name, value, options)
-            );
-          },
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase env vars in callback");
+      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+    }
+
+    const cookies = request.cookies;
+    const response = NextResponse.redirect(`${origin}${next}`);
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        getAll() {
+          return cookies.getAll();
         },
-      }
-    );
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    });
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return supabaseResponse;
+      return response;
     }
+
+    console.error("exchangeCodeForSession error:", error.message);
   }
 
   return NextResponse.redirect(`${origin}/auth/auth-code-error`);
