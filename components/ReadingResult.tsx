@@ -140,7 +140,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
                 size={spreadType === "celtic" ? "sm" : "md"}
               />
               <span className="text-[10px] text-center max-w-[80px]" style={{ color: "var(--text-muted)" }}>
-                {c.position.labelTh}
+                {c.card.nameTh}
               </span>
             </div>
           ))}
