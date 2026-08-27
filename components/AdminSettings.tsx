@@ -23,6 +23,7 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   const loadSettings = useCallback(async () => {
     const supabase = createClient();
@@ -55,6 +56,7 @@ export default function AdminSettings() {
   async function handleSave() {
     if (!settings) return;
     setSaving(true);
+    setError("");
 
     const supabase = createClient();
     const updates = [
@@ -64,13 +66,34 @@ export default function AdminSettings() {
       { key: "maintenance_mode", value: settings.maintenance_mode },
     ];
 
+    let hasError = false;
     for (const u of updates) {
-      await supabase.from("admin_settings").upsert({ key: u.key, value: u.value, updated_at: new Date().toISOString() });
+      // Try update first, insert if no rows affected
+      const { error: updateErr } = await supabase
+        .from("admin_settings")
+        .update({ value: u.value, updated_at: new Date().toISOString() })
+        .eq("key", u.key);
+
+      if (updateErr) {
+        // Fallback to upsert if update fails
+        const { error: upsertErr } = await supabase
+          .from("admin_settings")
+          .upsert({ key: u.key, value: u.value, updated_at: new Date().toISOString() });
+
+        if (upsertErr) {
+          hasError = true;
+          break;
+        }
+      }
     }
 
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (hasError) {
+      setError("ไม่สามารถบันทึกได้ กรุณาลองใหม่");
+    } else {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
   }
 
   if (loading || !settings) return <LoadingSkeleton variant="stats" />;
@@ -87,6 +110,13 @@ export default function AdminSettings() {
           {saving ? "กำลังบันทึก..." : saved ? "บันทึกแล้ว!" : "บันทึก"}
         </button>
       </div>
+
+      {error && (
+        <div className="mb-5 p-3.5 rounded-xl text-[13px] font-medium"
+          style={{ background: "var(--red-soft)", color: "var(--red)", border: "1px solid rgba(194, 65, 48, 0.1)" }}>
+          {error}
+        </div>
+      )}
 
       <div className="space-y-6">
         <div className="card p-5">

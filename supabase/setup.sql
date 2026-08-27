@@ -107,6 +107,11 @@ DO $$ BEGIN
     FOR UPDATE USING (auth.uid() IN (SELECT id FROM profiles WHERE is_admin));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+DO $$ BEGIN
+  CREATE POLICY "Admin settings insert" ON admin_settings
+    FOR INSERT WITH CHECK (auth.uid() IN (SELECT id FROM profiles WHERE is_admin));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ============================================
 -- 5. TRIGGER: auto-create profile on signup
 -- ============================================
