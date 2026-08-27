@@ -4,14 +4,14 @@ import { ThemeProvider } from "@/lib/theme";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://catarot.love"),
-  title: "Catarot — เปิดไพ่ชะตา",
+  title: "Sealo — เปิดไพ่ชะตา",
   description: "ค้นพบอนาคตของคุณด้วยไพ่ทาโรต์",
   manifest: "/manifest.json",
   openGraph: {
-    title: "Catarot — เปิดไพ่ชะตา",
+    title: "Sealo — เปิดไพ่ชะตา",
     description: "ค้นพบอนาคตของคุณด้วยไพ่ทาโรต์",
     url: "https://catarot.love",
-    siteName: "Catarot",
+    siteName: "Sealo",
     locale: "th_TH",
     type: "website",
     images: [
@@ -19,13 +19,13 @@ export const metadata: Metadata = {
         url: "/LOGO.png",
         width: 1254,
         height: 1254,
-        alt: "Catarot Logo",
+        alt: "Sealo Logo",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Catarot — เปิดไพ่ชะตา",
+    title: "Sealo — เปิดไพ่ชะตา",
     description: "ค้นพบอนาคตของคุณด้วยไพ่ทาโรต์",
     images: ["/LOGO.png"],
   },
@@ -56,7 +56,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <noscript>
           <div style={{ padding: "2rem", textAlign: "center", fontFamily: "sans-serif" }}>
-            <p>Catarot ต้องการ JavaScript</p>
+            <p>Sealo ต้องการ JavaScript</p>
             <p>กรุณาเปิดใช้งาน JavaScript</p>
           </div>
         </noscript>

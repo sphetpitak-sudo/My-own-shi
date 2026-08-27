@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Sparkles, Clock } from "lucide-react";
+import { LayoutDashboard, Calendar, Sparkles, User, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const items = [
   { href: "/dashboard", label: "หน้าหลัก", icon: LayoutDashboard },
-  { href: "/dashboard/reading", label: "ทำนาย", icon: Sparkles },
-  { href: "/dashboard/history", label: "ประวัติ", icon: Clock },
+  { href: "/dashboard/reading", label: "ไพ่", icon: Sparkles },
+  { href: "/dashboard/history", label: "ประวัติ", icon: Calendar },
+  { href: "/dashboard/stats", label: "สถิติ", icon: BarChart3 },
+  { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
 ];
 
 export default function BottomNav() {

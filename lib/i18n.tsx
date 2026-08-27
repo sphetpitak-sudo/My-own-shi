@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 
 const translations = {
   en: {
-    app_name: "Catarot",
+    app_name: "Sealo",
     manage_homework: "Discover your destiny with tarot cards",
     login: "Log In",
     signup: "Sign Up",
@@ -29,8 +29,8 @@ const translations = {
     strong: "Strong",
     show_password: "Show password",
     hide_password: "Hide password",
-    // Catarot
-    catarot: "Catarot",
+    // Sealo
+    catarot: "Sealo",
     catarot_subtitle: "Discover your destiny with tarot cards",
     start_reading: "Start Reading",
     ai_reading: "AI Reading",
@@ -41,7 +41,7 @@ const translations = {
     daily_bonus_desc: "Log in every day to claim free points",
   },
   th: {
-    app_name: "Catarot",
+    app_name: "Sealo",
     manage_homework: "ค้นพบชะตาของคุณด้วยไพ่ทาโรต์",
     login: "เข้าสู่ระบบ",
     signup: "สมัครสมาชิก",
@@ -66,8 +66,8 @@ const translations = {
     strong: "แข็งแรง",
     show_password: "แสดงรหัสผ่าน",
     hide_password: "ซ่อนรหัสผ่าน",
-    // Catarot
-    catarot: "Catarot",
+    // Sealo
+    catarot: "Sealo",
     catarot_subtitle: "ค้นพบชะตาของคุณด้วยไพ่ทาโรต์",
     start_reading: "เริ่มทำนาย",
     ai_reading: "AI ทำนาย",

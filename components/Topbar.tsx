@@ -32,11 +32,11 @@ export default function Topbar({ userName, userAvatar, points = 0, onMenuClick }
         </button>
         <img
           src="/LOGO.png"
-          alt="Catarot"
+          alt="Sealo"
           className="w-7 h-7 rounded-lg lg:hidden"
         />
         <span className="text-[15px] font-bold tracking-tight hidden sm:block">
-          Catarot
+          Sealo
         </span>
       </div>
 

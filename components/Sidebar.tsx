@@ -48,11 +48,11 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
         <div className="sidebar-brand">
           <img
             src="/LOGO.png"
-            alt="Catarot"
+            alt="Sealo"
             className="w-9 h-9 rounded-xl"
           />
           <span className="text-[15px] font-bold tracking-tight text-white">
-            Catarot
+            Sealo
           </span>
           <button
             onClick={onClose}

@@ -78,7 +78,7 @@ export default function AuthForm() {
           >
             <Sparkles size={22} className="text-white" />
           </div>
-          <h1 className="text-[26px] font-bold tracking-tight">Catarot</h1>
+          <h1 className="text-[26px] font-bold tracking-tight">Sealo</h1>
           <p className="text-[14px] mt-1.5" style={{ color: "var(--text-secondary)" }}>
             เปิดไพ่ชะตาของคุณ
           </p>
