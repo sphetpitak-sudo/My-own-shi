@@ -75,7 +75,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
         {claimed ? (
           <>
             <Check size={18} />
-            พรุ่งนี้再来
+            มารับใหม่พรุ่งนี้
           </>
         ) : loading ? (
           <span className="animate-pulse">กำลังดำเนินการ...</span>
