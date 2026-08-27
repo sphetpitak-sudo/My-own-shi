@@ -527,6 +527,12 @@ body {
 }
 .bar > div { animation: barGrow 0.8s var(--ease) both; }
 
+/* ============ COIN SHIMMER ============ */
+@keyframes coinShimmer {
+  0%, 100% { transform: translateX(-100%) rotate(25deg); }
+  50% { transform: translateX(100%) rotate(25deg); }
+}
+
 /* ============ COIN FLY ============ */
 @keyframes coinFly {
   0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }

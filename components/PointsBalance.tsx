@@ -63,13 +63,6 @@ export default function PointsBalance({ points, className = "" }: PointsBalanceP
           Points
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes coinShimmer {
-          0%, 100% { transform: translateX(-100%) rotate(25deg); }
-          50% { transform: translateX(100%) rotate(25deg); }
-        }
-      `}</style>
     </div>
   );
 }
