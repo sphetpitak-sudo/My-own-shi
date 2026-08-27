@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://catarot.love"),
   title: "Catarot — เปิดไพ่ชะตา",
   description: "ค้นพบอนาคตของคุณด้วยไพ่ทาโรต์",
   manifest: "/manifest.json",
