@@ -53,10 +53,12 @@ function ReadingPageInner() {
   const [loading, setLoading] = useState(true);
   const [costs, setCosts] = useState<Record<string, number>>({});
 
-  const initialSpread = (searchParams.get("spread") as SpreadType) || "three_card";
+  const rawInitialSpread = searchParams.get("spread") as SpreadType | null;
+  const hasInitialSpread = !!rawInitialSpread && (["single", "three_card", "celtic"] as string[]).includes(rawInitialSpread);
+  const initialSpread: SpreadType | null = hasInitialSpread ? (rawInitialSpread as SpreadType) : null;
   const [step, setStep] = useState<StepKey>("spread");
   const [spreadType, setSpreadType] = useState<SpreadType>(
-    ["single", "three_card", "celtic"].includes(initialSpread) ? initialSpread : "three_card"
+    hasInitialSpread ? (rawInitialSpread as SpreadType) : "three_card"
   );
   const [question, setQuestion] = useState("");
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
@@ -86,8 +88,11 @@ function ReadingPageInner() {
         setCosts(costRow.value as Record<string, number>);
       }
 
-      if (initialSpread && ["single", "three_card", "celtic"].includes(initialSpread)) {
+      if (hasInitialSpread && initialSpread) {
+        setSpreadType(initialSpread);
         setStep("question");
+      } else {
+        setStep("spread");
       }
 
       setLoading(false);
