@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles, BookOpen, Compass, Lightbulb, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { SPREADS, ALL_CARDS } from "@/lib/cards";
 import type { Reading } from "@/lib/types";
+import TarotCard from "./TarotCard";
+import { stripMarkdownMultiline } from "@/lib/text";
 
 interface ReadingHistoryProps {
   userId: string;
@@ -32,12 +34,56 @@ function cardDisplayName(c: unknown): string {
   return "";
 }
 
+function resolveTarotCard(c: unknown): { card: typeof ALL_CARDS[number]; reversed: boolean; label: string } | null {
+  if (!c || typeof c !== "object") return null;
+  const obj = c as Record<string, unknown>;
+  if (typeof obj.cardId === "number") {
+    const card = ALL_CARDS.find((x) => x.id === obj.cardId);
+    if (!card) return null;
+    return {
+      card,
+      reversed: !!obj.reversed,
+      label: typeof obj.positionLabel === "string" ? obj.positionLabel : "",
+    };
+  }
+  return null;
+}
+
+function parseHistorySections(text: string): { key: string; title: string; content: string }[] {
+  const stripped = stripMarkdownMultiline(text);
+  const lines = stripped.split("\n").map((l) => l.trim()).filter(Boolean);
+  const overview: string[] = [];
+  const detailed: string[] = [];
+  const advice: string[] = [];
+  let bucket: "overview" | "detailed" | "advice" = "overview";
+  for (const line of lines) {
+    if (/^(คำแนะนำ|สรุป|ข้อแนะนำ|ทิ้งท้าย|สิ่งที่ควรทำ|ก้าวต่อไป|บทสรุป)/i.test(line.replace(/^[-•\d.\s]+/, ""))) {
+      bucket = "advice";
+      continue;
+    }
+    if (/^(การอ่านไพ่|รายละเอียด|ภาพรวม|การตีความ|แต่ละใบ|ดวงของคุณ)/i.test(line.replace(/^[-•\d.\s]+/, ""))) {
+      if (overview.length === 0 && /ภาพรวม/i.test(line)) continue;
+      bucket = "detailed";
+      continue;
+    }
+    if (bucket === "overview") overview.push(line);
+    else if (bucket === "detailed") detailed.push(line);
+    else advice.push(line);
+  }
+  const out: { key: string; title: string; content: string }[] = [];
+  if (overview.join("\n").trim()) out.push({ key: "overview", title: "ภาพรวม", content: overview.join("\n") });
+  if (detailed.join("\n").trim()) out.push({ key: "detailed", title: "การอ่านไพ่", content: detailed.join("\n") });
+  if (advice.join("\n").trim()) out.push({ key: "advice", title: "คำแนะนำจากไพ่", content: advice.join("\n") });
+  return out.length ? out : [{ key: "single", title: "คำทำนาย", content: stripped }];
+}
+
 export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("all");
 
   const fetchReadings = useCallback(
     async (offset = 0, append = false) => {
@@ -92,6 +138,28 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
     });
   };
 
+function HistoryCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1800);
+        } catch {
+          // ignore
+        }
+      }}
+      className="btn btn-ghost"
+      style={{ alignSelf: "center", fontSize: 12, padding: "8px 14px" }}
+    >
+      {copied ? <Check size={13} /> : <Copy size={13} />}
+      {copied ? "คัดลอกแล้ว" : "คัดลอกคำทำนาย"}
+    </button>
+  );
+}
+
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -123,9 +191,32 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
     );
   }
 
+  const filteredReadings = filter === "all" ? readings : readings.filter((r) => r.spread_type === filter);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {readings.map((r) => {
+      {readings.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {["all", "single", "three_card", "celtic", "oracle"].map((k) => (
+            <button
+              key={k}
+              onClick={() => setFilter(k)}
+              className="chip"
+              style={{
+                flexShrink: 0,
+                padding: "6px 12px",
+                fontSize: 12,
+                background: filter === k ? "var(--primary)" : "var(--bg-card)",
+                color: filter === k ? "white" : "var(--text-secondary)",
+                borderColor: filter === k ? "var(--primary)" : "var(--border)",
+              }}
+            >
+              {k === "all" ? "ทั้งหมด" : SPREAD_LABELS[k] || k}
+            </button>
+          ))}
+        </div>
+      )}
+      {filteredReadings.map((r) => {
         const isExpanded = expandedId === r.id;
         const spread = SPREADS[r.spread_type];
         const truncatedQ = r.question.length > 60 ? r.question.slice(0, 60) + "..." : r.question;
@@ -202,56 +293,87 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
               </div>
             </button>
 
-            {isExpanded && (
-              <div style={{ padding: "0 16px 16px", borderTop: "1px solid var(--border)" }}>
-                {r.question && (
-                  <div style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--text-muted)" }}>
-                      คำถาม
+            {isExpanded && (() => {
+              const sections = r.interpretation ? parseHistorySections(r.interpretation) : [];
+              const tarotCards = (r.cards as unknown[] | null)?.map(resolveTarotCard).filter(Boolean) as { card: typeof ALL_CARDS[number]; reversed: boolean; label: string }[] | null;
+              const hasTarotVisual = tarotCards && tarotCards.length > 0;
+              return (
+                <div style={{ padding: "14px 16px 16px", borderTop: "1px solid var(--border)", background: "color-mix(in srgb, var(--bg) 55%, transparent)" }}>
+                  {r.question ? (
+                    <div className="reading-journal-question" style={{ margin: "0 0 14px", padding: "14px 16px" }}>
+                      <div className="reading-journal-question-label" style={{ justifyContent: "center" }}>
+                        <BookOpen size={11} /> คำถามของคุณ
+                      </div>
+                      <blockquote className="reading-journal-question-text" style={{ fontSize: 15, marginTop: 4 }}>
+                        “{r.question}”
+                      </blockquote>
                     </div>
-                    <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                      {r.question}
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+                      ไม่มีคำถามเฉพาะ — ดูภาพรวมทั่วไป
+                    </div>
+                  )}
 
-                {r.interpretation && (
-                  <div style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--text-muted)" }}>
-                      การทำนาย
+                  {hasTarotVisual ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginBottom: 14 }}>
+                      {tarotCards!.map((tc, i) => (
+                        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: r.cards.length > 6 ? 86 : 110 }}>
+                          <TarotCard card={tc.card} reversed={tc.reversed} flipped={true} size={r.cards.length > 6 ? "xs" as const : "sm" as const} showLabel={false} />
+                          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--primary)", textAlign: "center", lineHeight: 1.2 }}>{tc.label}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", textAlign: "center", lineHeight: 1.2 }}>{tc.card.nameTh}{tc.reversed ? " · กลับหัว" : ""}</span>
+                        </div>
+                      ))}
                     </div>
-                    <p style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text-secondary)", whiteSpace: "pre-wrap" }}>
-                      {r.interpretation}
-                    </p>
-                  </div>
-                )}
-
-                {r.cards && Array.isArray(r.cards) && r.cards.length > 0 && (
-                  <div style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: "var(--text-muted)" }}>
-                      ไพ่ที่เปิด
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  ) : r.cards && Array.isArray(r.cards) && r.cards.length > 0 ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginBottom: 14 }}>
                       {r.cards.map((c, i) => (
-                        <span
-                          key={i}
-                          className="badge badge-neutral"
-                          style={{ fontSize: 10.5 }}
-                        >
+                        <span key={i} className="badge badge-neutral" style={{ fontSize: 10.5 }}>
                           {cardDisplayName(c)}
                           {(c as { reversed?: boolean })?.reversed ? " (กลับ)" : ""}
                         </span>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  ) : null}
+
+                  {r.interpretation ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 640, margin: "0 auto" }}>
+                      {sections.map((sec) => {
+                        const Icon = sec.key === "overview" ? Compass : sec.key === "detailed" ? BookOpen : Lightbulb;
+                        return (
+                          <div key={sec.key} className={"reading-journal-section reading-journal-section--" + sec.key} style={{ padding: "14px 14px" }}>
+                            <div className="reading-journal-section-header" style={{ marginBottom: 10, paddingBottom: 10 }}>
+                              <span className="reading-journal-section-icon" style={{ width: 26, height: 26 }}><Icon size={12} /></span>
+                              <h4 className="reading-journal-section-title" style={{ fontSize: 12 }}>{sec.title}</h4>
+                              <span className="reading-journal-section-line" />
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.7em" }}>
+                              {sec.content.split(/\n+/).map((para, idx) => (
+                                <p key={idx} className="reading-journal-paragraph" style={{ fontSize: 13.5, lineHeight: 1.85 }}>{para.trim()}</p>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <HistoryCopyButton text={r.interpretation} />
+                    </div>
+                  ) : (
+                    <p style={{ textAlign: "center", fontSize: 12.5, color: "var(--text-muted)", fontStyle: "italic" }}>ไม่มีคำทำนายที่บันทึกไว้</p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         );
       })}
 
-      {hasMore && (
+      {filteredReadings.length === 0 && readings.length > 0 && (
+        <div className="empty" style={{ padding: "24px 16px" }}>
+          <div className="empty-title" style={{ fontSize: 13 }}>ไม่พบการทำนายประเภทนี้</div>
+          <button onClick={() => setFilter("all")} className="btn btn-ghost mt-3 text-[12px]">ล้างตัวกรอง</button>
+        </div>
+      )}
+
+      {hasMore && filter === "all" && (
         <div style={{ textAlign: "center", paddingTop: 8 }}>
           <button
             onClick={loadMore}
