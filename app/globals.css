@@ -2298,3 +2298,462 @@ button:focus-visible {
   font-weight: 600;
   text-align: center;
 }
+
+/* ============ READING JOURNAL (premium) ============ */
+.reading-journal {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 0 96px;
+}
+.reading-journal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 8px;
+  position: sticky;
+  top: 56px;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border-bottom: 1px solid transparent;
+}
+.reading-journal-back,
+.reading-journal-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.reading-journal-back:hover { background: var(--bg-card); border-color: var(--border); color: var(--text); }
+.reading-journal-back:disabled { opacity: 0.5; cursor: not-allowed; }
+.reading-journal-retry { color: var(--primary); border-color: var(--border); background: var(--bg-card); }
+.reading-journal-retry:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+
+.reading-journal-header {
+  text-align: center;
+  padding: 16px 16px 12px;
+}
+.reading-journal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.reading-journal-dot {
+  width: 3px; height: 3px; border-radius: 50%; background: var(--border-strong); display: inline-block;
+}
+.reading-journal-title {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text);
+}
+.reading-journal-spread-en {
+  margin-top: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.reading-journal-meta {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.reading-journal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.reading-journal-pill.muted { background: var(--bg); color: var(--text-muted); }
+
+.reading-journal-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 12px;
+  padding: 18px 14px 8px;
+}
+.reading-journal-cards--celtic {
+  gap: 10px 8px;
+}
+.reading-journal-card-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 138px;
+}
+.reading-journal-cards--celtic .reading-journal-card-cell { width: 102px; }
+@media (min-width: 720px) {
+  .reading-journal-card-cell { width: 152px; }
+  .reading-journal-cards--celtic .reading-journal-card-cell { width: 118px; }
+}
+.reading-journal-card-wrap {
+  position: relative;
+  filter: drop-shadow(0 8px 22px rgba(18,18,24,0.10)) drop-shadow(0 2px 6px rgba(18,18,24,0.08));
+  transition: transform 0.35s var(--ease), filter 0.35s var(--ease);
+}
+.reading-journal-card-wrap:hover { transform: translateY(-4px); filter: drop-shadow(0 14px 28px rgba(18,18,24,0.12)); }
+.reading-journal-card-meta {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 42px;
+  justify-content: flex-start;
+}
+.reading-journal-card-position {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.reading-journal-card-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+}
+.reading-journal-card-reversed {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: var(--gold-soft);
+  padding: 2px 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-self: center;
+  margin-top: 2px;
+}
+
+.reading-journal-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 16px 10px;
+}
+.reading-journal-summary-pill {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 6px 10px;
+  border-radius: 999px;
+  letter-spacing: -0.01em;
+}
+
+.reading-journal-question {
+  margin: 12px 16px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 18px 14px;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  box-shadow: var(--shadow-xs);
+}
+.reading-journal-question::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--primary), var(--gold-light));
+  opacity: 0.9;
+}
+.reading-journal-question-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.reading-journal-question-text {
+  font-size: 17px;
+  line-height: 1.55;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--text);
+  letter-spacing: -0.015em;
+  max-width: 560px;
+  margin: 0 auto;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.reading-journal-question-empty {
+  font-size: 14.5px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.reading-journal-question-spread {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.reading-journal-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px 4px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.reading-journal-divider-line { flex: 1; height: 1px; background: var(--border); }
+.reading-journal-divider-glyph {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  box-shadow: var(--shadow-xs);
+}
+
+.reading-journal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px 0;
+}
+.reading-journal-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 18px 18px;
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  position: relative;
+}
+.reading-journal-section::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  opacity: 0.0;
+  transition: opacity 0.2s var(--ease);
+}
+.reading-journal-section--overview { border-color: var(--border); }
+.reading-journal-section--overview::before { background: var(--primary); opacity: 0.9; }
+.reading-journal-section--detailed::before { background: var(--gold); opacity: 0.85; }
+.reading-journal-section--advice { background: linear-gradient(180deg, var(--bg-card) 0%, color-mix(in srgb, var(--primary-soft) 55%, var(--bg-card) 45%) 100%); }
+.reading-journal-section--advice::before { background: linear-gradient(to bottom, var(--gold), var(--primary)); opacity: 0.9; }
+.reading-journal-section--single::before { background: var(--primary); opacity: 0.9; }
+
+.reading-journal-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.reading-journal-section-icon {
+  width: 30px; height: 30px;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.reading-journal-section--advice .reading-journal-section-icon { background: var(--primary-soft); border-color: rgba(109,40,217,0.14); }
+.reading-journal-section--detailed .reading-journal-section-icon { background: var(--gold-soft); color: var(--gold); border-color: rgba(212,175,55,0.22); }
+.reading-journal-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.reading-journal-section-line { flex: 1; height: 1px; background: var(--border-subtle); margin-left: 4px; }
+.reading-journal-section-body {
+  max-width: 60ch;
+}
+.reading-journal-paragraph {
+  font-size: 15px;
+  line-height: 1.92;
+  letter-spacing: -0.012em;
+  color: var(--text);
+  font-weight: 400;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+.reading-journal-paragraph + .reading-journal-paragraph { margin-top: 0.9em; }
+
+.reading-journal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 12px 10px;
+  text-align: center;
+}
+.reading-journal-loading-cards {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+.reading-journal-loading-card {
+  width: 42px; height: 66px;
+  border-radius: 8px;
+  border: 1.5px solid #c9a84c;
+  background: linear-gradient(160deg, #1e0e3a, #14082a);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  animation: journalCardPulse 1.6s ease-in-out infinite;
+}
+@keyframes journalCardPulse {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.9; }
+  50% { transform: translateY(-6px) scale(1.02); opacity: 1; }
+}
+.reading-journal-loading-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.reading-journal-loading-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.reading-journal-loading-text { display: flex; flex-direction: column; gap: 2px; }
+
+.reading-journal-footer {
+  margin-top: 22px;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+.reading-journal-footer-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.reading-journal-footer-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.reading-journal-error {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.reading-journal-partial {
+  background: var(--bg);
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.reading-journal-partial-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.reading-journal-error-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px 18px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.reading-journal-error-icon {
+  width: 52px; height: 52px;
+  border-radius: 16px;
+  display: grid; place-items: center;
+  margin: 0 auto 14px;
+  background: var(--red-soft);
+  color: var(--red);
+}
+.reading-journal-error-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.reading-journal-error-message {
+  margin-top: 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--red);
+  font-weight: 500;
+}
+.reading-journal-error-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.reading-journal-error-hint {
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 430px) {
+  .reading-journal-title { font-size: 22px; }
+  .reading-journal-question-text { font-size: 15.5px; }
+  .reading-journal-card-cell { width: 118px; }
+  .reading-journal-cards--celtic .reading-journal-card-cell { width: 90px; }
+  .reading-journal-paragraph { font-size: 14.5px; line-height: 1.88; }
+  .reading-journal-top { top: 56px; }
+}
+@media (max-width: 360px) {
+  .reading-journal-card-cell { width: 106px; }
+  .reading-journal-cards--celtic .reading-journal-card-cell { width: 84px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-journal-card-cell,
+  .reading-journal-section,
+  .reading-journal-loading-card { animation: none !important; }
+  .reading-journal-card-wrap { transition: none !important; }
+}

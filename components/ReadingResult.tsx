@@ -11,8 +11,9 @@ import {
   Lightbulb,
   Sparkles,
   AlertTriangle,
+  CalendarDays,
+  Layers,
 } from "lucide-react";
-import { cn } from "@/lib/cn";
 import { stripMarkdownMultiline } from "@/lib/text";
 
 interface Props {
@@ -23,59 +24,62 @@ interface Props {
   onPointsSpent?: (cost: number) => void;
 }
 
-interface ParsedSections {
-  overview: string;
-  detailed: string;
-  advice: string;
+interface ParsedSection {
+  key: "overview" | "detailed" | "advice";
+  title: string;
+  content: string;
 }
 
-function parseSections(text: string): ParsedSections {
+function parseSections(text: string): ParsedSection[] {
   const stripped = stripMarkdownMultiline(text);
-  // Heuristic: split on common Thai markers
   const lines = stripped.split("\n").map((l) => l.trim()).filter(Boolean);
+
   const overview: string[] = [];
   const detailed: string[] = [];
   const advice: string[] = [];
   let bucket: "overview" | "detailed" | "advice" = "overview";
 
-  const switchToDetailed = (line: string) => {
-    if (
-      /^(การอ่านไพ่|รายละเอียด|รายละเอียดการอ่าน|อ่านไพ่|ภาพรวม|การตีความ|แต่ละใบ|รายใบ|ดวงของคุณ|ดวงชะตา|อธิบายไพ่)/i.test(line)
-    ) {
-      bucket = "detailed";
-      return true;
-    }
-    return false;
-  };
-  const switchToAdvice = (line: string) => {
-    if (
-      /^(คำแนะนำ|สรุป|ข้อแนะนำ|คำแนะนำทิ้งท้าย|ทิ้งท้าย|สิ่งที่ควรทำ|ก้าวต่อไป)/i.test(line)
-    ) {
-      bucket = "advice";
-      return true;
-    }
-    return false;
-  };
+  const isDetailedHeading = (line: string) =>
+    /^(การอ่านไพ่|รายละเอียด|รายละเอียดการอ่าน|อ่านไพ่|ภาพรวม|การตีความ|แต่ละใบ|รายใบ|ดวงของคุณ|ดวงชะตา|อธิบายไพ่|ความหมายของไพ่)/i.test(
+      line.replace(/^[-•\d.\s]+/, "")
+    );
+  const isAdviceHeading = (line: string) =>
+    /^(คำแนะนำ|สรุป|ข้อแนะนำ|คำแนะนำทิ้งท้าย|ทิ้งท้าย|สิ่งที่ควรทำ|ก้าวต่อไป|บทสรุป|สิ่งที่ไพ่อยากบอก)/i.test(
+      line.replace(/^[-•\d.\s]+/, "")
+    );
 
   for (const line of lines) {
-    if (switchToAdvice(line) || switchToDetailed(line)) continue;
+    if (isAdviceHeading(line)) {
+      bucket = "advice";
+      continue;
+    }
+    if (isDetailedHeading(line)) {
+      // Avoid treating the very first "ภาพรวม" as detailed if it's the opening
+      if (overview.length === 0 && /ภาพรวม/i.test(line)) {
+        continue;
+      }
+      bucket = "detailed";
+      continue;
+    }
     if (bucket === "overview") overview.push(line);
     else if (bucket === "detailed") detailed.push(line);
     else advice.push(line);
   }
-  return {
-    overview: overview.join("\n"),
-    detailed: detailed.join("\n"),
-    advice: advice.join("\n"),
-  };
+
+  const sections: ParsedSection[] = [];
+  if (overview.join("\n").trim()) {
+    sections.push({ key: "overview", title: "ภาพรวม", content: overview.join("\n") });
+  }
+  if (detailed.join("\n").trim()) {
+    sections.push({ key: "detailed", title: "การอ่านไพ่", content: detailed.join("\n") });
+  }
+  if (advice.join("\n").trim()) {
+    sections.push({ key: "advice", title: "คำแนะนำจากไพ่", content: advice.join("\n") });
+  }
+  return sections;
 }
 
-export default function ReadingResult({
-  cards,
-  spreadType,
-  question,
-  onDone,
-}: Props) {
+export default function ReadingResult({ cards, spreadType, question, onDone }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -83,6 +87,11 @@ export default function ReadingResult({
   const textRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
   const spread = SPREADS[spreadType];
+  const readingDate = new Date().toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   const startReading = async () => {
     setText("");
@@ -164,248 +173,255 @@ export default function ReadingResult({
   };
 
   useEffect(() => {
-    // Guard against duplicate mounts (e.g. React StrictMode in dev) which
-    // would otherwise trigger a second point-spending request.
     if (startedRef.current) return;
     startedRef.current = true;
     startReading();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (textRef.current) {
-      textRef.current.scrollTop = textRef.current.scrollHeight;
-    }
-  }, [text]);
-
   const sections = parseSections(text);
-  const hasSections = sections.overview || sections.detailed || sections.advice;
+  const hasSections = sections.length > 0;
 
   return (
-    <div className="reading-result">
-      {/* Top action */}
-      <div className="flex items-center justify-between px-4 pt-4 mb-2">
+    <div className="reading-journal">
+      {/* Top bar */}
+      <div className="reading-journal-top">
         <button
           onClick={() => {
             if (!loading || done) onDone();
           }}
           disabled={loading && !done}
-          className="flex items-center gap-1.5 text-[13px] font-semibold"
-          style={{ color: loading && !done ? "var(--text-muted)" : "var(--text-secondary)" }}
+          className="reading-journal-back"
+          aria-label="กลับหน้าหลัก"
         >
-          <ArrowLeft size={15} />
-          {loading && !done ? "กำลังทำนาย..." : "กลับ"}
+          <ArrowLeft size={16} />
+          <span>{loading && !done ? "กำลังทำนาย..." : "กลับ"}</span>
         </button>
-        {done && (
+        {done && !error && (
           <button
             onClick={startReading}
-            className="flex items-center gap-1.5 text-[13px] font-semibold"
-            style={{ color: "var(--text-secondary)" }}
+            className="reading-journal-retry"
             aria-label="ทำนายอีกครั้ง"
           >
-            <RefreshCw size={14} /> ทำนายอีกครั้ง
+            <RefreshCw size={14} />
+            <span>ทำนายอีกครั้ง</span>
           </button>
         )}
       </div>
 
-      {/* Question header */}
-      {question && (
-        <div className="reading-question-card">
-          <div className="reading-question-eyebrow">คำถามของคุณ</div>
-          <p className="reading-question-text">{question}</p>
-          <div className="reading-spread">{spread?.nameTh}</div>
+      {/* Header */}
+      <header className="reading-journal-header">
+        <div className="reading-journal-eyebrow">
+          <Sparkles size={12} />
+          <span>บันทึกการอ่านไพ่</span>
+          <span aria-hidden className="reading-journal-dot" />
+          <span>{readingDate}</span>
         </div>
-      )}
-
-      {!question && (
-        <div className="reading-question-card" style={{ textAlign: "center" }}>
-          <div className="reading-question-eyebrow">การทำนาย</div>
-          <p className="reading-question-text" style={{ fontStyle: "normal" }}>
-            {spread?.nameTh}
-          </p>
+        <h1 className="reading-journal-title">{spread?.nameTh ?? "การอ่านไพ่"}</h1>
+        <p className="reading-journal-spread-en">{spread?.name ?? spreadType}</p>
+        <div className="reading-journal-meta">
+          <span className="reading-journal-pill">
+            <Layers size={12} />
+            {spread?.cardCount ?? cards.length} ใบ
+          </span>
+          <span className="reading-journal-pill muted">
+            <CalendarDays size={12} />
+            {readingDate}
+          </span>
         </div>
-      )}
+      </header>
 
-      {/* Cards strip */}
-      <div className={cn(
-        "reading-cards-strip",
-        spreadType === "celtic" && "reading-cards-strip--celtic"
-      )}>
+      {/* Cards - premium centered */}
+      <div
+        className={
+          "reading-journal-cards " + (spreadType === "celtic" ? "reading-journal-cards--celtic" : "")
+        }
+        role="list"
+        aria-label="ไพ่ที่เปิดได้"
+      >
         {cards.map((c, i) => (
           <div
             key={i}
-            className="reading-card-cell"
+            role="listitem"
+            className="reading-journal-card-cell"
             style={{
-              animation: `fadeUp 0.5s var(--ease) ${i * 0.07}s both`,
+              animation: `fadeUp 0.6s var(--ease) ${i * 0.08}s both`,
             }}
           >
-            <TarotCard
-              card={c.card}
-              reversed={c.reversed}
-              flipped={true}
-              size={spreadType === "celtic" ? "sm" : "md"}
-              showLabel
-            />
-            <div className="text-center">
-              <div className="reading-card-name">{c.position.labelTh}</div>
-              {c.reversed && <div className="reading-card-reversed">กลับหัว</div>}
+            <div className="reading-journal-card-wrap">
+              <TarotCard
+                card={c.card}
+                reversed={c.reversed}
+                flipped={true}
+                size={spreadType === "celtic" ? "sm" : cards.length === 1 ? "lg" : "md"}
+                showLabel={false}
+                ariaLabel={`${c.card.nameTh}${c.reversed ? " กลับหัว" : ""} — ${c.position.labelTh}`}
+              />
+            </div>
+            <div className="reading-journal-card-meta">
+              <span className="reading-journal-card-position">{c.position.labelTh}</span>
+              <span className="reading-journal-card-name">{c.card.nameTh}</span>
+              {c.reversed && <span className="reading-journal-card-reversed">กลับหัว</span>}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Summary pills */}
-      <div className="reading-summary">
+      {/* Summary line - subtle */}
+      <div className="reading-journal-summary" aria-label="สรุปไพ่">
         {cards.map((c, i) => (
-          <span key={i} className="reading-summary-pill">
-            <Sparkles size={10} style={{ color: "var(--gold)" }} />
+          <span key={i} className="reading-journal-summary-pill">
             {c.card.nameTh}
+            {c.reversed ? " · กลับหัว" : ""}
           </span>
         ))}
       </div>
 
-      {/* Divider */}
-      <div className="reading-divider">
-        <div className="reading-divider-line" />
-        <BookOpen size={14} className="reading-divider-glyph" />
-        <div className="reading-divider-line" />
+      {/* Question - prominent journal quote */}
+      <div className="reading-journal-question">
+        <div className="reading-journal-question-label">
+          <BookOpen size={12} />
+          คำถามของคุณ
+        </div>
+        {question ? (
+          <blockquote className="reading-journal-question-text">“{question}”</blockquote>
+        ) : (
+          <p className="reading-journal-question-empty">ไม่มีคำถามเฉพาะ — ดูภาพรวมทั่วไป</p>
+        )}
+        <div className="reading-journal-question-spread">{spread?.nameTh} · {spread?.descriptionTh}</div>
       </div>
 
+      {/* Divider */}
+      <div className="reading-journal-divider" aria-hidden>
+        <div className="reading-journal-divider-line" />
+        <div className="reading-journal-divider-glyph">
+          <Sparkles size={14} />
+        </div>
+        <div className="reading-journal-divider-line" />
+      </div>
+
+      {/* Content */}
       {error ? (
-        <ErrorState error={error} onRetry={startReading} onDone={onDone} />
+        <ErrorState error={error} onRetry={startReading} onDone={onDone} hasPartial={!!text.trim()} partialText={text} />
+      ) : hasSections ? (
+        <div className="reading-journal-sections">
+          {sections.map((sec, idx) => {
+            const Icon = sec.key === "overview" ? Compass : sec.key === "detailed" ? BookOpen : Lightbulb;
+            const isLastStreaming = idx === sections.length - 1 && loading;
+            return (
+              <section
+                key={sec.key}
+                className={"reading-journal-section reading-journal-section--" + sec.key}
+                style={{ animation: `fadeUp 0.5s var(--ease) ${0.08 * idx}s both` } as React.CSSProperties}
+                aria-labelledby={"reading-section-" + sec.key}
+              >
+                <div className="reading-journal-section-header">
+                  <span className="reading-journal-section-icon">
+                    <Icon size={14} />
+                  </span>
+                  <h2 id={"reading-section-" + sec.key} className="reading-journal-section-title">
+                    {sec.title}
+                  </h2>
+                  <span className="reading-journal-section-line" aria-hidden />
+                </div>
+                <div
+                  ref={idx === sections.length - 1 ? textRef : undefined}
+                  className="reading-journal-section-body"
+                  aria-live={idx === sections.length - 1 ? "polite" : undefined}
+                >
+                  <SectionContent content={sec.content} />
+                  {isLastStreaming && <span className="reading-streaming" aria-hidden />}
+                </div>
+              </section>
+            );
+          })}
+          {loading && !text.trim() && <TarotLoadingState />}
+        </div>
       ) : (
-        <ReadingBody
-          text={text}
-          sections={sections}
-          hasSections={!!hasSections}
-          loading={loading}
-          textRef={textRef}
-        />
+        <div className="reading-journal-sections">
+          <section className="reading-journal-section reading-journal-section--single">
+            <div className="reading-journal-section-header">
+              <span className="reading-journal-section-icon">
+                <Compass size={14} />
+              </span>
+              <h2 className="reading-journal-section-title">คำทำนาย</h2>
+              <span className="reading-journal-section-line" aria-hidden />
+            </div>
+            <div
+              ref={textRef}
+              className="reading-journal-section-body"
+              aria-live="polite"
+              aria-busy={loading}
+            >
+              {text ? (
+                <>
+                  <SectionContent content={text} />
+                  {loading && <span className="reading-streaming" aria-hidden />}
+                </>
+              ) : (
+                <TarotLoadingState />
+              )}
+            </div>
+          </section>
+        </div>
       )}
 
+      {/* Footer actions */}
       {done && !error && (
-        <div className="px-4 mt-6 mb-2 text-center">
-          <button onClick={onDone} className="btn btn-primary px-8 py-3 rounded-2xl">
-            กลับหน้าหลัก
-          </button>
+        <div className="reading-journal-footer">
+          <p className="reading-journal-footer-note">บันทึกนี้ถูกเก็บไว้ในประวัติของคุณแล้ว</p>
+          <div className="reading-journal-footer-actions">
+            <button onClick={onDone} className="btn btn-primary px-8 py-3.5 rounded-2xl text-[14px]">
+              กลับหน้าหลัก
+            </button>
+            <button onClick={startReading} className="btn btn-ghost rounded-2xl text-[14px]">
+              <RefreshCw size={14} /> อ่านอีกครั้ง
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function ReadingBody({
-  text,
-  sections,
-  hasSections,
-  loading,
-  textRef,
-}: {
-  text: string;
-  sections: ParsedSections;
-  hasSections: boolean;
-  loading: boolean;
-  textRef: React.RefObject<HTMLDivElement | null>;
-}) {
-  if (!hasSections) {
-    return (
-      <div className="reading-section-card">
-        <div className="reading-section-title">คำทำนาย</div>
-        <div
-          ref={textRef}
-          className="reading-section-text"
-          aria-live="polite"
-          aria-label="คำทำนายจาก AI"
-        >
-          {stripMarkdownMultiline(text)}
-          {loading && text && <span className="reading-streaming" />}
-        </div>
-        {loading && !text && (
-          <div className="reading-empty-stream">
-            <div className="mystical-loader">
-              <div className="mystical-loader-dot" />
-              <div className="mystical-loader-dot" />
-              <div className="mystical-loader-dot" />
-            </div>
-            <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-muted)" }}>
-              กำลังอ่านไพ่...
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  }
+function SectionContent({ content }: { content: string }) {
+  const paragraphs = content
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
   return (
-    <>
-      {sections.overview && (
-        <div
-          className="reading-section-card"
-          style={{ animation: "fadeUp 0.4s var(--ease) both" }}
+    <div className="space-y-[0.9em]">
+      {paragraphs.map((para, i) => (
+        <p
+          key={i}
+          className="reading-journal-paragraph"
         >
-          <div className="reading-section-title flex items-center gap-2">
-            <Compass size={13} /> ภาพรวม
-          </div>
-          <div
-            ref={!sections.detailed && !sections.advice ? textRef : undefined}
-            className="reading-section-text"
-            aria-live="polite"
-            aria-label="คำทำนายจาก AI"
-          >
-            {sections.overview}
-            {!sections.detailed && !sections.advice && loading && (
-              <span className="reading-streaming" />
-            )}
-          </div>
-        </div>
-      )}
+          {para}
+        </p>
+      ))}
+    </div>
+  );
+}
 
-      {sections.detailed && (
-        <div
-          className="reading-section-card"
-          style={{ animation: "fadeUp 0.4s var(--ease) 0.1s both" }}
-        >
-          <div className="reading-section-title flex items-center gap-2">
-            <BookOpen size={13} /> การอ่านไพ่
-          </div>
-          <div
-            ref={!sections.advice ? textRef : undefined}
-            className="reading-section-text"
-          >
-            {sections.detailed}
-            {!sections.advice && loading && <span className="reading-streaming" />}
-          </div>
-        </div>
-      )}
-
-      {sections.advice && (
-        <div
-          className="reading-section-card"
-          style={{ animation: "fadeUp 0.4s var(--ease) 0.15s both" }}
-        >
-          <div className="reading-section-title flex items-center gap-2">
-            <Lightbulb size={13} /> คำแนะนำ
-          </div>
-          <div ref={textRef} className="reading-section-text">
-            {sections.advice}
-            {loading && <span className="reading-streaming" />}
-          </div>
-        </div>
-      )}
-
-      {loading && !text && (
-        <div className="reading-empty-stream" style={{ paddingTop: 8 }}>
-          <div className="mystical-loader">
-            <div className="mystical-loader-dot" />
-            <div className="mystical-loader-dot" />
-            <div className="mystical-loader-dot" />
-          </div>
-          <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-muted)" }}>
-            กำลังอ่านไพ่...
-          </span>
-        </div>
-      )}
-    </>
+function TarotLoadingState() {
+  return (
+    <div className="reading-journal-loading" role="status" aria-live="polite">
+      <div className="reading-journal-loading-cards" aria-hidden>
+        <div className="reading-journal-loading-card" style={{ animationDelay: "0s" }} />
+        <div className="reading-journal-loading-card" style={{ animationDelay: "0.12s" }} />
+        <div className="reading-journal-loading-card" style={{ animationDelay: "0.24s" }} />
+      </div>
+      <div className="reading-journal-loading-text">
+        <span className="reading-journal-loading-title">กำลังอ่านพลังงานของไพ่</span>
+        <span className="reading-journal-loading-sub">ไพ่กำลังบอกเล่าเรื่องราวของคุณ</span>
+      </div>
+      <div className="mystical-loader" aria-hidden>
+        <div className="mystical-loader-dot" />
+        <div className="mystical-loader-dot" />
+        <div className="mystical-loader-dot" />
+      </div>
+    </div>
   );
 }
 
@@ -413,29 +429,38 @@ function ErrorState({
   error,
   onRetry,
   onDone,
+  hasPartial,
+  partialText,
 }: {
   error: string;
   onRetry: () => void;
   onDone: () => void;
+  hasPartial?: boolean;
+  partialText?: string;
 }) {
   return (
-    <div className="reading-section-card" style={{ textAlign: "center", padding: "32px 18px" }}>
-      <div
-        className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-        style={{ background: "var(--red-soft)" }}
-      >
-        <AlertTriangle size={22} style={{ color: "var(--red)" }} />
-      </div>
-      <p className="mb-5 text-[14px] font-medium" style={{ color: "var(--red)" }}>
-        {error}
-      </p>
-      <div className="flex gap-3 justify-center">
-        <button onClick={onRetry} className="btn btn-primary rounded-xl">
-          <RefreshCw size={14} /> ลองใหม่
-        </button>
-        <button onClick={onDone} className="btn btn-ghost rounded-xl">
-          กลับ
-        </button>
+    <div className="reading-journal-error">
+      {hasPartial && partialText && (
+        <div className="reading-journal-partial">
+          <div className="reading-journal-partial-label">เนื้อหาที่ได้รับบางส่วน</div>
+          <p className="reading-journal-paragraph" style={{ opacity: 0.85 }}>{stripMarkdownMultiline(partialText).slice(0, 600)}{partialText.length > 600 ? "…" : ""}</p>
+        </div>
+      )}
+      <div className="reading-journal-error-card">
+        <div className="reading-journal-error-icon">
+          <AlertTriangle size={20} />
+        </div>
+        <h3 className="reading-journal-error-title">ไม่สามารถทำนายได้ในขณะนี้</h3>
+        <p className="reading-journal-error-message">{error}</p>
+        <div className="reading-journal-error-actions">
+          <button onClick={onRetry} className="btn btn-primary rounded-xl">
+            <RefreshCw size={14} /> ลองใหม่
+          </button>
+          <button onClick={onDone} className="btn btn-ghost rounded-xl">
+            กลับ
+          </button>
+        </div>
+        <p className="reading-journal-error-hint">หากคะแนนถูกหักไปแล้ว ระบบจะคืนแต้มให้อัตโนมัติ</p>
       </div>
     </div>
   );
