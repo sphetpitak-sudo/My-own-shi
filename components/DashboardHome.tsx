@@ -73,6 +73,7 @@ export default function DashboardHome() {
   const [profile, setProfile] = useState<ProfileLite | null>(null);
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [activeCategory, setActiveCategory] = useState<FeatureCategory | "all">("all");
+  const [recentReadings, setRecentReadings] = useState<Array<{ id: string; spread_type: string; question: string; created_at: string; points_spent: number }>>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -86,6 +87,15 @@ export default function DashboardHome() {
           .single()
           .then(({ data: p }: { data: ProfileLite | null }) => {
             if (p) setProfile(p);
+          });
+        supabase
+          .from("readings")
+          .select("id, spread_type, question, created_at, points_spent")
+          .eq("user_id", data.user.id)
+          .order("created_at", { ascending: false })
+          .limit(3)
+          .then(({ data: r }: { data: typeof recentReadings | null }) => {
+            if (r) setRecentReadings(r);
           });
       }
     });
@@ -371,19 +381,52 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Coming soon block */}
+      {/* Recent readings */}
       <div className="dash-section">
         <SectionHeader
-          title="เร็ว ๆ นี้"
-          subtitle="ฟีเจอร์ใหม่ที่กำลังจะมา"
+          title="อ่านล่าสุด"
+          subtitle={recentReadings.length ? "กลับไปอ่านบันทึกเดิมของคุณ" : "ยังไม่มีบันทึก — เริ่มทำนายครั้งแรกกัน"}
+          trailing={
+            recentReadings.length ? (
+              <a href="/dashboard/history" className="text-[12px] font-semibold" style={{ color: "var(--primary)" }}>
+                ดูทั้งหมด →
+              </a>
+            ) : undefined
+          }
         />
-        <div className="dash-grid-2" style={{ marginTop: 12 }}>
-          {FEATURES.filter((f) => f.status === "soon")
-            .slice(0, 4)
-            .map((f) => (
-              <FeatureCard key={f.id} feature={f} userPoints={profile?.points ?? 0} />
+        {recentReadings.length === 0 ? (
+          <div className="card p-5 text-center" style={{ marginTop: 12 }}>
+            <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+              ยังไม่มีประวัติการอ่าน — เปิดไพ่ครั้งแรกเพื่อเริ่มต้น
+            </p>
+            <a href="/dashboard/reading?spread=three_card" className="btn btn-primary mt-3">
+              เริ่มทำนาย
+            </a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2" style={{ marginTop: 12 }}>
+            {recentReadings.map((r) => (
+              <a
+                key={r.id}
+                href="/dashboard/history"
+                className="card p-3.5 flex items-center gap-3 hover:shadow-sm transition-shadow"
+              >
+                <span className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>
+                  <Sparkles size={14} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>
+                    {r.question ? r.question.slice(0, 58) + (r.question.length > 58 ? "…" : "") : SPREADS[r.spread_type as SpreadType]?.nameTh ?? r.spread_type}
+                  </span>
+                  <span className="block text-[11px]" style={{ color: "var(--text-muted)" }}>
+                    {new Date(r.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })} · {SPREADS[r.spread_type as SpreadType]?.nameTh ?? r.spread_type} · {r.points_spent} แต้ม
+                  </span>
+                </span>
+                <span style={{ color: "var(--text-muted)" }}>›</span>
+              </a>
             ))}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Points balance card */}
