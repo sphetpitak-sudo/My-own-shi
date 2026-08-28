@@ -1,19 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardShell from "@/components/DashboardShell";
-import { getZodiacSign, getChineseZodiac, isValidBirthDate, type ZodiacFortune } from "@/lib/zodiac";
+import { getZodiacSign, getChineseZodiac, isValidBirthDate } from "@/lib/zodiac";
 import { ZODIAC_SIGNS } from "@/lib/astrology/types";
-import { Calendar, Sparkles, GraduationCap, Heart, Wallet, Activity, Wind, RefreshCw } from "lucide-react";
+import { Calendar, Sparkles, RefreshCw } from "lucide-react";
 
 const STORAGE_KEY = "sealo_birth_date";
 
 export default function ZodiacPage() {
   const [birthDate, setBirthDate] = useState("");
   const [loaded, setLoaded] = useState(false);
-  const [fortune, setFortune] = useState<ZodiacFortune | null>(null);
+  const [reading, setReading] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const textRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -21,12 +23,28 @@ export default function ZodiacPage() {
     setLoaded(true);
   }, []);
 
+  useEffect(() => {
+    if (textRef.current) {
+      textRef.current.scrollTop = textRef.current.scrollHeight;
+    }
+  }, [reading]);
+
   const todayLabel = new Date().toLocaleDateString("th-TH", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+
+  // Compute identity instantly from the entered birth date
+  const identity = (() => {
+    if (!birthDate) return null;
+    const [y, m, d] = birthDate.split("-").map(Number);
+    if (!isValidBirthDate(y!, m!, d!)) return null;
+    const sign = ZODIAC_SIGNS.find((s) => s.id === getZodiacSign(y!, m!, d!))!;
+    const animal = getChineseZodiac(y!, m!, d!);
+    return { sign, animal };
+  })();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +59,9 @@ export default function ZodiacPage() {
     }
     setError("");
     localStorage.setItem(STORAGE_KEY, birthDate);
+    setSubmitted(true);
+    setReading("");
     setLoading(true);
-    setFortune(null);
     try {
       const res = await fetch("/api/zodiac", {
         method: "POST",
@@ -51,10 +70,36 @@ export default function ZodiacPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || "ไม่สามารถดูดวงได้");
+        if (res.status === 429) setError("อ่านถี่เกินไป กรุณารอสักครู่");
+        else setError(data.error || "ไม่สามารถดูดวงได้ กรุณาลองใหม่");
         return;
       }
-      setFortune((await res.json()) as ZodiacFortune);
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setError("ไม่สามารถอ่านคำตอบได้");
+        return;
+      }
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) setReading((prev) => prev + parsed.content);
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
     } catch {
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -62,34 +107,11 @@ export default function ZodiacPage() {
     }
   };
 
-  // Show identity instantly while AI reads
-  const identity = birthDate && !fortune
-    ? (() => {
-        const [y, m, d] = birthDate.split("-").map(Number);
-        if (!isValidBirthDate(y!, m!, d!)) return null;
-        const sign = ZODIAC_SIGNS.find((s) => s.id === getZodiacSign(y!, m!, d!))!;
-        const animal = getChineseZodiac(y!, m!, d!);
-        return { sign, animal };
-      })()
-    : null;
-
-  const aspects = fortune
-    ? [
-        { id: "study", label: "เรียน / งาน", icon: GraduationCap, color: "#14b8a6", text: fortune.study },
-        { id: "love", label: "ความรัก", icon: Heart, color: "#f472b6", text: fortune.love },
-        { id: "money", label: "การเงิน", icon: Wallet, color: "#fbbf24", text: fortune.money },
-        { id: "health", label: "สุขภาพ", icon: Activity, color: "#22c55e", text: fortune.health },
-        { id: "stress", label: "ความเครียด", icon: Wind, color: "#a78bfa", text: fortune.stress },
-      ]
-    : [];
-
-  const displaySign = fortune
-    ? { symbol: fortune.signSymbol, nameTh: fortune.signNameTh, range: fortune.signRange }
-    : identity
-      ? { symbol: identity.sign.symbol, nameTh: identity.sign.nameTh, range: identity.sign.range }
-      : null;
-
-  const displayAnimal = fortune ? fortune.animal : identity?.animal ?? null;
+  const handleReset = () => {
+    setSubmitted(false);
+    setReading("");
+    setError("");
+  };
 
   return (
     <DashboardShell>
@@ -98,13 +120,13 @@ export default function ZodiacPage() {
           <p className="step-eyebrow">ดูดวงรายวัน · ฟรี</p>
           <h1 className="step-title">ดูดวงตามวันเกิด</h1>
           <p className="step-sub">
-            ใส่วันเกิด แล้วเราจะบอก ราศี ปีนักษัตร และคำทำนายประจำวันของคุณ
+            ใส่วันเกิด แล้วรับคำทำนายประจำวันแบบละเอียด
             <br />
-            ครอบคลุม เรียน/งาน · ความรัก · เงิน · สุขภาพ · ความเครียด
+            ราศี + ปีนักษัตร + ความรัก · การงาน · เงิน · สุขภาพ · ความเครียด
           </p>
         </div>
 
-        {!fortune && !loading && (
+        {!submitted && (
           <form onSubmit={handleSubmit} className="animate-in">
             <div className="q-card">
               <label className="label flex items-center gap-1.5" htmlFor="birth-date">
@@ -149,177 +171,103 @@ export default function ZodiacPage() {
           </form>
         )}
 
-        {(fortune || identity) && (
+        {submitted && identity && (
           <div className="mt-5">
-            {/* Identity: zodiac + animal */}
-            {displaySign && displayAnimal && (
-              <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-                <div
-                  className="rounded-2xl p-4 text-center"
-                  style={{
-                    background: "linear-gradient(160deg, rgba(129,140,248,0.10), rgba(99,102,241,0.04))",
-                    border: "1px solid rgba(129,140,248,0.18)",
-                  }}
-                >
-                  <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "#818cf8" }}>
-                    ราศี
-                  </div>
-                  <div className="text-[34px] leading-none my-1.5" style={{ color: "#818cf8" }}>
-                    {displaySign.symbol}
-                  </div>
-                  <div className="text-[16px] font-extrabold" style={{ color: "var(--text)" }}>
-                    {displaySign.nameTh}
-                  </div>
-                  <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    {displaySign.range}
-                  </div>
+            {/* Identity */}
+            <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
+              <div
+                className="rounded-2xl p-4 text-center"
+                style={{
+                  background: "linear-gradient(160deg, rgba(129,140,248,0.10), rgba(99,102,241,0.04))",
+                  border: "1px solid rgba(129,140,248,0.18)",
+                }}
+              >
+                <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "#818cf8" }}>
+                  ราศี
                 </div>
-                <div
-                  className="rounded-2xl p-4 text-center"
-                  style={{
-                    background: "linear-gradient(160deg, rgba(212,175,55,0.10), rgba(184,148,42,0.04))",
-                    border: "1px solid rgba(212,175,55,0.18)",
-                  }}
-                >
-                  <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--gold)" }}>
-                    ปีนักษัตร
-                  </div>
-                  <div className="text-[34px] leading-none my-1.5">{displayAnimal.symbol}</div>
-                  <div className="text-[16px] font-extrabold" style={{ color: "var(--text)" }}>
-                    {displayAnimal.yearTh}
-                  </div>
-                  <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    ปี {displayAnimal.animal}
-                  </div>
+                <div className="text-[34px] leading-none my-1.5" style={{ color: "#818cf8" }}>
+                  {identity.sign.symbol}
+                </div>
+                <div className="text-[16px] font-extrabold" style={{ color: "var(--text)" }}>
+                  {identity.sign.nameTh}
+                </div>
+                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                  {identity.sign.range}
                 </div>
               </div>
-            )}
-
-            {/* Loading state */}
-            {loading && (
-              <div className="mx-4 mb-4 p-6 rounded-2xl flex flex-col items-center gap-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                <div className="mystical-loader">
-                  <div className="mystical-loader-dot" />
-                  <div className="mystical-loader-dot" />
-                  <div className="mystical-loader-dot" />
+              <div
+                className="rounded-2xl p-4 text-center"
+                style={{
+                  background: "linear-gradient(160deg, rgba(212,175,55,0.10), rgba(184,148,42,0.04))",
+                  border: "1px solid rgba(212,175,55,0.18)",
+                }}
+              >
+                <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--gold)" }}>
+                  ปีนักษัตร
                 </div>
-                <p className="text-[13px] font-medium" style={{ color: "var(--text-muted)" }}>
-                  กำลังอ่านดวงของคุณด้วย AI...
-                </p>
+                <div className="text-[34px] leading-none my-1.5">{identity.animal.symbol}</div>
+                <div className="text-[16px] font-extrabold" style={{ color: "var(--text)" }}>
+                  {identity.animal.yearTh}
+                </div>
+                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                  ปี {identity.animal.animal}
+                </div>
               </div>
-            )}
+            </div>
 
-            {error && !fortune && !loading && (
-              <div className="mx-4 mb-4 p-3 rounded-xl text-[12.5px] font-medium" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+            {/* Reading card (streamed) */}
+            <div
+              className="reading-section-card"
+              style={{ marginTop: 4 }}
+            >
+              <div className="reading-section-title flex items-center gap-1.5">
+                <Sparkles size={11} /> คำทำนายของคุณ · {todayLabel}
+              </div>
+              <div
+                ref={textRef}
+                className="reading-section-text"
+                aria-live="polite"
+                style={{ minHeight: loading && !reading ? 80 : undefined }}
+              >
+                {reading}
+                {loading && !reading && (
+                  <div className="reading-empty-stream">
+                    <div className="mystical-loader">
+                      <div className="mystical-loader-dot" />
+                      <div className="mystical-loader-dot" />
+                      <div className="mystical-loader-dot" />
+                    </div>
+                    <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-muted)" }}>
+                      กำลังอ่านดวงของคุณด้วย AI...
+                    </span>
+                  </div>
+                )}
+                {loading && reading && <span className="reading-streaming" />}
+              </div>
+            </div>
+
+            {error && (
+              <div
+                className="mx-4 mb-3 p-3 rounded-xl text-[12.5px] font-medium"
+                style={{ background: "var(--red-soft)", color: "var(--red)" }}
+              >
                 {error}
               </div>
             )}
 
-            {fortune && (
-              <div className="animate-in">
-                {/* Overview */}
-                <div
-                  className="mx-4 mb-4 p-4 rounded-2xl"
-                  style={{
-                    background: "linear-gradient(160deg, rgba(129,140,248,0.10), rgba(99,102,241,0.04))",
-                    border: "1px solid rgba(129,140,248,0.18)",
-                  }}
-                >
-                  <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] mb-1.5 flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
-                    <Sparkles size={11} /> ภาพรวมวันนี้
-                  </div>
-                  <p className="text-[14px] leading-[1.7]" style={{ color: "var(--text)" }}>
-                    {fortune.overview}
-                  </p>
-                  <div className="text-[11px] mt-3" style={{ color: "var(--text-muted)" }}>
-                    {todayLabel}
-                  </div>
-                </div>
-
-                {/* Aspects */}
-                <div className="mx-4 mb-4">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: "var(--text-muted)" }}>
-                    คำแนะนำตามด้าน
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {aspects.map((a) => {
-                      const Icon = a.icon;
-                      return (
-                        <div key={a.id} className="card p-3.5 flex items-start gap-3">
-                          <div
-                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: `${a.color}1A`, color: a.color }}
-                          >
-                            <Icon size={16} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[12.5px] font-bold" style={{ color: "var(--text)" }}>
-                              {a.label}
-                            </div>
-                            <div className="text-[12px] mt-0.5 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                              {a.text}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Lucky */}
-                <div className="mx-4 grid grid-cols-2 gap-2 mb-4">
-                  <div className="card p-4 text-center">
-                    <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: "var(--text-muted)" }}>
-                      เลขมงคล
-                    </div>
-                    <div className="text-[28px] font-extrabold" style={{ color: "var(--gold)" }}>
-                      {fortune.lucky.number}
-                    </div>
-                  </div>
-                  <div className="card p-4 text-center">
-                    <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: "var(--text-muted)" }}>
-                      สีมงคล
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mt-1">
-                      <div className="w-7 h-7 rounded-full" style={{ background: fortune.lucky.color, boxShadow: `0 0 16px ${fortune.lucky.color}55` }} />
-                      <div className="text-[16px] font-bold" style={{ color: "var(--text)" }}>
-                        {fortune.lucky.colorTh}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Source + actions */}
-                <div className="mx-4 flex items-center justify-center gap-2 mb-2">
-                  {fortune.source === "ai" ? (
-                    <span
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
-                      style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
-                    >
-                      <Sparkles size={9} /> เรียบเรียงด้วย AI
-                    </span>
-                  ) : (
-                    <span
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
-                      style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
-                    >
-                      โหมดสำรอง
-                    </span>
-                  )}
-                </div>
-                <div className="px-4 mt-2 mb-4 flex justify-center">
-                  <button onClick={() => setFortune(null)} className="btn btn-ghost rounded-xl">
-                    <RefreshCw size={14} /> เปลี่ยนวันเกิด
-                  </button>
-                </div>
-
-                <div className="mx-4 mb-4 text-center text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  ข้อความนี้เป็นแนวทางเชิงสัญลักษณ์ ไม่ใช่คำทำนายที่แน่นอน
-                  <br />
-                  ใช้วิจารณญาณในการตัดสินใจเสมอ
-                </div>
+            {!loading && reading && (
+              <div className="mx-4 mb-4 flex justify-center">
+                <button onClick={handleReset} className="btn btn-ghost rounded-xl">
+                  <RefreshCw size={14} /> เปลี่ยนวันเกิด
+                </button>
               </div>
             )}
+
+            <div className="mx-4 mb-4 text-center text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              ข้อความนี้เป็นแนวทางเชิงสัญลักษณ์ ไม่ใช่คำทำนายที่แน่นอน
+              <br />
+              ใช้วิจารณญาณในการตัดสินใจเสมอ
+            </div>
           </div>
         )}
       </div>

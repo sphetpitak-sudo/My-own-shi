@@ -1,87 +1,68 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getOpenAI,
-  extractJSON,
-  asString,
-  asNumber,
-  colorToHex,
-  checkRateLimit,
-  getCachedFortune,
-  setCachedFortune,
-} from "@/lib/ai";
-import {
-  buildZodiacFortune,
-  isValidBirthDate,
-  type ZodiacFortune,
-} from "@/lib/zodiac";
+import { getOpenAI, checkRateLimit, getCachedFortune, setCachedFortune } from "@/lib/ai";
+import { ZODIAC_SIGNS } from "@/lib/astrology/types";
+import { buildZodiacFortune, fortuneToProse, isValidBirthDate } from "@/lib/zodiac";
 
-const systemPrompt = `คุณคือ "เสียงจากจักรวาล" นักโหราศาสตร์ไทยที่เชี่ยวชาญราศีและปีนักษัตร
+const systemPrompt = `คุณคือ "เสียงจากจักรวาล" นักโหราศาสตร์ไทยที่อ่านดวงได้อย่างไพเราะและลึกซึ้ง
 
 บุคลิก:
-- อบอุ่น อ่อนโยน พูดภาษาไทยธรรมชาติ
-- มีความรู้เรื่องโหราศาสตร์ แต่อธิบายให้คนทั่วไปเข้าใจง่าย
-- ให้กำลังใจอย่างจริงใจ ไม่ตัดสิน ไม่ทำให้กลัว
+- อบอุ่น อ่อนโยน พูดภาษาไทยธรรมชาติ เหมือนหมอดูอ่านดวงให้ฟังสด ๆ
+- มีความรู้เรื่องโหราศาสตร์ ราศี และปีนักษัตร แต่อธิบายให้คนทั่วไปเข้าใจง่าย
 
 ==================================================
 หลักสำคัญ
 ==================================================
-คำทำนายเป็นแนวทางเชิงสัญลักษณ์ตามโหราศาสตร์ ไม่ใช่ข้อเท็จจริงหรือคำวินิจฉัย
-ไม่สามารถรับประกันอนาคตได้ และไม่ควรทำให้ผู้ใช้รู้สึกว่าต้องพึ่งพาการดูดวง
+คำทำนายเป็นแนวทางเชิงสัญลักษณ์ ไม่ใช่ข้อเท็จจริงหรือคำวินิจฉัย
+ไม่สามารถรับประกันอนาคตได้
 
 ห้าม:
 - อ้างว่ารู้อนาคตอย่างแน่นอน
-- บอกว่าผลลัพธ์จะเกิดขึ้นแน่นอน
-- ทำให้กลัวหรือตัดสินใจเรื่องสำคัญเพียงเพราะคำทำนาย
-- อ้างว่าแทนคำแนะนำจากผู้เชี่ยวชาญ
+- ทำให้กลัวหรือรู้สึกว่าต้องพึ่งพาการดูดวง
+- อ้างว่าแทนคำแนะนำจากผู้เชี่ยวชาญ (แพทย์ ทนาย นักการเงิน)
 
 ใช้คำอย่าง: "มีแนวโน้มว่า" "ดวงของคุณชี้ไปทาง" "พลังงานของวันนี้เอื้อต่อ" "สิ่งที่ควรสังเกตคือ"
 แทนการฟันธง
 
 ==================================================
-วิธีเขียนคำทำนายรายวันตามราศี
+รูปแบบการเขียน
 ==================================================
-1. ภาพรวม: 1-2 ประโยค สรุปพลังงานหลักของวันสำหรับราศีนั้น
-2. แต่ละด้าน (เรียน/งาน ความรัก การเงิน สุขภาพ ความเครียด): 1-2 ประโยค เจาะจงแต่ละด้าน
-3. เขียนให้เข้ากับธาตุของราศีเล็กน้อย เช่น ราศีไฟ กล้าเริ่ม ราศีน้ำ อ่อนไหว ราศีดิน มั่นคง ราศีลม เปิดกว้าง
-4. เลขมงคล: ตัวเลข 1-99, สีมงคล: ชื่อสีไทยเท่านั้น (ทอง ม่วง ชมพู เขียวมรกต คราม อำพัน)
-
-==================================================
-สไตล์
-==================================================
-- ภาษาไทยธรรมชาติ อ่านง่าย กระชับ ไม่ยืดเยื้อ
-- แต่ละข้อความสั้น ไม่ซ้ำความหมายเดิม
-- ไม่ใช้ markdown ไม่ใช้ bullet ไม่ใช้ emoji
+- เขียนเป็นร้อยแก้ว (prose) ต่อเนื่อง อ่านเพลิน เหมือนบทความดูดวงรายวัน
+- ใช้หัวข้อสั้น ๆ แบ่งช่วง เช่น "ภาพรวม" "ความรัก" "การงาน" "การเงิน" "สุขภาพ" "ความเครียด"
+  ตามด้วยย่อหน้า 2-4 ประโยคต่อช่วง
+- แต่ละช่วงให้รายละเอียดพออ่านเพลิน ไม่สั้นเกินไป ไม่ยืดเยื้อ
+- เขียนให้เข้ากับธาตุ/ลักษณะของราศีนั้นเล็กน้อย (ไฟ กล้าเริ่ม / น้ำ อ่อนไหว / ดิน มั่นคง / ลม เปิดกว้าง)
+- จบด้วยประโยคให้กำลังใจ พร้อมเลขมงคลและสีมงคล
+- ความยาวรวมประมาณ 250-350 คำ
+- ใช้ภาษาไทยธรรมชาติ อ่านง่าย ไม่ใช้ศัพท์ยาก ไม่อลังการเกินไป
+- ไม่ใช้ bullet points ไม่ใช้ emoji
 
 ==================================================
 คุณภาพของคำตอบ
 ==================================================
 ก่อนตอบ ให้คิดเงียบ ๆ ว่า:
 - พลังหลักของวันนี้สำหรับราศีนี้คืออะไร?
-- ด้านใดที่ควรเน้นเป็นพิเศษ?
+- ด้านใดควรเน้นเป็นพิเศษ?
 - คำแนะนำใดที่ผู้ใช้จะนำไปใช้ได้จริง?
 
-จากนั้นตอบเป็นภาษาไทยธรรมชาติ และตอบเป็น JSON เท่านั้น โดยไม่มีข้อความอื่นนอกจาก JSON`;
+จากนั้นตอบเป็นภาษาไทยธรรมชาติ และอย่าเปิดเผยกระบวนการคิดภายในของคุณ`;
 
-function normalize(parsed: Record<string, unknown>, fallback: ZodiacFortune): ZodiacFortune {
-  const luckyName = asString(parsed.luckyColor) || fallback.lucky.colorTh;
-  const lucky = colorToHex(luckyName, fallback.lucky.color);
-
-  return {
-    ...fallback,
-    overview: asString(parsed.overview) || fallback.overview,
-    study: asString(parsed.study) || fallback.study,
-    love: asString(parsed.love) || fallback.love,
-    money: asString(parsed.money) || fallback.money,
-    health: asString(parsed.health) || fallback.health,
-    stress: asString(parsed.stress) || fallback.stress,
-    lucky: {
-      number: asNumber(parsed.luckyNumber, fallback.lucky.number),
-      color: lucky.hex,
-      colorTh: lucky.name,
+function streamText(text: string) {
+  const encoder = new TextEncoder();
+  const readable = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text })}\n\n`));
+      controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+      controller.close();
     },
-    source: "ai" as const,
-  };
+  });
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -112,8 +93,8 @@ export async function POST(request: Request) {
     const cacheKey = `zodiac:${user.id}:${birthDate}:${today}`;
 
     const cached = getCachedFortune(cacheKey, 24 * 3600_000);
-    if (cached) {
-      return NextResponse.json(cached);
+    if (cached && typeof cached === "string") {
+      return streamText(cached);
     }
 
     if (!checkRateLimit(`zodiac:${user.id}`, 10, 3600_000)) {
@@ -121,17 +102,17 @@ export async function POST(request: Request) {
     }
 
     const fallback = buildZodiacFortune(birthDate, today);
+    const sign = ZODIAC_SIGNS.find((s) => s.id === fallback.signId)!;
 
-    let fortune: ZodiacFortune = fallback;
+    let text = fortuneToProse(fallback);
     try {
       const userPrompt = `ผู้ใช้เกิดวันที่ ${birthDate}
-ราศี: ${fallback.signNameTh}
+ราศี: ${fallback.signNameTh} (${sign.nameEn}) ${fallback.signSymbol} · ช่วง ${fallback.signRange}
 ปีนักษัตร: ${fallback.animal.yearTh} (${fallback.animal.animal})
 
 วันนี้คือ ${today}
 
-จงเขียนคำทำนายประจำวันเป็นภาษาไทย ในรูปแบบ JSON นี้เท่านั้น:
-{"overview": "ภาพรวมของวัน", "study": "การเรียน/การงาน", "love": "ความรัก", "money": "การเงิน", "health": "สุขภาพ", "stress": "ความเครียด", "luckyNumber": ตัวเลข 1-99, "luckyColor": "ชื่อสีไทย เช่น ทอง ม่วง ชมพู เขียวมรกต คราม อำพัน"}`;
+จงเขียนคำทำนายประจำวันสำหรับผู้ใช้คนนี้ เป็นภาษาไทยธรรมชาติ ครอบคลุม ภาพรวม ความรัก การงาน การเงิน สุขภาพ และความเครียด`;
 
       const stream = await getOpenAI()
         .chat.completions.create(
@@ -141,8 +122,8 @@ export async function POST(request: Request) {
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt },
             ],
-            temperature: 0.8,
-            max_tokens: 600,
+            temperature: 0.85,
+            max_tokens: 900,
             stream: true,
           },
           { timeout: 60_000, maxRetries: 0 }
@@ -154,17 +135,17 @@ export async function POST(request: Request) {
         for await (const chunk of stream) {
           full += chunk.choices[0]?.delta?.content || "";
         }
-        const parsed = extractJSON(full);
-        if (parsed) {
-          fortune = normalize(parsed, fallback);
+        const trimmed = full.trim();
+        if (trimmed.length > 20) {
+          text = trimmed;
         }
       }
     } catch {
-      // fall through to deterministic fallback
+      // fall through to deterministic prose
     }
 
-    setCachedFortune(cacheKey, fortune);
-    return NextResponse.json(fortune);
+    setCachedFortune(cacheKey, text);
+    return streamText(text);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to generate zodiac fortune";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -197,3 +197,50 @@ export function buildZodiacFortune(
     source: "fallback",
   };
 }
+
+// Sign-based daily fortune (no birth date needed) — used as the fallback
+// when AI generation is unavailable.
+export function buildSignFortune(signId: ZodiacSign, date: string): ZodiacFortune {
+  const sign = ZODIAC_SIGNS.find((s) => s.id === signId)!;
+  const seed = hashSeed(`${signId}:${date}`);
+
+  return {
+    signId,
+    signNameTh: sign.nameTh,
+    signSymbol: sign.symbol,
+    signRange: sign.range,
+    animal: { yearTh: "", animal: "", symbol: "" },
+    date,
+    overview: OVERVIEWS[seed % OVERVIEWS.length]!,
+    study: STUDY_WORK[(seed >> 3) % STUDY_WORK.length]!,
+    love: LOVE[(seed >> 5) % LOVE.length]!,
+    money: MONEY[(seed >> 7) % MONEY.length]!,
+    health: HEALTH[(seed >> 9) % HEALTH.length]!,
+    stress: STRESS[(seed >> 11) % STRESS.length]!,
+    lucky: {
+      number: (seed % 99) + 1,
+      color: COLORS[(seed >> 13) % COLORS.length]!.hex,
+      colorTh: COLORS[(seed >> 13) % COLORS.length]!.name,
+    },
+    source: "fallback",
+  };
+}
+
+// Convert a structured fortune into readable Thai prose (fallback text).
+export function fortuneToProse(f: ZodiacFortune): string {
+  return `ราศี${f.signNameTh} · ${f.signRange}
+
+${f.overview}
+
+ความรัก: ${f.love}
+
+การเรียน/การงาน: ${f.study}
+
+การเงิน: ${f.money}
+
+สุขภาพ: ${f.health}
+
+ความเครียด: ${f.stress}
+
+เลขมงคลของวันนี้คือ ${f.lucky.number} · สีมงคล ${f.lucky.colorTh}`;
+}
