@@ -311,8 +311,8 @@ export default function DashboardHome() {
               {
                 id: "zodiac",
                 icon: Star,
-                title: "ดูดวงตามราศี",
-                sub: "ฟรี · 12 ราศี",
+                title: "ดูดวงตามวันเกิด",
+                sub: "ฟรี · ราศี + ปีนักษัตร",
                 href: "/dashboard/zodiac",
                 cat: "astrology" as FeatureCategory,
               },

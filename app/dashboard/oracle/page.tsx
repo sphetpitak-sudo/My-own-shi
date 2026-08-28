@@ -24,7 +24,6 @@ export default function OraclePage() {
   const [cards, setCards] = useState<OracleCardType[]>([]);
   const [revealed, setRevealed] = useState(0);
   const [error, setError] = useState("");
-  const [spent, setSpent] = useState(false);
   const [interpretation, setInterpretation] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const startedRef = useRef(false);
@@ -81,7 +80,6 @@ export default function OraclePage() {
     }
 
     setPoints((p) => Math.max(0, p - spread.cost));
-    setSpent(true);
     setCards(drawOracleCards(spread.count));
     setRevealed(0);
     setInterpretation("");
@@ -174,7 +172,6 @@ export default function OraclePage() {
     setRevealed(0);
     setInterpretation("");
     setError("");
-    setSpent(false);
     startedRef.current = false;
   };
 

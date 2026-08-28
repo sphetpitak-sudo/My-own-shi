@@ -37,7 +37,7 @@ const PRIMARY = [
 ];
 
 const TOOLS = [
-  { href: "/dashboard/zodiac", label: "ดูดวงตามราศี", icon: Star },
+  { href: "/dashboard/zodiac", label: "ดูดวงตามวันเกิด", icon: Star },
   { href: "/dashboard/birthchart", label: "แผนที่ดวงดาว", icon: Compass },
   { href: "/dashboard/oracle", label: "ไพ่ลางสังหรณ์", icon: Eye },
 ];

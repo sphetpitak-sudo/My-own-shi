@@ -3,89 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import DashboardShell from "@/components/DashboardShell";
 import { createClient } from "@/lib/supabase/client";
-import { Sun, Sparkles, Heart, Briefcase, Wallet, GraduationCap, Activity } from "lucide-react";
-import { drawCards, type DrawnCard } from "@/lib/cards";
-
-interface DayData {
-  date: string;
-  theme: { th: string; en: string };
-  focus: string;
-  opportunity: string;
-  caution: string;
-  advice: string;
-  card: DrawnCard;
-  lucky: { number: number; color: string; colorTh: string };
-}
-
-const COLORS = [
-  { id: "gold", name: "ทอง", hex: "#d4af37" },
-  { id: "violet", name: "ม่วง", hex: "#a78bfa" },
-  { id: "rose", name: "ชมพู", hex: "#f472b6" },
-  { id: "teal", name: "เขียวมรกต", hex: "#14b8a6" },
-  { id: "indigo", name: "คราม", hex: "#818cf8" },
-  { id: "amber", name: "อำพัน", hex: "#fbbf24" },
-];
-
-const THEMES = [
-  { th: "วันแห่งการเริ่มต้น", en: "A day of new beginnings" },
-  { th: "วันแห่งความสงบ", en: "A day of stillness" },
-  { th: "วันแห่งพลังใจ", en: "A day of inner strength" },
-  { th: "วันแห่งความคิดสร้างสรรค์", en: "A day of creativity" },
-  { th: "วันแห่งการเชื่อมต่อ", en: "A day of connection" },
-  { th: "วันแห่งการปล่อยวาง", en: "A day of letting go" },
-  { th: "วันแห่งความกล้า", en: "A day of courage" },
-];
-
-function hashSeed(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h << 5) - h + s.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h);
-}
-
-function buildDayData(userId: string, date: string): DayData {
-  const seed = hashSeed(userId + ":" + date);
-  const theme = THEMES[seed % THEMES.length]!;
-  const color = COLORS[(seed >> 3) % COLORS.length]!;
-  const luckyNumber = (seed % 99) + 1;
-  // Use drawCards to pick a real card from the actual deck
-  const drawn = drawCards({
-    id: "single",
-    name: "Single",
-    nameTh: "ไพ่ใบเดียว",
-    cardCount: 1,
-    cost: 0,
-    description: "",
-    descriptionTh: "",
-    positions: [{ label: "Today", labelTh: "วันนี้", x: 50, y: 50 }],
-  });
-
-  const focus = drawn[0]!.reversed
-    ? `ให้ความสำคัญกับการพักผ่อนและฟื้นฟูพลัง`
-    : `มุ่งเน้นสิ่งที่ทำให้หัวใจเต้น`;
-  const opportunity = drawn[0]!.reversed
-    ? `มองหาโอกาสที่ซ่อนอยู่ในสิ่งที่คุณมองข้าม`
-    : `เปิดรับโอกาสใหม่ ๆ ที่เข้ามาอย่างไม่คาดคิด`;
-  const caution = drawn[0]!.reversed
-    ? `อย่าเร่งรีบ — ให้เวลากับกระบวนการ`
-    : `ระวังการตัดสินใจที่รวดเร็วเกินไป`;
-  const advice = drawn[0]!.reversed
-    ? `หายใจเข้าลึก ๆ แล้วปล่อยให้ทุกอย่างค่อย ๆ เป็นไป`
-    : `ทำตามสัญชาตญาณ — มันจะนำทางคุณได้ดี`;
-
-  return {
-    date,
-    theme: { th: theme.th, en: theme.en },
-    focus,
-    opportunity,
-    caution,
-    advice,
-    card: drawn[0]!,
-    lucky: { number: luckyNumber, color: color.hex, colorTh: color.name },
-  };
-}
+import { Sun, Sparkles, Heart, Briefcase, Wallet, GraduationCap, Activity, RefreshCw } from "lucide-react";
+import type { DailyFortune } from "@/lib/daily";
 
 const ASPECTS = [
   { id: "love", label: "ความรัก", icon: Heart, color: "#f472b6" },
@@ -95,54 +14,38 @@ const ASPECTS = [
   { id: "health", label: "สุขภาพ", icon: Activity, color: "#22c55e" },
 ];
 
-const ASPECT_TIPS: Record<
-  string,
-  { upright: string; reversed: string }
-> = {
-  love: {
-    upright: "เปิดใจให้โอกาสใหม่ ๆ และสื่อสารสิ่งที่รู้สึกอย่างตรงไปตรงมา",
-    reversed: "ทบทวนความคาดหวังของตัวเอง ก่อนตัดสินใจเรื่องหัวใจ",
-  },
-  career: {
-    upright: "ใช้จังหวะนี้แสดงศักยภาพให้คนรอบข้างเห็น กล้าเสนอความคิดใหม่",
-    reversed: "ความมั่นคงกับความก้าวหน้าอาจต้องเลือก อย่าเพิ่งรีบร้อน",
-  },
-  finance: {
-    upright: "มีโอกาสที่ดีเกี่ยวกับการเงิน วางแผนแล้วค่อยตัดสินใจ",
-    reversed: "ระวังการใช้จ่ายเกินจำเป็น เลี่ยงการตัดสินใจเรื่องเงินแบบกะทันหัน",
-  },
-  study: {
-    upright: "เหมาะแก่การเรียนรู้สิ่งใหม่ โฟกัสกับเป้าหมายทีละขั้น",
-    reversed: "ถ้ารู้สึกท้อ ให้แบ่งงานเป็นชิ้นเล็ก ๆ และขอความช่วยเหลือเมื่อจำเป็น",
-  },
-  health: {
-    upright: "พลังงานดี ให้เวลากับการเคลื่อนไหวและพักผ่อนให้เพียงพอ",
-    reversed: "ฟังสัญญาณของร่างกาย หยุดพักก่อนจะเหนื่อยเกินไป",
-  },
-};
-
-function aspectTip(id: string, reversed: boolean): string {
-  const tip = ASPECT_TIPS[id];
-  return tip ? (reversed ? tip.reversed : tip.upright) : "";
-}
-
 export default function DailyPage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [day, setDay] = useState<DayData | null>(null);
+  const [day, setDay] = useState<DailyFortune | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }: { data: { user: { id: string } | null } }) => {
-      if (!data.user) {
+  const loadDay = async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError("");
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         window.location.href = "/";
         return;
       }
-      setUserId(data.user.id);
-      const today = new Date().toISOString().slice(0, 10);
-      setDay(buildDayData(data.user.id, today));
+      const res = await fetch("/api/daily", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "ไม่สามารถโหลดดวงได้");
+        return;
+      }
+      const data = (await res.json()) as DailyFortune;
+      setDay(data);
+    } catch {
+      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+    } finally {
       setLoading(false);
-    });
+    }
+  };
+
+  useEffect(() => {
+    loadDay();
   }, []);
 
   const greeting = useMemo(() => {
@@ -161,7 +64,7 @@ export default function DailyPage() {
     year: "numeric",
   });
 
-  if (loading || !day || !userId) {
+  if (loading) {
     return (
       <DashboardShell>
         <div className="flex items-center justify-center" style={{ minHeight: "60vh" }}>
@@ -172,13 +75,30 @@ export default function DailyPage() {
               <div className="mystical-loader-dot" />
             </div>
             <p className="text-[13px] font-medium" style={{ color: "var(--text-muted)" }}>
-              กำลังอ่านพลังงานของวัน...
+              กำลังอ่านพลังงานของวันด้วย AI...
             </p>
           </div>
         </div>
       </DashboardShell>
     );
   }
+
+  if (error && !day) {
+    return (
+      <DashboardShell>
+        <div className="flex items-center justify-center" style={{ minHeight: "60vh" }}>
+          <div className="text-center px-6">
+            <p className="text-[14px] font-medium" style={{ color: "var(--red)" }}>{error}</p>
+            <button onClick={() => loadDay()} className="btn btn-primary mt-4 rounded-xl">
+              <RefreshCw size={14} /> ลองใหม่
+            </button>
+          </div>
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (!day) return null;
 
   return (
     <DashboardShell>
@@ -226,7 +146,7 @@ export default function DailyPage() {
                 ธีมประจำวัน
               </div>
               <h2 className="text-[20px] font-extrabold mt-1" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
-                {day.theme.th}
+                {day.theme}
               </h2>
             </div>
           </div>
@@ -241,8 +161,8 @@ export default function DailyPage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`/Taro/${day.card.card.imageFile}`}
-                alt={day.card.card.nameTh}
+                src={`/Taro/${day.card.imageFile}`}
+                alt={day.card.nameTh}
                 className="w-full h-full"
                 style={{
                   objectFit: "contain",
@@ -260,10 +180,15 @@ export default function DailyPage() {
               ไพ่ประจำวัน
             </div>
             <div className="text-[16px] font-extrabold mt-1" style={{ color: "var(--text)" }}>
-              {day.card.card.nameTh}
+              {day.card.nameTh}
+              {day.card.reversed && (
+                <span className="text-[11px] font-semibold ml-1.5" style={{ color: "var(--text-muted)" }}>
+                  กลับหัว
+                </span>
+              )}
             </div>
             <div className="text-[12px] mt-1" style={{ color: "var(--text-muted)" }}>
-              {day.card.reversed ? day.card.card.reversedTh : day.card.card.uprightTh}
+              {day.card.reversed ? day.card.reversedTh : day.card.uprightTh}
             </div>
           </div>
         </div>
@@ -292,7 +217,7 @@ export default function DailyPage() {
                       {a.label}
                     </div>
                     <div className="text-[11.5px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      {aspectTip(a.id, day.card.reversed)}
+                      {day.aspects[a.id as keyof typeof day.aspects]}
                     </div>
                   </div>
                 </div>
@@ -374,6 +299,31 @@ export default function DailyPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Source + refresh */}
+        <div className="mx-4 flex items-center justify-center gap-2 mb-2">
+          {day.source === "ai" ? (
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
+              style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
+            >
+              <Sparkles size={9} /> เรียบเรียงด้วย AI
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
+              style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+            >
+              โหมดสำรอง
+            </span>
+          )}
+          {error && <span className="text-[11px]" style={{ color: "var(--red)" }}>{error}</span>}
+        </div>
+        <div className="mx-4 mb-4 flex justify-center">
+          <button onClick={() => loadDay(true)} className="btn btn-ghost rounded-xl text-[12.5px]">
+            <RefreshCw size={13} /> เปิดดวงใหม่
+          </button>
         </div>
 
         {/* Disclaimers */}
