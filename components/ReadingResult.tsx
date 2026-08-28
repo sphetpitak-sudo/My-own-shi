@@ -229,6 +229,12 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
             <CalendarDays size={12} />
             {readingDate}
           </span>
+          {done && !error && (
+            <span className="reading-journal-pill" style={{ background: "var(--green-soft)", color: "var(--green)", borderColor: "rgba(45,122,79,0.14)" }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: "var(--green)" }} aria-hidden />
+              บันทึกแล้ว
+            </span>
+          )}
         </div>
       </header>
 
@@ -244,9 +250,11 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
           <button
             key={i}
             role="listitem"
-            className="reading-journal-card-cell"
+            className={"reading-journal-card-cell" + (done ? " completed" : "")}
             style={{
-              animation: `fadeUp 0.6s var(--ease) ${i * 0.08}s both`,
+              animation: done
+                ? `cardSettle 0.6s var(--ease) ${i * 0.06}s both`
+                : `fadeUp 0.6s var(--ease) ${i * 0.08}s both`,
               background: "transparent",
               border: "none",
               cursor: "pointer",

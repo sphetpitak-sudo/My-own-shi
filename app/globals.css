@@ -2644,6 +2644,11 @@ button:focus-visible {
   0%, 100% { transform: translateY(0) scale(1); opacity: 0.9; }
   50% { transform: translateY(-6px) scale(1.02); opacity: 1; }
 }
+@keyframes cardSettle {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-6px) scale(1.03); }
+  100% { transform: translateY(0) scale(1); }
+}
 .reading-journal-loading-title {
   font-size: 14px;
   font-weight: 700;
