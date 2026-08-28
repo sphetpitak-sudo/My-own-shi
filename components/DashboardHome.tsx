@@ -10,7 +10,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import AnnouncementCard from "@/components/ui/AnnouncementCard";
 import { SPREADS, type SpreadType } from "@/lib/cards";
 import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/catalog";
-import { Coins, Sparkles, CircleHelp, Gift, type LucideIcon } from "lucide-react";
+import { Coins, Sparkles, CircleHelp, Gift, Star, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface ProfileLite {
@@ -309,12 +309,20 @@ export default function DashboardHome() {
           <div className="dash-feature-row" style={{ marginTop: 12 }}>
             {[
               {
+                id: "zodiac",
+                icon: Star,
+                title: "ดูดวงตามราศี",
+                sub: "ฟรี · 12 ราศี",
+                href: "/dashboard/zodiac",
+                cat: "astrology" as FeatureCategory,
+              },
+              {
                 id: "yesno",
                 icon: CircleHelp,
                 title: "ถามใช่หรือไม่",
                 sub: "3 แต้ม · ไพ่ 1 ใบ",
                 href: "/dashboard/yesno",
-                tone: "amber" as const,
+                cat: "quick" as FeatureCategory,
               },
               {
                 id: "daily",
@@ -322,10 +330,11 @@ export default function DashboardHome() {
                 title: "ดูดวงรายวัน",
                 sub: "ฟรี · อัปเดตทุกวัน",
                 href: "/dashboard/daily",
-                tone: "gold" as const,
+                cat: "daily" as FeatureCategory,
               },
             ].map((tool) => {
               const Icon = tool.icon;
+              const tone = CATEGORY_TONE[tool.cat];
               return (
                 <a
                   key={tool.id}
@@ -337,8 +346,8 @@ export default function DashboardHome() {
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center"
                       style={{
-                        background: `${CATEGORY_TONE[tool.tone === "amber" ? "quick" : "daily"].bg}`,
-                        color: CATEGORY_TONE[tool.tone === "amber" ? "quick" : "daily"].color,
+                        background: tone.bg,
+                        color: tone.color,
                       }}
                     >
                       <Icon size={18} />
