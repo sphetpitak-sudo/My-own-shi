@@ -1,5 +1,6 @@
 "use client";
 import { cn } from "@/lib/cn";
+import { Sparkles } from "lucide-react";
 
 interface Props {
   value: string;
@@ -7,6 +8,12 @@ interface Props {
   onSubmit: () => void;
   loading?: boolean;
 }
+
+const SUGGESTIONS = [
+  "อนาคตความรักของฉันจะเป็นอย่างไร?",
+  "งานใหม่ที่กำลังจะเริ่มจะเป็นอย่างไร?",
+  "ฉันควรโฟกัสเรื่องอะไรในเดือนนี้?",
+];
 
 export default function QuestionInput({
   value,
@@ -23,63 +30,78 @@ export default function QuestionInput({
 
   return (
     <div className="w-full">
-      <div
-        className="rounded-xl overflow-hidden relative"
-        style={{
-          border: "1px solid var(--border-strong)",
-          background: "var(--bg-card)",
-        }}
-      >
+      <div className="q-card">
+        <label htmlFor="question-input" className="label flex items-center gap-1.5">
+          <Sparkles size={12} style={{ color: "var(--primary)" }} />
+          คำถามของคุณ
+        </label>
         <textarea
+          id="question-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="ถามไพ่ทาโรต์... เช่น อนาคตความรักจะเป็นอย่างไร?"
+          placeholder="ถามไพ่ทาโรต์... เขียนจากหัวใจของคุณ"
           rows={3}
           maxLength={500}
           disabled={loading}
           aria-label="คำถามของคุณ"
-          className={cn(
-            "w-full p-4 pb-14 bg-transparent resize-none outline-none",
-            "text-[var(--text)] text-[14px] leading-relaxed",
-            "placeholder:text-[var(--text-muted)]",
-            "disabled:opacity-50"
-          )}
-          style={{ fontFamily: "inherit", letterSpacing: "-0.005em" }}
+          className="q-textarea"
         />
 
-        {/* Bottom bar */}
-        <div
-          className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2.5 border-t"
-          style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}
-        >
-          <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
-            {value.length}/500
-          </span>
+        {!value && (
+          <div className="flex flex-wrap gap-1.5">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onChange(s)}
+                className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-full transition-all"
+                style={{
+                  background: "var(--bg)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="q-actions">
+          <span className="q-counter">{value.length}/500</span>
           <button
             onClick={onSubmit}
             disabled={!value.trim() || loading}
-            aria-label="ทำนาย"
+            aria-label="จั่วไพ่"
             className={cn(
-              "px-5 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-200",
+              "btn px-6 py-2.5 text-[13px] font-bold rounded-xl",
               value.trim() && !loading
-                ? "bg-[var(--primary)] text-white hover:opacity-90 shadow-sm"
+                ? "btn-primary"
                 : "bg-[var(--border)] text-[var(--text-muted)] cursor-not-allowed"
             )}
+            style={
+              value.trim() && !loading
+                ? {
+                    background: "linear-gradient(135deg, var(--primary), var(--primary-hover))",
+                    boxShadow: "0 4px 14px rgba(109, 40, 217, 0.25)",
+                  }
+                : undefined
+            }
           >
             {loading ? (
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                กำลังทำนาย...
+                กำลังเตรียมสำรับ...
               </span>
             ) : (
-              "ทำนาย"
+              "เริ่มจั่วไพ่ →"
             )}
           </button>
         </div>
       </div>
-      <p className="text-[11px] mt-1.5" style={{ color: "var(--text-muted)" }}>
-        กด Enter เพื่อทำนาย กด Shift+Enter ขึ้นบรรทัดใหม่
+      <p className="q-helper">
+        กด Enter เพื่อจั่วไพ่ · Shift+Enter เพื่อขึ้นบรรทัดใหม่
       </p>
     </div>
   );

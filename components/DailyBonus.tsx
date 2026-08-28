@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { Gift, Check, Coins } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Gift, Check, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/cn";
 
 interface DailyBonusProps {
   userId: string;
@@ -12,9 +13,9 @@ interface DailyBonusProps {
 export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
   const [claimed, setClaimed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [flyCoins, setFlyCoins] = useState<number[]>([]);
   const [bonusAmount, setBonusAmount] = useState(10);
   const [error, setError] = useState("");
+  const [burst, setBurst] = useState(false);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -36,7 +37,6 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
     fetchBonusAmount();
   }, []);
 
-  // Check server-side if already claimed today
   useEffect(() => {
     async function checkClaimed() {
       try {
@@ -59,7 +59,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
           setClaimed(true);
         }
       } catch {
-        // If check fails, allow user to try claiming (server will reject if already claimed)
+        // server will reject duplicate claim
       }
     }
     checkClaimed();
@@ -89,9 +89,8 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
         return;
       }
 
-      setFlyCoins([1, 2, 3]);
-      setTimeout(() => setFlyCoins([]), 800);
-
+      setBurst(true);
+      setTimeout(() => setBurst(false), 1200);
       setClaimed(true);
       onClaim(data.amount || 10);
     } catch {
@@ -102,47 +101,75 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
   }, [claimed, loading, onClaim]);
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       {error && (
-        <div className="absolute -top-10 left-0 right-0 text-center text-[12px] font-medium px-3 py-1.5 rounded-lg"
-          style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+        <div
+          className="absolute -top-9 left-0 right-0 text-center text-[12px] font-medium px-3 py-1.5 rounded-lg z-10"
+          style={{ background: "var(--red-soft)", color: "var(--red)" }}
+        >
           {error}
         </div>
       )}
+
       <button
         onClick={handleClaim}
         disabled={claimed || loading}
-        className="btn w-full justify-center gap-2.5 py-3.5 text-[14px] relative overflow-hidden"
+        aria-label={claimed ? "รับโบนัสรายวันแล้ว มารับใหม่พรุ่งนี้" : `รับโบนัสรายวัน +${bonusAmount} แต้ม`}
+        className={cn(
+          "relative w-full inline-flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl",
+          "text-[14px] font-bold overflow-hidden",
+          "transition-all duration-300 active:scale-[0.98]"
+        )}
         style={{
           background: claimed
-            ? "rgba(255,255,255,0.06)"
-            : "linear-gradient(135deg, #f6c944, #d4af37, #b8942a)",
-          color: claimed ? "rgba(255,255,255,0.4)" : "#4a3800",
-          border: claimed ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(212, 175, 55, 0.4)",
+            ? "rgba(255,255,255,0.05)"
+            : "linear-gradient(135deg, #f6c944 0%, #d4af37 50%, #b8942a 100%)",
+          color: claimed ? "rgba(255,255,255,0.5)" : "#3a2a00",
+          border: claimed
+            ? "1px solid rgba(255,255,255,0.06)"
+            : "1px solid rgba(212, 175, 55, 0.4)",
           cursor: claimed ? "default" : "pointer",
-          boxShadow: claimed ? "none" : "0 4px 16px rgba(212, 175, 55, 0.25)",
+          boxShadow: claimed
+            ? "none"
+            : "0 6px 20px rgba(212, 175, 55, 0.28), inset 0 1px 0 rgba(255,255,255,0.25)",
         }}
       >
+        {/* Shimmer */}
+        {!claimed && (
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%)",
+              transform: "translateX(-100%)",
+              animation: "shimmerSweep 3s ease-in-out infinite",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+
         {claimed ? (
           <>
             <Check size={16} />
-            มารับใหม่พรุ่งนี้
+            <span>มารับใหม่พรุ่งนี้</span>
           </>
         ) : loading ? (
           <span className="flex items-center gap-2">
-            <span className="w-4 h-4 border-2 border-[#4a3800]/30 border-t-[#4a3800] rounded-full animate-spin" />
+            <span
+              className="w-4 h-4 border-2 rounded-full animate-spin"
+              style={{ borderColor: "rgba(58,42,0,0.3)", borderTopColor: "#3a2a00" }}
+            />
             กำลังดำเนินการ...
           </span>
         ) : (
           <>
             <Gift size={16} />
-            รับโบนัสรายวัน
+            <span>รับโบนัสรายวัน</span>
             <span
-              className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
-              style={{
-                background: "rgba(74, 56, 0, 0.12)",
-                color: "#4a3800",
-              }}
+              className="ml-1 px-2.5 py-0.5 rounded-full text-[11.5px] font-extrabold"
+              style={{ background: "rgba(58, 42, 0, 0.18)", color: "#3a2a00" }}
             >
               +{bonusAmount}
             </span>
@@ -150,19 +177,51 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
         )}
       </button>
 
-      {flyCoins.map((id) => (
+      {/* Burst */}
+      {burst && (
         <div
-          key={id}
-          className="absolute pointer-events-none coin-fly"
+          aria-hidden
           style={{
-            left: "50%",
-            top: "50%",
-            animationDelay: `${id * 0.08}s`,
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <Coins size={14} style={{ color: "#d4af37" }} />
+          {Array.from({ length: 8 }).map((_, i) => {
+            const angle = (i / 8) * Math.PI * 2;
+            const dx = Math.cos(angle) * 40;
+            const dy = Math.sin(angle) * 40;
+            return (
+              <Sparkles
+                key={i}
+                size={14}
+                style={{
+                  position: "absolute",
+                  color: "#d4af37",
+                  animation: `coinBurst 0.9s ease-out ${i * 0.04}s both`,
+                  ["--dx" as never]: `${dx}px`,
+                  ["--dy" as never]: `${dy}px`,
+                }}
+              />
+            );
+          })}
         </div>
-      ))}
+      )}
+
+      <style jsx>{`
+        @keyframes shimmerSweep {
+          0% { transform: translateX(-100%); }
+          60% { transform: translateX(100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes coinBurst {
+          0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+          100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4) rotate(180deg); }
+        }
+      `}</style>
     </div>
   );
 }

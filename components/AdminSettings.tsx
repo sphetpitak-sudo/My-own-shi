@@ -99,18 +99,18 @@ export default function AdminSettings() {
   if (loading || !settings) return <LoadingSkeleton variant="stats" />;
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="page-header mb-6">
-          <div>
-            <h1 className="page-title">ตั้งค่า</h1>
-            <p className="page-sub">ตั้งค่าแพลตฟอร์ม</p>
+      <div className="p-4 md:p-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="page-header mb-6">
+            <div>
+              <h1 className="page-title">ตั้งค่า</h1>
+              <p className="page-sub">ตั้งค่าแพลตฟอร์ม</p>
+            </div>
+            <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+              <Save size={15} />
+              {saving ? "กำลังบันทึก..." : saved ? "บันทึกแล้ว!" : "บันทึก"}
+            </button>
           </div>
-          <button onClick={handleSave} disabled={saving} className="btn btn-primary">
-            <Save size={15} />
-            {saving ? "กำลังบันทึก..." : saved ? "บันทึกแล้ว!" : "บันทึก"}
-          </button>
-        </div>
 
         {error && (
           <div className="mb-5 p-3.5 rounded-xl text-[13px] font-medium"

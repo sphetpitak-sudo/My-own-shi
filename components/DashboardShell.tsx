@@ -55,7 +55,6 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
   useEffect(() => {
     loadProfile();
-
     const handleVisibility = () => {
       if (document.visibilityState === "visible") loadProfile();
     };
@@ -70,6 +69,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           isAdmin={profile?.is_admin}
+          userPoints={profile?.points ?? 0}
         />
 
         <div className="main-area">
