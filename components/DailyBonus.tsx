@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Gift, Check, Coins } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,6 +15,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
   const [flyCoins, setFlyCoins] = useState<number[]>([]);
   const [bonusAmount, setBonusAmount] = useState(10);
   const [error, setError] = useState("");
+  const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     async function fetchBonusAmount() {
@@ -64,6 +65,12 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
     checkClaimed();
   }, [userId]);
 
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
+
   const handleClaim = useCallback(async () => {
     if (claimed || loading) return;
     setLoading(true);
@@ -77,7 +84,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
           setClaimed(true);
         } else {
           setError(data.error || "ไม่สามารถรับโบนัสได้");
-          setTimeout(() => setError(""), 3000);
+          errorTimerRef.current = setTimeout(() => setError(""), 3000);
         }
         return;
       }

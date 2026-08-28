@@ -9,6 +9,7 @@ interface Props {
   flipped?: boolean;
   size?: "sm" | "md" | "lg";
   className?: string;
+  ariaLabel?: string;
 }
 
 const SIZES = {
@@ -24,14 +25,15 @@ export default function TarotCard({
   flipped = false,
   size = "md",
   className,
+  ariaLabel,
 }: Props) {
   const dim = SIZES[size];
 
   return (
     <div
       className={cn(
-        "relative cursor-pointer select-none",
-        onClick && !flipped && "hover:-translate-y-2",
+        "relative select-none",
+        onClick && !flipped && "cursor-pointer hover:-translate-y-2",
         "transition-all duration-300",
         className
       )}
@@ -39,9 +41,18 @@ export default function TarotCard({
         width: dim.w,
         height: dim.h,
         perspective: 900,
-        filter: onClick && !flipped ? "drop-shadow(0 4px 12px rgba(0,0,0,0.2))" : undefined,
+        filter: onClick && !flipped ? "drop-shadow(0 4px 12px rgba(0,0,0,0.25))" : undefined,
       }}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={ariaLabel}
     >
       {/* Inner card that rotates */}
       <div
@@ -62,7 +73,7 @@ export default function TarotCard({
             background:
               "linear-gradient(160deg, #1e0e3a 0%, #2d1548 30%, #1a0a2e 60%, #14082a 100%)",
             boxShadow:
-              "inset 0 0 20px rgba(147,97,203,0.08), 0 2px 8px rgba(0,0,0,0.4)",
+              "inset 0 0 24px rgba(147,97,203,0.1), 0 2px 8px rgba(0,0,0,0.4)",
           }}
         >
           {/* Inner border frame */}
@@ -70,7 +81,7 @@ export default function TarotCard({
             className="absolute"
             style={{
               inset: 5,
-              border: "1px solid rgba(201,168,76,0.18)",
+              border: "1px solid rgba(201,168,76,0.2)",
               borderRadius: 5,
             }}
           />
@@ -89,7 +100,7 @@ export default function TarotCard({
                 ...pos,
                 width: 6,
                 height: 6,
-                border: "1px solid rgba(201,168,76,0.15)",
+                border: "1px solid rgba(201,168,76,0.18)",
                 borderRadius: 1,
               }}
             />
@@ -104,7 +115,7 @@ export default function TarotCard({
                 width: dim.w * 0.55,
                 height: dim.h * 0.35,
                 borderRadius: "50%",
-                border: "1px solid rgba(201,168,76,0.12)",
+                border: "1px solid rgba(201,168,76,0.14)",
               }}
             />
 
@@ -116,7 +127,7 @@ export default function TarotCard({
               <div
                 className="absolute inset-0"
                 style={{
-                  background: "rgba(201,168,76,0.12)",
+                  background: "rgba(201,168,76,0.15)",
                   clipPath:
                     "polygon(50% 0%, 61% 35%, 100% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 0% 35%, 39% 35%)",
                 }}
@@ -130,7 +141,7 @@ export default function TarotCard({
                   top: "50%",
                   left: "50%",
                   transform: "translate(-50%, -50%)",
-                  background: "rgba(201,168,76,0.35)",
+                  background: "rgba(201,168,76,0.4)",
                 }}
               />
             </div>
@@ -142,7 +153,7 @@ export default function TarotCard({
                 width: 1,
                 height: dim.h * 0.4,
                 background:
-                  "linear-gradient(to bottom, transparent, rgba(201,168,76,0.08), transparent)",
+                  "linear-gradient(to bottom, transparent, rgba(201,168,76,0.1), transparent)",
               }}
             />
             {/* Horizontal line */}
@@ -152,7 +163,7 @@ export default function TarotCard({
                 width: dim.w * 0.4,
                 height: 1,
                 background:
-                  "linear-gradient(to right, transparent, rgba(201,168,76,0.08), transparent)",
+                  "linear-gradient(to right, transparent, rgba(201,168,76,0.1), transparent)",
               }}
             />
           </div>
@@ -177,6 +188,7 @@ export default function TarotCard({
             src={`/Taro/${card.imageFile}`}
             alt={card.name}
             className="w-full h-full"
+            loading="lazy"
             style={{
               objectFit: "contain",
               transform: reversed ? "rotate(180deg)" : undefined,

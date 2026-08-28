@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import TarotCard from "./TarotCard";
 import { cn } from "@/lib/cn";
 import { SPREADS, type DrawnCard, type SpreadType } from "@/lib/cards";
-import { Sparkles, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, ArrowLeft, RefreshCw, BookOpen } from "lucide-react";
 
 interface Props {
   cards: DrawnCard[];
@@ -120,7 +120,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
   }, [text]);
 
   return (
-    <div>
+    <div className="animate-in">
       <button
         onClick={() => {
           if (!loading || done) onDone();
@@ -211,7 +211,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
               border: "1px solid rgba(109, 40, 217, 0.1)",
             }}
           >
-            <Sparkles size={14} style={{ color: "var(--primary)" }} />
+            <BookOpen size={14} style={{ color: "var(--primary)" }} />
           </div>
           <h3
             className="font-bold text-[16px]"
@@ -256,9 +256,15 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
             >
               {stripMarkdown(text)}
               {loading && !text && (
-                <div className="flex items-center gap-2.5 py-2" style={{ color: "var(--text-muted)" }}>
-                  <Loader2 size={15} className="animate-spin" />
-                  <span className="text-[13px] font-medium">กำลังทำนาย...</span>
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <div className="mystical-loader">
+                    <div className="mystical-loader-dot" />
+                    <div className="mystical-loader-dot" />
+                    <div className="mystical-loader-dot" />
+                  </div>
+                  <span className="text-[13px] font-medium" style={{ color: "var(--text-muted)" }}>
+                    กำลังทำนาย...
+                  </span>
                 </div>
               )}
               {loading && text && (

@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import DailyBonus from "./DailyBonus";
 import PointsBalance from "./PointsBalance";
 import { SPREADS, type SpreadType } from "@/lib/cards";
 
 export default function DashboardHome() {
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [points, setPoints] = useState(0);
   const [costs, setCosts] = useState<Record<string, number>>({});
@@ -40,12 +42,12 @@ export default function DashboardHome() {
       });
   }, []);
 
-  const handleDailyBonus = (amount: number) => {
-    setPoints((prev) => prev + amount);
+  const handleDailyBonus = (newPoints: number) => {
+    setPoints(newPoints);
   };
 
   const handleSpreadSelect = (spreadId: SpreadType) => {
-    window.location.href = `/dashboard/reading?spread=${spreadId}`;
+    router.push(`/dashboard/reading?spread=${spreadId}`);
   };
 
   const spreads = Object.entries(SPREADS) as [SpreadType, typeof SPREADS[SpreadType]][];
@@ -123,6 +125,7 @@ export default function DashboardHome() {
                 background: "var(--bg-card)",
                 border: "1px solid var(--border)",
                 opacity: 0.55,
+                pointerEvents: "none",
               }}
             >
               <span className="text-sm">{item.icon}</span>

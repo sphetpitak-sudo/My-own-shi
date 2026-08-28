@@ -1,5 +1,3 @@
-"use client";
-
 interface Props {
   variant: "card" | "list" | "stats" | "full";
 }
@@ -9,10 +7,11 @@ export default function LoadingSkeleton({ variant }: Props) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
         <div className="flex flex-col items-center gap-4">
-          <div
-            className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: "var(--border)", borderTopColor: "transparent" }}
-          />
+          <div className="mystical-loader">
+            <div className="mystical-loader-dot" />
+            <div className="mystical-loader-dot" />
+            <div className="mystical-loader-dot" />
+          </div>
           <p className="text-[13px] font-medium" style={{ color: "var(--text-muted)" }}>
             กำลังโหลด...
           </p>

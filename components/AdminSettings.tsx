@@ -99,101 +99,103 @@ export default function AdminSettings() {
   if (loading || !settings) return <LoadingSkeleton variant="stats" />;
 
   return (
-    <div className="tab-content">
-      <div className="page-header mb-6">
-        <div>
-          <h1 className="page-title">ตั้งค่า</h1>
-          <p className="page-sub">ตั้งค่าแพลตฟอร์ม</p>
+    <div className="p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="page-header mb-6">
+          <div>
+            <h1 className="page-title">ตั้งค่า</h1>
+            <p className="page-sub">ตั้งค่าแพลตฟอร์ม</p>
+          </div>
+          <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+            <Save size={15} />
+            {saving ? "กำลังบันทึก..." : saved ? "บันทึกแล้ว!" : "บันทึก"}
+          </button>
         </div>
-        <button onClick={handleSave} disabled={saving} className="btn btn-primary">
-          <Save size={15} />
-          {saving ? "กำลังบันทึก..." : saved ? "บันทึกแล้ว!" : "บันทึก"}
-        </button>
-      </div>
 
-      {error && (
-        <div className="mb-5 p-3.5 rounded-xl text-[13px] font-medium"
-          style={{ background: "var(--red-soft)", color: "var(--red)", border: "1px solid rgba(194, 65, 48, 0.1)" }}>
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-5 p-3.5 rounded-xl text-[13px] font-medium"
+            style={{ background: "var(--red-soft)", color: "var(--red)", border: "1px solid rgba(194, 65, 48, 0.1)" }}>
+            {error}
+          </div>
+        )}
 
-      <div className="space-y-6">
-        <div className="card p-5">
-          <h2 className="sec-title mb-4">ค่าทำนาย</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {(["single", "three_card", "celtic"] as const).map((spread) => (
-              <div key={spread} className="field">
-                <label className="label capitalize">{spread.replace("_", " ")}</label>
+        <div className="space-y-6">
+          <div className="card p-5">
+            <h2 className="sec-title mb-4">ค่าทำนาย</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {(["single", "three_card", "celtic"] as const).map((spread) => (
+                <div key={spread} className="field">
+                  <label className="label capitalize">{spread.replace("_", " ")}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={settings.reading_costs[spread]}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      reading_costs: { ...settings.reading_costs, [spread]: parseInt(e.target.value) || 0 }
+                    })}
+                    className="input"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <h2 className="sec-title mb-4">โบนัส</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="field">
+                <label className="label">โบนัสรายวัน</label>
                 <input
                   type="number"
                   min={0}
-                  value={settings.reading_costs[spread]}
+                  value={settings.daily_bonus.amount}
                   onChange={(e) => setSettings({
                     ...settings,
-                    reading_costs: { ...settings.reading_costs, [spread]: parseInt(e.target.value) || 0 }
+                    daily_bonus: { amount: parseInt(e.target.value) || 0 }
                   })}
                   className="input"
                 />
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <h2 className="sec-title mb-4">โบนัส</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="field">
-              <label className="label">โบนัสรายวัน</label>
-              <input
-                type="number"
-                min={0}
-                value={settings.daily_bonus.amount}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  daily_bonus: { amount: parseInt(e.target.value) || 0 }
-                })}
-                className="input"
-              />
-            </div>
-            <div className="field">
-              <label className="label">โบนัสแนะนำเพื่อน</label>
-              <input
-                type="number"
-                min={0}
-                value={settings.referral_bonus.amount}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  referral_bonus: { amount: parseInt(e.target.value) || 0 }
-                })}
-                className="input"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="stat-icon" style={{ background: settings.maintenance_mode.enabled ? "var(--red-soft)" : "var(--green-soft)" }}>
-                <AlertTriangle size={18} style={{ color: settings.maintenance_mode.enabled ? "var(--red)" : "var(--green)" }} />
+              <div className="field">
+                <label className="label">โบนัสแนะนำเพื่อน</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={settings.referral_bonus.amount}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    referral_bonus: { amount: parseInt(e.target.value) || 0 }
+                  })}
+                  className="input"
+                />
               </div>
-              <div>
-                <div className="text-[14px] font-semibold">โหมดปิดปรับปรุง</div>
-                <div className="text-[12px] text-muted">
-                  {settings.maintenance_mode.enabled ? "เว็บไซต์อยู่ในโหมดปิดปรับปรุง" : "เว็บไซต์ทำงานปกติ"}
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="stat-icon" style={{ background: settings.maintenance_mode.enabled ? "var(--red-soft)" : "var(--green-soft)" }}>
+                  <AlertTriangle size={18} style={{ color: settings.maintenance_mode.enabled ? "var(--red)" : "var(--green)" }} />
+                </div>
+                <div>
+                  <div className="text-[14px] font-semibold">โหมดปิดปรับปรุง</div>
+                  <div className="text-[12px] text-muted">
+                    {settings.maintenance_mode.enabled ? "เว็บไซต์อยู่ในโหมดปิดปรับปรุง" : "เว็บไซต์ทำงานปกติ"}
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={() => setSettings({
+                  ...settings,
+                  maintenance_mode: { enabled: !settings.maintenance_mode.enabled }
+                })}
+                className={`cb ${settings.maintenance_mode.enabled ? "on" : ""}`}
+              >
+                {settings.maintenance_mode.enabled && <CheckIcon size={14} />}
+              </button>
             </div>
-            <button
-              onClick={() => setSettings({
-                ...settings,
-                maintenance_mode: { enabled: !settings.maintenance_mode.enabled }
-              })}
-              className={`cb ${settings.maintenance_mode.enabled ? "on" : ""}`}
-            >
-              {settings.maintenance_mode.enabled && <CheckIcon size={14} />}
-            </button>
           </div>
         </div>
       </div>

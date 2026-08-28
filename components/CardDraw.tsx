@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback, useMemo } from "react";
 import TarotCard from "./TarotCard";
+import ShuffleAnimation from "./ShuffleAnimation";
 import { drawCards, type Spread, type DrawnCard } from "@/lib/cards";
 import { cn } from "@/lib/cn";
 
@@ -11,9 +12,14 @@ interface Props {
 
 export default function CardDraw({ spread, onComplete }: Props) {
   const drawnCards = useMemo(() => drawCards(spread), [spread]);
+  const [phase, setPhase] = useState<"shuffle" | "draw">("shuffle");
   const [flippedIndices, setFlippedIndices] = useState<Set<number>>(new Set());
 
   const allFlipped = flippedIndices.size === spread.cardCount;
+
+  const handleShuffleComplete = useCallback(() => {
+    setPhase("draw");
+  }, []);
 
   const handleFlip = useCallback(
     (index: number) => {
@@ -26,6 +32,10 @@ export default function CardDraw({ spread, onComplete }: Props) {
     },
     []
   );
+
+  if (phase === "shuffle") {
+    return <ShuffleAnimation onComplete={handleShuffleComplete} />;
+  }
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -70,9 +80,6 @@ export default function CardDraw({ spread, onComplete }: Props) {
             <div
               key={i}
               className="flex flex-col items-center gap-3"
-              role="button"
-              aria-label={isFlipped ? `${dc.card.nameTh}${dc.reversed ? ' กลับหัว' : ''}` : `ไพ่ใบที่ ${i + 1} - ${dc.position.labelTh}`}
-              tabIndex={0}
               style={{
                 animationDelay: `${i * 0.08}s`,
                 animation: "fadeUp 0.5s var(--ease) both",
@@ -84,7 +91,7 @@ export default function CardDraw({ spread, onComplete }: Props) {
                 flipped={isFlipped}
                 size={spread.cardCount === 10 ? "sm" : spread.cardCount === 1 ? "lg" : "md"}
                 onClick={() => handleFlip(i)}
-                aria-label={isFlipped ? `${dc.card.nameTh}${dc.reversed ? ' กลับหัว' : ''}` : `ไพ่ใบที่ ${i + 1} - ${dc.position.labelTh}`}
+                ariaLabel={isFlipped ? `${dc.card.nameTh}${dc.reversed ? ' กลับหัว' : ''}` : `ไพ่ใบที่ ${i + 1} - ${dc.position.labelTh}`}
               />
               <span
                 className={cn(

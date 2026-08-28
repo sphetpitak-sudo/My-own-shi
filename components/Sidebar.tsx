@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { createClient } from "@/lib/supabase/client";
 
 interface SidebarProps {
   open: boolean;
@@ -111,7 +112,6 @@ export default function Sidebar({ open, onClose, isAdmin }: SidebarProps) {
         <div className="sidebar-footer">
           <button
             onClick={async () => {
-              const { createClient } = await import("@/lib/supabase/client");
               const supabase = createClient();
               await supabase.auth.signOut();
               window.location.href = "/";

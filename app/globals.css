@@ -1305,12 +1305,13 @@ button:focus-visible {
 /* ============ PREMIUM CARD GLOW ============ */
 @keyframes cardRevealGlow {
   0% { box-shadow: 0 0 0 rgba(212, 175, 55, 0); }
-  30% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.3), 0 0 40px rgba(212, 175, 55, 0.1); }
+  20% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.35), 0 0 60px rgba(212, 175, 55, 0.12); }
+  60% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.2), 0 0 40px rgba(212, 175, 55, 0.08); }
   100% { box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 }
 
 .card-reveal-glow {
-  animation: cardRevealGlow 0.8s var(--ease) both;
+  animation: cardRevealGlow 0.9s var(--ease) both;
 }
 
 /* ============ PREMIUM GOLD GRADIENT ============ */
@@ -1360,3 +1361,201 @@ button:focus-visible {
   border-radius: 4px;
   pointer-events: none;
 }
+
+/* ============ CARD SHUFFLE ANIMATION ============ */
+.shuffle-container {
+  position: relative;
+  width: 160px;
+  height: 260px;
+  perspective: 1200px;
+  margin: 0 auto;
+}
+
+.shuffle-deck {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.shuffle-card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  border: 1.5px solid #c9a84c;
+  background: linear-gradient(160deg, #1e0e3a 0%, #2d1548 30%, #1a0a2e 60%, #14082a 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transform-style: preserve-3d;
+}
+
+.shuffle-card-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.shuffle-card-inner::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(201,168,76,0.18);
+  border-radius: 5px;
+}
+
+.shuffle-card-inner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40%;
+  height: 30%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(201,168,76,0.12);
+}
+
+@keyframes shuffleArc1 {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  25% { transform: translateY(-60px) translateX(-30px) rotate(-12deg) scale(1.02); opacity: 1; }
+  50% { transform: translateY(-40px) translateX(20px) rotate(8deg) scale(0.98); opacity: 1; }
+  75% { transform: translateY(-20px) translateX(-10px) rotate(-5deg) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+}
+
+@keyframes shuffleArc2 {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  20% { transform: translateY(-50px) translateX(25px) rotate(10deg) scale(1.02); opacity: 1; }
+  45% { transform: translateY(-70px) translateX(-15px) rotate(-8deg) scale(0.97); opacity: 1; }
+  70% { transform: translateY(-30px) translateX(10px) rotate(5deg) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+}
+
+@keyframes shuffleArc3 {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  30% { transform: translateY(-45px) translateX(-20px) rotate(-15deg) scale(1.03); opacity: 1; }
+  55% { transform: translateY(-55px) translateX(15px) rotate(12deg) scale(0.96); opacity: 1; }
+  80% { transform: translateY(-15px) translateX(-5px) rotate(-3deg) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+}
+
+@keyframes shuffleDeckLift {
+  0% { transform: translateY(0); }
+  15% { transform: translateY(-8px); }
+  85% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes shuffleGlow {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.shuffle-active .shuffle-card:nth-child(1) { animation: shuffleArc1 1.8s var(--ease) both; }
+.shuffle-active .shuffle-card:nth-child(2) { animation: shuffleArc2 1.8s 0.1s var(--ease) both; }
+.shuffle-active .shuffle-card:nth-child(3) { animation: shuffleArc3 1.8s 0.05s var(--ease) both; }
+.shuffle-active .shuffle-card:nth-child(4) { animation: shuffleArc1 1.8s 0.15s var(--ease) both; }
+.shuffle-active .shuffle-card:nth-child(5) { animation: shuffleArc2 1.8s 0.08s var(--ease) both; }
+.shuffle-active .shuffle-card:nth-child(6) { animation: shuffleArc3 1.8s 0.12s var(--ease) both; }
+
+@keyframes shuffleFadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shuffleFadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.85); }
+}
+
+.shuffle-enter {
+  animation: shuffleFadeIn 0.4s var(--ease) both;
+}
+
+.shuffle-exit {
+  animation: shuffleFadeOut 0.3s var(--ease) both;
+}
+
+/* ============ SPARKLE PARTICLES ============ */
+@keyframes sparkleFloat {
+  0% { opacity: 0; transform: translateY(0) scale(0); }
+  20% { opacity: 1; transform: translateY(-10px) scale(1); }
+  80% { opacity: 0.6; transform: translateY(-40px) scale(0.8); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0); }
+}
+
+.sparkle-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--gold);
+  pointer-events: none;
+}
+
+/* ============ CARD FLIP ENHANCEMENT ============ */
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.card-float {
+  animation: cardFloat 3s ease-in-out infinite;
+}
+
+/* ============ READING RESULT SECTIONS ============ */
+.reading-section {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.reading-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* ============ ENHANCED STEP INDICATOR ============ */
+.step-dot {
+  position: relative;
+}
+
+.step-dot.active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  opacity: 0.3;
+  animation: stepPulse 2s ease-in-out infinite;
+}
+
+@keyframes stepPulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.15); opacity: 0.15; }
+}
+
+/* ============ PREMIUM LOADING STATES ============ */
+@keyframes mysticalPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.mystical-loader {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.mystical-loader-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: mysticalPulse 1.2s ease-in-out infinite;
+}
+
+.mystical-loader-dot:nth-child(2) { animation-delay: 0.15s; }
+.mystical-loader-dot:nth-child(3) { animation-delay: 0.3s; }

@@ -127,7 +127,6 @@ export default function AuthForm() {
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                 <input id="auth-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                   className="input" style={{ paddingLeft: "38px" }} placeholder="email@example.com"
-                  aria-invalid={error?.includes("email") ? "true" : undefined}
                   aria-describedby={error ? "auth-error" : undefined} />
               </div>
             </div>
@@ -139,12 +138,12 @@ export default function AuthForm() {
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                   <input id="auth-password" type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
                     className="input" style={{ paddingLeft: "38px", paddingRight: "38px" }} placeholder="••••••••"
-                    aria-invalid={error?.includes("password") ? "true" : undefined}
                     aria-describedby={error ? "auth-error" : undefined} />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: "var(--text-muted)" }}
                     aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -173,7 +172,6 @@ export default function AuthForm() {
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                   <input id="auth-confirm-password" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                     className="input" style={{ paddingLeft: "38px" }} placeholder="••••••••"
-                    aria-invalid={error?.includes("password") ? "true" : undefined}
                     aria-describedby={error ? "auth-error" : undefined} />
                 </div>
               </div>

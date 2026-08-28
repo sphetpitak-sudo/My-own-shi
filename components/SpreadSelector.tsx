@@ -53,7 +53,7 @@ export default function SpreadSelector({
               "relative flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all duration-300",
               "text-left",
               disabled
-                ? "opacity-35 cursor-not-allowed border-[var(--border)] bg-[var(--bg-card)]"
+                ? "opacity-40 cursor-not-allowed border-[var(--border)] bg-[var(--bg-card)]"
                 : active
                   ? "border-[var(--primary)] bg-[var(--primary-soft)]"
                   : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)] hover:-translate-y-0.5",
@@ -62,7 +62,7 @@ export default function SpreadSelector({
           >
             {/* Visual layout preview */}
             <div
-              className="relative w-full rounded-xl"
+              className="relative w-full rounded-xl overflow-hidden"
               style={{
                 height: 80,
                 background: "linear-gradient(160deg, #1a0a2e, #2d1548)",

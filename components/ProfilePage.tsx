@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { User, Calendar, BookOpen, Coins, ArrowUpRight, ArrowDownLeft, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import DailyBonus from "./DailyBonus";
@@ -125,13 +126,13 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
                 </span>
               </div>
             </div>
-            <a
+            <Link
               href="/dashboard/settings"
               className="btn btn-ghost text-[12px] flex-shrink-0"
             >
               <Settings size={13} />
               ตั้งค่า
-            </a>
+            </Link>
           </div>
         </div>
 

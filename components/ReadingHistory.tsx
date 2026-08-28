@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Clock, ChevronDown, ChevronUp, CreditCard, BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { SPREADS } from "@/lib/cards";
@@ -11,12 +12,6 @@ interface ReadingHistoryProps {
 }
 
 const PAGE_SIZE = 10;
-
-const spreadLabels: Record<string, string> = {
-  single: "ไพ่ใบเดียว",
-  three_card: "ไพ่สามใบ",
-  celtic: "กางเขนเซลติก",
-};
 
 export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -83,9 +78,9 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
         </div>
         <div className="empty-title">ยังไม่มีการทำนาย</div>
         <div className="empty-sub">เริ่มทำนายไพ่ทาโรต์เพื่อดูประวัติของคุณ</div>
-        <a href="/dashboard" className="btn btn-primary mt-4 text-[13px]">
+        <Link href="/dashboard" className="btn btn-primary mt-4 text-[13px]">
           เริ่มทำนาย
-        </a>
+        </Link>
       </div>
     );
   }
@@ -113,7 +108,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
-                    {spreadLabels[r.spread_type] || r.spread_type}
+                    {spread?.nameTh || r.spread_type}
                   </span>
                   <span className="badge badge-amber text-[10px]">-{r.points_spent} แต้ม</span>
                 </div>

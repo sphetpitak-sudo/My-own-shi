@@ -18,10 +18,10 @@ export default function Topbar({ userName, userAvatar, points = 0, onMenuClick }
     <header
       className="sticky top-0 z-50 flex items-center justify-between gap-3 px-4 lg:px-6 h-14"
       style={{
-        background: "color-mix(in srgb, var(--bg) 85%, transparent)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderBottom: "1px solid var(--border)",
+        background: "color-mix(in srgb, var(--bg) 80%, transparent)",
+        backdropFilter: "blur(20px) saturate(1.2)",
+        WebkitBackdropFilter: "blur(20px) saturate(1.2)",
+        borderBottom: "1px solid var(--border-subtle)",
       }}
     >
       <div className="flex items-center gap-3">
@@ -51,7 +51,7 @@ export default function Topbar({ userName, userAvatar, points = 0, onMenuClick }
           style={{
             background: "var(--amber-soft)",
             color: "var(--gold)",
-            border: "1px solid rgba(212, 175, 55, 0.1)",
+            border: "1px solid rgba(212, 175, 55, 0.08)",
           }}
           role="status"
           aria-label={`คะแนนคงเหลือ ${points.toLocaleString()}`}

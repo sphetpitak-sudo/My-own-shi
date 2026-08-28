@@ -74,11 +74,12 @@ export default function ReadingPage() {
     return (
       <DashboardShell>
         <div className="flex items-center justify-center" style={{ minHeight: "50vh" }}>
-          <div className="flex flex-col items-center gap-3">
-            <div
-              className="w-8 h-8 border-2 rounded-full animate-spin"
-              style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }}
-            />
+          <div className="flex flex-col items-center gap-4">
+            <div className="mystical-loader">
+              <div className="mystical-loader-dot" />
+              <div className="mystical-loader-dot" />
+              <div className="mystical-loader-dot" />
+            </div>
             <p className="text-[13px] font-medium" style={{ color: "var(--text-muted)" }}>
               กำลังโหลด...
             </p>

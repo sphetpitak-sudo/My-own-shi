@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Coins } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 interface PointsBalanceProps {
   points: number;
@@ -37,31 +38,31 @@ export default function PointsBalance({ points, className = "" }: PointsBalanceP
   }, [points]);
 
   return (
-    <div className={`flex flex-col items-center gap-4 ${className}`}>
+    <div className={cn("flex flex-col items-center gap-3", className)}>
       <div className="relative">
         <div
-          className="w-24 h-24 rounded-full flex items-center justify-center relative overflow-hidden"
+          className="w-20 h-20 rounded-full flex items-center justify-center relative overflow-hidden"
           style={{
             background: "linear-gradient(135deg, #f6c944 0%, #e8a917 30%, #d4af37 60%, #b8942a 100%)",
-            boxShadow: "0 6px 24px rgba(212, 175, 55, 0.25), inset 0 1px 0 rgba(255,255,255,0.4)",
+            boxShadow: "0 4px 20px rgba(212, 175, 55, 0.2), inset 0 1px 0 rgba(255,255,255,0.3)",
           }}
         >
           <div
-            className="absolute inset-0 opacity-30"
+            className="absolute inset-0 opacity-25"
             style={{
-              background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.5) 45%, transparent 60%)",
+              background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.45) 45%, transparent 60%)",
               animation: "coinShimmer 3s ease-in-out infinite",
             }}
           />
-          <Coins size={36} className="relative z-10" style={{ color: "#6a4e00" }} />
+          <Coins size={30} className="relative z-10" style={{ color: "#6a4e00" }} />
         </div>
       </div>
 
       <div className="text-center">
-        <div className="text-3xl font-bold tracking-tight" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
+        <div className="text-2xl font-bold tracking-tight" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
           {display.toLocaleString()}
         </div>
-        <div className="text-xs font-semibold mt-1" style={{ color: "var(--text-muted)", letterSpacing: "0.05em" }}>
+        <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--text-muted)", letterSpacing: "0.05em" }}>
           แต้ม
         </div>
       </div>

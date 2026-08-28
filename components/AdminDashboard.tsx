@@ -72,59 +72,61 @@ export default function AdminDashboard() {
     { label: "ผู้ใช้ทั้งหมด", value: stats?.totalUsers ?? 0, icon: Users, color: "var(--blue-soft)", iconColor: "var(--blue)" },
     { label: "การทำนายทั้งหมด", value: stats?.totalReadings ?? 0, icon: BookOpen, color: "var(--green-soft)", iconColor: "var(--green)" },
     { label: "คะแนนหมุนเวียน", value: stats?.totalPoints ?? 0, icon: Coins, color: "var(--amber-soft)", iconColor: "var(--amber)" },
-    { label: "ใช้งานวันนี้", value: stats?.activeToday ?? 0, icon: Activity, color: "var(--red-soft)", iconColor: "var(--red)" },
+    { label: "ใช้งานวันนี้", value: stats?.activeToday ?? 0, icon: Activity, color: "var(--primary-soft)", iconColor: "var(--primary)" },
   ];
 
   return (
-    <div className="tab-content">
-      <div className="page-header mb-6">
-        <div>
-          <h1 className="page-title">แดชบอร์ดแอดมิน</h1>
-          <p className="page-sub">ภาพรวมแพลตฟอร์มทำนายไพ่ทาโรต์</p>
+    <div className="p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="page-header mb-6">
+          <div>
+            <h1 className="page-title">แดชบอร์ดแอดมิน</h1>
+            <p className="page-sub">ภาพรวมแพลตฟอร์มทำนายไพ่ทาโรต์</p>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {statCards.map((s) => (
-          <div key={s.label} className="stat-card">
-            <div className="stat-icon" style={{ background: s.color }}>
-              <s.icon size={18} style={{ color: s.iconColor }} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {statCards.map((s) => (
+            <div key={s.label} className="stat-card">
+              <div className="stat-icon" style={{ background: s.color }}>
+                <s.icon size={18} style={{ color: s.iconColor }} />
+              </div>
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-value">{s.value.toLocaleString()}</div>
             </div>
-            <div className="stat-label">{s.label}</div>
-            <div className="stat-value">{s.value.toLocaleString()}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="card p-5">
-        <h2 className="sec-title mb-4">การทำนายล่าสุด</h2>
-        {recentReadings.length === 0 ? (
-          <div className="empty">
-            <div className="empty-icon"><BookOpen size={22} /></div>
-            <div className="empty-title">ยังไม่มีการทำนาย</div>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {recentReadings.map((r) => (
-              <div key={r.id} className="list-item">
-                <div className="item-icon" style={{ background: "var(--blue-soft)" }}>
-                  <BookOpen size={16} style={{ color: "var(--blue)" }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold truncate">{r.profiles?.display_name || "ไม่ทราบ"}</div>
-                  <div className="text-[12px] text-muted truncate">{r.question || "ไม่มีคำถาม"}</div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <span className="badge badge-blue">{r.spread_type}</span>
-                  <div className="text-[11px] text-muted mt-1">
-                    <Clock size={10} className="inline mr-1" />
-                    {new Date(r.created_at).toLocaleDateString()}
+        <div className="card p-5">
+          <h2 className="sec-title mb-4">การทำนายล่าสุด</h2>
+          {recentReadings.length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon"><BookOpen size={22} /></div>
+              <div className="empty-title">ยังไม่มีการทำนาย</div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {recentReadings.map((r) => (
+                <div key={r.id} className="list-item">
+                  <div className="item-icon" style={{ background: "var(--blue-soft)" }}>
+                    <BookOpen size={16} style={{ color: "var(--blue)" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold truncate">{r.profiles?.display_name || "ไม่ทราบ"}</div>
+                    <div className="text-[12px] text-muted truncate">{r.question || "ไม่มีคำถาม"}</div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="badge badge-blue">{r.spread_type}</span>
+                    <div className="text-[11px] text-muted mt-1">
+                      <Clock size={10} className="inline mr-1" />
+                      {new Date(r.created_at).toLocaleDateString()}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

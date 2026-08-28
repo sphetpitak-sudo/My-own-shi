@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Sparkles, User } from "lucide-react";
+import { Home, Sparkles, Clock, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export default function BottomNav() {
@@ -11,12 +11,12 @@ export default function BottomNav() {
   const items = [
     { href: "/dashboard", label: "หน้าหลัก", icon: Home },
     { href: "/dashboard/reading", label: "ไพ่", icon: Sparkles },
-    { href: "/dashboard/history", label: "ประวัติ", icon: Calendar },
+    { href: "/dashboard/history", label: "ประวัติ", icon: Clock },
     { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
   ];
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" aria-label="นำทางหลัก">
       {items.map((item) => {
         const isActive =
           item.href === "/dashboard"
