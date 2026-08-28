@@ -385,7 +385,6 @@ export default function DashboardHome() {
   );
 }
 
-// Wraps DailyBonus in the mystical background section
 function DailyBonusWrapper({
   userId,
   points,
@@ -397,51 +396,10 @@ function DailyBonusWrapper({
 }) {
   if (!userId) {
     return (
-      <div
-        style={{
-          background: "linear-gradient(160deg, #1e1230 0%, #12081f 60%, #0a0614 100%)",
-          borderRadius: "var(--radius-lg)",
-          padding: "32px 20px",
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background:
-              "radial-gradient(circle at 50% 15%, rgba(167, 139, 250, 0.08), transparent 55%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div className="relative" style={{ color: "#eae8e2" }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--gold-light)",
-              marginBottom: 3,
-            }}
-          >
-            + โบนัสรายวัน +
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,0.35)",
-              fontSize: 12,
-              fontWeight: 500,
-              marginBottom: 18,
-            }}
-          >
-            รับแต้มทุกวัน
-          </div>
+      <div className="daily-bonus-section" style={{ borderRadius: "var(--radius-lg)" }}>
+        <div className="daily-bonus-inner">
+          <div className="daily-bonus-title">+ โบนัสรายวัน +</div>
+          <div className="daily-bonus-sub">รับแต้มทุกวัน</div>
         </div>
       </div>
     );
@@ -449,60 +407,12 @@ function DailyBonusWrapper({
 
   return (
     <div
-      style={{
-        background: "linear-gradient(160deg, #1e1230 0%, #12081f 60%, #0a0614 100%)",
-        borderRadius: "var(--radius-lg)",
-        padding: "28px 20px 24px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-        border: "1px solid rgba(255,255,255,0.05)",
-      }}
+      className="daily-bonus-section"
+      style={{ borderRadius: "var(--radius-lg)", border: "1px solid rgba(255,255,255,0.05)" }}
     >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background:
-            "radial-gradient(circle at 50% 15%, rgba(167, 139, 250, 0.10), transparent 55%)",
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 1,
-          background:
-            "linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.25), transparent)",
-        }}
-      />
-      <div className="relative" style={{ color: "#eae8e2" }}>
-        <div
-          style={{
-            fontSize: 12.5,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--gold-light)",
-            marginBottom: 3,
-          }}
-        >
-          + โบนัสรายวัน +
-        </div>
-        <div
-          style={{
-            color: "rgba(255,255,255,0.4)",
-            fontSize: 12,
-            fontWeight: 500,
-            marginBottom: 16,
-          }}
-        >
+      <div className="daily-bonus-inner">
+        <div className="daily-bonus-title">+ โบนัสรายวัน +</div>
+        <div className="daily-bonus-sub">
           รับแต้มทุกวัน · ปัจจุบัน {points.toLocaleString()} แต้ม
         </div>
         <DailyBonus userId={userId} onClaim={onClaim} />

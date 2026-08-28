@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useTheme } from "@/lib/theme";
 import { Moon, Sun, Menu, Bell } from "lucide-react";
 import PointsBadge from "./ui/PointsBadge";
+import { useToast } from "@/components/Toast";
 
 interface TopbarProps {
   userName?: string;
@@ -19,6 +20,7 @@ export default function Topbar({
   onMenuClick,
 }: TopbarProps) {
   const { theme, toggle } = useTheme();
+  const { toast } = useToast();
 
   return (
     <header
@@ -68,6 +70,7 @@ export default function Topbar({
           className="btn-icon"
           aria-label="การแจ้งเตือน"
           title="การแจ้งเตือน"
+          onClick={() => toast("ฟีเจอร์การแจ้งเตือนเร็ว ๆ นี้", "info")}
         >
           <Bell size={15} />
         </button>

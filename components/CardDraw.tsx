@@ -89,6 +89,7 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
       <div
         className={cn(
           "card-spread-area",
+          spread.cardCount === 1 && "card-spread-area--single",
           spread.cardCount > 6 && "card-spread-area--celtic"
         )}
         style={

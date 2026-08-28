@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Clock, ChevronDown, ChevronUp, CreditCard, BookOpen } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { SPREADS } from "@/lib/cards";
 import type { Reading } from "@/lib/types";
@@ -62,9 +62,9 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
 
   if (loading) {
     return (
-      <div className="space-y-3">
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="shimmer h-[72px] w-full rounded-xl" />
+          <div key={i} className="shimmer" style={{ height: 76, width: "100%", borderRadius: 14 }} />
         ))}
       </div>
     );
@@ -72,13 +72,19 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
 
   if (readings.length === 0) {
     return (
-      <div className="empty">
+      <div className="empty" style={{ padding: "40px 16px" }}>
         <div className="empty-icon">
-          <BookOpen size={22} />
+          <Sparkles size={22} />
         </div>
         <div className="empty-title">ยังไม่มีการทำนาย</div>
-        <div className="empty-sub">เริ่มทำนายไพ่ทาโรต์เพื่อดูประวัติของคุณ</div>
-        <Link href="/dashboard" className="btn btn-primary mt-4 text-[13px]">
+        <div className="empty-sub">
+          เริ่มทำนายไพ่ทาโรต์เพื่อดูประวัติของคุณ
+        </div>
+        <Link
+          href="/dashboard/reading"
+          className="btn btn-primary"
+          style={{ marginTop: 16, fontSize: 13, padding: "10px 20px" }}
+        >
           เริ่มทำนาย
         </Link>
       </div>
@@ -86,46 +92,76 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {readings.map((r) => {
         const isExpanded = expandedId === r.id;
         const spread = SPREADS[r.spread_type];
         const truncatedQ = r.question.length > 60 ? r.question.slice(0, 60) + "..." : r.question;
+        const cardCount = r.cards && Array.isArray(r.cards) ? r.cards.length : 0;
 
         return (
-          <div key={r.id} className="card card-hover overflow-hidden">
+          <div key={r.id} className="card" style={{ overflow: "hidden" }}>
             <button
               onClick={() => setExpandedId(isExpanded ? null : r.id)}
-              className="w-full text-left p-4 flex items-start gap-3"
+              style={{
+                width: "100%",
+                textAlign: "left",
+                padding: "14px 16px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                transition: "background 0.15s var(--ease)",
+              }}
+              className="hover:bg-[var(--bg)]"
+              aria-expanded={isExpanded}
             >
               <div
-                className="item-icon flex-shrink-0 mt-0.5"
-                style={{ background: "var(--gold-soft)" }}
+                className="item-icon"
+                style={{ background: "var(--gold-soft)", marginTop: 1 }}
               >
-                <CreditCard size={16} style={{ color: "var(--gold)" }} />
+                <CreditCard size={15} style={{ color: "var(--gold)" }} />
               </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>
                     {spread?.nameTh || r.spread_type}
                   </span>
-                  <span className="badge badge-amber text-[10px]">-{r.points_spent} แต้ม</span>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: "var(--amber-soft)",
+                      color: "var(--amber)",
+                    }}
+                  >
+                    -{r.points_spent} แต้ม
+                  </span>
+                  {cardCount > 0 && (
+                    <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                      {cardCount} ใบ
+                    </span>
+                  )}
                 </div>
                 {r.question && (
-                  <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-secondary)" }}>
+                  <p style={{ fontSize: 12.5, marginTop: 4, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {truncatedQ}
                   </p>
                 )}
-                <div className="flex items-center gap-1 mt-1.5">
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
                   <Clock size={11} style={{ color: "var(--text-muted)" }} />
-                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     {formatDate(r.created_at)}
                   </span>
                 </div>
               </div>
 
-              <div className="flex-shrink-0 mt-1">
+              <div style={{ flexShrink: 0, marginTop: 4 }}>
                 {isExpanded ? (
                   <ChevronUp size={16} style={{ color: "var(--text-muted)" }} />
                 ) : (
@@ -135,44 +171,39 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
             </button>
 
             {isExpanded && (
-              <div
-                className="px-4 pb-4 pt-0 border-t"
-                style={{ borderColor: "var(--border)" }}
-              >
+              <div style={{ padding: "0 16px 16px", borderTop: "1px solid var(--border)" }}>
                 {r.question && (
-                  <div className="mt-3">
-                    <div className="text-[11px] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--text-muted)" }}>
                       คำถาม
                     </div>
-                    <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+                    <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
                       {r.question}
                     </p>
                   </div>
                 )}
 
-                <div className="mt-3">
-                  <div className="text-[11px] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--text-muted)" }}>
                     การทำนาย
                   </div>
-                  <p
-                    className="text-[13px] leading-[1.7] whitespace-pre-line"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
+                  <p style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text-secondary)", whiteSpace: "pre-wrap" }}>
                     {r.interpretation}
                   </p>
                 </div>
 
                 {spread && r.cards && Array.isArray(r.cards) && (
-                  <div className="mt-3">
-                    <div className="text-[11px] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: "var(--text-muted)" }}>
                       ไพ่ที่เปิด
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {(r.cards as { card: { nameTh: string }; reversed: boolean }[]).map(
                         (c, i) => (
                           <span
                             key={i}
-                            className="badge badge-neutral text-[10px]"
+                            className="badge badge-neutral"
+                            style={{ fontSize: 10.5 }}
                           >
                             {c.card.nameTh}
                             {c.reversed && " (กลับ)"}
@@ -189,11 +220,12 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
       })}
 
       {hasMore && (
-        <div className="text-center pt-2">
+        <div style={{ textAlign: "center", paddingTop: 8 }}>
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="btn btn-ghost text-[13px]"
+            className="btn btn-ghost"
+            style={{ fontSize: 13 }}
           >
             {loadingMore ? "กำลังโหลด..." : "โหลดเพิ่มเติม"}
           </button>

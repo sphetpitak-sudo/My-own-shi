@@ -72,11 +72,15 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
 
   if (loading) {
     return (
-      <div className="space-y-6 p-4 md:p-8">
-        <div className="shimmer h-[140px] w-full rounded-2xl" />
-        <div className="space-y-2">
+      <div style={{ padding: "16px" }}>
+        <div className="shimmer" style={{ height: 140, width: "100%", borderRadius: 14 }} />
+        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+          <div className="shimmer" style={{ flex: 1, height: 96, borderRadius: 14 }} />
+          <div className="shimmer" style={{ flex: 1, height: 96, borderRadius: 14 }} />
+        </div>
+        <div style={{ marginTop: 24 }}>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="shimmer h-[52px] w-full" />
+            <div key={i} className="shimmer" style={{ height: 56, width: "100%", borderRadius: 10, marginBottom: 8 }} />
           ))}
         </div>
       </div>
@@ -84,14 +88,21 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div>
+      <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
         {/* Profile Card */}
-        <div className="card p-6">
-          <div className="flex items-center gap-4">
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                overflow: "hidden",
                 background: "linear-gradient(135deg, var(--primary), #a78bfa)",
                 boxShadow: "0 4px 16px rgba(109, 40, 217, 0.2)",
               }}
@@ -100,22 +111,22 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
                 <Image
                   src={profile.avatar_url}
                   alt={profile.display_name || "User"}
-                  width={64}
-                  height={64}
+                  width={56}
+                  height={56}
                   unoptimized
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User size={26} className="text-white" />
+                <User size={22} style={{ color: "white" }} />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[18px] font-bold truncate" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {profile?.display_name || "ผู้ใช้"}
               </div>
-              <div className="flex items-center gap-1.5 mt-1">
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
                 <Calendar size={11} style={{ color: "var(--text-muted)" }} />
-                <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
                   เป็นสมาชิกตั้งแต่{" "}
                   {profile?.created_at
                     ? new Date(profile.created_at).toLocaleDateString("th-TH", {
@@ -128,7 +139,8 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
             </div>
             <Link
               href="/dashboard/settings"
-              className="btn btn-ghost text-[12px] flex-shrink-0"
+              className="btn btn-ghost"
+              style={{ fontSize: 12, flexShrink: 0 }}
             >
               <Settings size={13} />
               ตั้งค่า
@@ -137,41 +149,53 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="stat-card text-center">
-            <div className="flex items-center justify-center mb-2">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: "var(--amber-soft)" }}
-              >
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--amber-soft)" }}>
                 <Coins size={16} style={{ color: "var(--gold)" }} />
               </div>
             </div>
-            <div className="stat-value text-[22px]">{profile?.points ?? 0}</div>
-            <div className="stat-label">คะแนนคงเหลือ</div>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>{profile?.points ?? 0}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-muted)", marginTop: 2 }}>คะแนนคงเหลือ</div>
           </div>
-          <div className="stat-card text-center">
-            <div className="flex items-center justify-center mb-2">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: "var(--blue-soft)" }}
-              >
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--blue-soft)" }}>
                 <BookOpen size={16} style={{ color: "var(--blue)" }} />
               </div>
             </div>
-            <div className="stat-value text-[22px]">{transactions.filter((t) => t.type === "reading_purchase").length}</div>
-            <div className="stat-label">การทำนายทั้งหมด</div>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>{transactions.filter((t) => t.type === "reading_purchase").length}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-muted)", marginTop: 2 }}>การทำนายทั้งหมด</div>
           </div>
         </div>
 
         {/* Daily Bonus */}
-        <DailyBonus userId={userId} onClaim={handleDailyBonus} />
+        <div
+          className="daily-bonus-section"
+          style={{ borderRadius: "var(--radius-lg)", border: "1px solid rgba(255,255,255,0.05)" }}
+        >
+          <div className="daily-bonus-inner">
+            <div className="daily-bonus-title">+ โบนัสรายวัน +</div>
+            <div className="daily-bonus-sub">
+              รับแต้มทุกวัน · ปัจจุบัน {(profile?.points ?? 0).toLocaleString()} แต้ม
+            </div>
+            <DailyBonus userId={userId} onClaim={handleDailyBonus} />
+          </div>
+        </div>
 
         {/* Transaction History */}
         <div>
-          <div className="sec-title mb-4">ประวัติคะแนน</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>ประวัติคะแนน</h2>
+            {transactions.length > 0 && (
+              <span style={{ fontSize: 11.5, color: "var(--text-muted)", fontWeight: 500 }}>
+                {transactions.length} รายการ
+              </span>
+            )}
+          </div>
           {transactions.length === 0 ? (
-            <div className="empty py-8">
+            <div className="empty" style={{ padding: "32px 16px" }}>
               <div className="empty-icon">
                 <Coins size={22} />
               </div>
@@ -179,7 +203,7 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
               <div className="empty-sub">เริ่มทำนายเพื่อดูประวัติคะแนนของคุณ</div>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div>
               {transactions.map((tx) => {
                 const meta = txTypeLabels[tx.type] || {
                   label: tx.type,
@@ -200,17 +224,22 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
                         style={{ color: meta.positive ? "var(--green)" : "var(--red)" }}
                       />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
                         {meta.label}
                       </div>
-                      <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                         {formatTxDate(tx.created_at)}
                       </div>
                     </div>
                     <div
-                      className="text-[14px] font-bold flex-shrink-0"
-                      style={{ color: meta.positive ? "var(--green)" : "var(--red)" }}
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        fontFeatureSettings: '"tnum"',
+                        color: meta.positive ? "var(--green)" : "var(--red)",
+                      }}
                     >
                       {meta.positive ? "+" : ""}
                       {tx.amount}

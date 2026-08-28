@@ -12,6 +12,7 @@ import {
   Sparkles,
   AlertTriangle,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 interface Props {
   cards: DrawnCard[];
@@ -225,7 +226,10 @@ export default function ReadingResult({
       )}
 
       {/* Cards strip */}
-      <div className="reading-cards-strip">
+      <div className={cn(
+        "reading-cards-strip",
+        spreadType === "celtic" && "reading-cards-strip--celtic"
+      )}>
         {cards.map((c, i) => (
           <div
             key={i}

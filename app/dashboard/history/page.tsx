@@ -45,7 +45,7 @@ export default function HistoryPage() {
 
   return (
     <DashboardShell>
-      <div className="p-4 md:p-8">
+      <div className="px-4 pt-4 pb-28 md:px-8 md:py-8">
         <div className="max-w-3xl mx-auto">
           <div className="page-header">
             <h1 className="page-title">ประวัติการทำนาย</h1>

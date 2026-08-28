@@ -74,22 +74,6 @@ export default function YesNoPage() {
         return;
       }
 
-      // Atomic spend
-      const { data: spent, error: spendErr } = await supabase.rpc("spend_points", {
-        p_user_id: user.id,
-        p_amount: cost,
-      });
-      if (spendErr) {
-        setError("ไม่สามารถดำเนินการได้");
-        setSubmitting(false);
-        return;
-      }
-      if (!spent) {
-        setError(`คะแนนไม่พอ (ต้องการ ${cost})`);
-        setSubmitting(false);
-        return;
-      }
-
       // Draw a single card
       const drawn = drawCards({
         id: "single",
@@ -102,7 +86,6 @@ export default function YesNoPage() {
         positions: [{ label: "Answer", labelTh: "คำตอบ", x: 50, y: 50 }],
       });
       setDrawnCard(drawn[0]!);
-      setPoints((p) => Math.max(0, p - cost));
 
       // Compute deterministic answer from card
       const seed = (drawn[0]!.card.id * 13 + (drawn[0]!.reversed ? 7 : 3)) % 100;
@@ -110,29 +93,98 @@ export default function YesNoPage() {
       if (seed < 45) next = "yes";
       else if (seed < 80) next = "no";
       else next = "maybe";
-      setAnswer(next);
 
-      // Optional AI interpretation
       if (aiEnabled) {
-        try {
-          await streamInterpretation({
-            cardId: drawn[0]!.card.id,
-            reversed: drawn[0]!.reversed,
-            question,
-            answer: next,
-            onDelta: (chunk) => setInterpretation((prev) => prev + chunk),
-            onDone: () => {
-              setSubmitting(false);
-            },
-          });
-        } catch {
+        // Server-side charge + recording via /api/reading (single spend)
+        const res = await fetch("/api/reading", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: `[ถามใช่/ไม่] ${question} (คำตอบ: ${next})`,
+            spreadType: "single",
+            cards: [
+              { cardId: drawn[0]!.card.id, positionLabel: "คำตอบ", reversed: drawn[0]!.reversed },
+            ],
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data.error === "Not enough points") {
+            setError(`คะแนนไม่พอ (ต้องการ ${data.needed ?? cost})`);
+          } else if (data.error === "Unauthorized") {
+            setError("กรุณาเข้าสู่ระบบใหม่");
+          } else {
+            setError("ไม่สามารถทำนายได้ กรุณาลองใหม่");
+          }
           setSubmitting(false);
+          return;
         }
+
+        // Charge succeeded — reveal the answer and stream interpretation
+        setAnswer(next);
+        setPoints((p) => Math.max(0, p - cost));
+        setPhase("result");
+
+        if (!res.body) {
+          setSubmitting(false);
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  setInterpretation((prev) => prev + parsed.content);
+                }
+              } catch {
+                // ignore malformed chunk
+              }
+            }
+          }
+        }
+        setSubmitting(false);
       } else {
+        // Non-AI path: single atomic spend
+        const { data: spent, error: spendErr } = await supabase.rpc("spend_points", {
+          p_user_id: user.id,
+          p_amount: cost,
+        });
+        if (spendErr) {
+          setError("ไม่สามารถดำเนินการได้");
+          setSubmitting(false);
+          return;
+        }
+        if (!spent) {
+          setError(`คะแนนไม่พอ (ต้องการ ${cost})`);
+          setSubmitting(false);
+          return;
+        }
+
+        await supabase.from("point_transactions").insert({
+          user_id: user.id,
+          amount: -cost,
+          type: "reading_purchase",
+          description: "single reading (yes/no)",
+        });
+
+        setAnswer(next);
+        setPoints((p) => Math.max(0, p - cost));
+        setPhase("result");
         setSubmitting(false);
       }
-
-      setPhase("result");
     } catch {
       setError("เกิดข้อผิดพลาด");
       setSubmitting(false);
@@ -400,67 +452,4 @@ export default function YesNoPage() {
       </div>
     </DashboardShell>
   );
-}
-
-// Lightweight internal streaming helper for short AI responses
-async function streamInterpretation({
-  cardId,
-  reversed,
-  question,
-  answer,
-  onDelta,
-  onDone,
-}: {
-  cardId: number;
-  reversed: boolean;
-  question: string;
-  answer: "yes" | "no" | "maybe";
-  onDelta: (chunk: string) => void;
-  onDone: () => void;
-}) {
-  // We use the existing /api/reading endpoint with a synthetic single-card spread
-  // to keep server-side AI integration simple and respect existing RLS / refunds.
-  const res = await fetch("/api/reading", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      question: `[ถามใช่/ไม่] ${question} (คำตอบ: ${answer})`,
-      spreadType: "single",
-      cards: [
-        { cardId, positionLabel: "คำตอบ", reversed },
-      ],
-    }),
-  });
-
-  if (!res.ok || !res.body) {
-    onDone();
-    return;
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") {
-          onDone();
-          return;
-        }
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.content) onDelta(parsed.content);
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }
-  onDone();
 }

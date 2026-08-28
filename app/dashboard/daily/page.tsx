@@ -95,6 +95,37 @@ const ASPECTS = [
   { id: "health", label: "สุขภาพ", icon: Activity, color: "#22c55e" },
 ];
 
+const ASPECT_TIPS: Record<
+  string,
+  { upright: string; reversed: string }
+> = {
+  love: {
+    upright: "เปิดใจให้โอกาสใหม่ ๆ และสื่อสารสิ่งที่รู้สึกอย่างตรงไปตรงมา",
+    reversed: "ทบทวนความคาดหวังของตัวเอง ก่อนตัดสินใจเรื่องหัวใจ",
+  },
+  career: {
+    upright: "ใช้จังหวะนี้แสดงศักยภาพให้คนรอบข้างเห็น กล้าเสนอความคิดใหม่",
+    reversed: "ความมั่นคงกับความก้าวหน้าอาจต้องเลือก อย่าเพิ่งรีบร้อน",
+  },
+  finance: {
+    upright: "มีโอกาสที่ดีเกี่ยวกับการเงิน วางแผนแล้วค่อยตัดสินใจ",
+    reversed: "ระวังการใช้จ่ายเกินจำเป็น เลี่ยงการตัดสินใจเรื่องเงินแบบกะทันหัน",
+  },
+  study: {
+    upright: "เหมาะแก่การเรียนรู้สิ่งใหม่ โฟกัสกับเป้าหมายทีละขั้น",
+    reversed: "ถ้ารู้สึกท้อ ให้แบ่งงานเป็นชิ้นเล็ก ๆ และขอความช่วยเหลือเมื่อจำเป็น",
+  },
+  health: {
+    upright: "พลังงานดี ให้เวลากับการเคลื่อนไหวและพักผ่อนให้เพียงพอ",
+    reversed: "ฟังสัญญาณของร่างกาย หยุดพักก่อนจะเหนื่อยเกินไป",
+  },
+};
+
+function aspectTip(id: string, reversed: boolean): string {
+  const tip = ASPECT_TIPS[id];
+  return tip ? (reversed ? tip.reversed : tip.upright) : "";
+}
+
 export default function DailyPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [day, setDay] = useState<DayData | null>(null);
@@ -261,7 +292,7 @@ export default function DailyPage() {
                       {a.label}
                     </div>
                     <div className="text-[11.5px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      {day.focus}
+                      {aspectTip(a.id, day.card.reversed)}
                     </div>
                   </div>
                 </div>
