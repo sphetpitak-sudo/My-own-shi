@@ -10,8 +10,9 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import AnnouncementCard from "@/components/ui/AnnouncementCard";
 import { SPREADS, type SpreadType } from "@/lib/cards";
 import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/catalog";
-import { Coins, Sparkles, CircleHelp, Gift, Star, type LucideIcon } from "lucide-react";
+import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
 
 interface ProfileLite {
   display_name: string | null;
@@ -74,6 +75,7 @@ export default function DashboardHome() {
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [activeCategory, setActiveCategory] = useState<FeatureCategory | "all">("all");
   const [recentReadings, setRecentReadings] = useState<Array<{ id: string; spread_type: string; question: string; created_at: string; points_spent: number }>>([]);
+  const [draft, setDraft] = useState<ReturnType<typeof loadDraft>>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -97,6 +99,7 @@ export default function DashboardHome() {
           .then(({ data: r }: { data: typeof recentReadings | null }) => {
             if (r) setRecentReadings(r);
           });
+        setDraft(loadDraft());
       }
     });
 
@@ -155,6 +158,26 @@ export default function DashboardHome() {
           {(profile?.points ?? 0).toLocaleString()}
         </div>
       </header>
+
+      {/* Continue reading */}
+      {draft && draft.question && (
+        <div className="dash-section">
+          <div className="card p-4 flex items-center gap-3" style={{ borderLeft: "3px solid var(--primary)", background: "linear-gradient(135deg, var(--primary-soft), transparent)" }}>
+            <span className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0" style={{ background: "var(--primary)", color: "white" }}>
+              <BookOpen size={14} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "var(--primary)" }}>ทำต่อ</div>
+              <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{draft.question.slice(0, 48)}{draft.question.length > 48 ? "…" : ""}</div>
+              <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>{draft.spreadType} · เหลือขั้นตอน {draft.step}</div>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={() => router.push(`/dashboard/reading?spread=${draft.spreadType}`)} className="btn btn-primary text-[12px] px-4 py-2 rounded-xl">อ่านต่อ</button>
+              <button onClick={() => { clearDraft(); setDraft(null); }} className="btn btn-ghost text-[12px] px-3 py-2">ลบ</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero spread card */}
       <div className="dash-section">

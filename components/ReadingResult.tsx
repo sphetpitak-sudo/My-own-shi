@@ -386,6 +386,15 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
               <RefreshCw size={14} /> อ่านอีกครั้ง
             </button>
           </div>
+          <div className="flex items-center justify-center gap-4 mt-1">
+            <a href="/dashboard/history" className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
+              ดูประวัติ →
+            </a>
+            <span style={{ color: "var(--border-strong)" }}>·</span>
+            <a href="/dashboard/daily" className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
+              ดูดวงรายวัน
+            </a>
+          </div>
         </div>
       )}
     </div>

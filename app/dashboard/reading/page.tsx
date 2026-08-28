@@ -12,6 +12,7 @@ import { ArrowLeft, Check, Sparkles, Wand2, HelpCircle, BookOpen } from "lucide-
 import { SPREADS, type SpreadType, type DrawnCard } from "@/lib/cards";
 import { useBeforeUnload } from "@/lib/useBeforeUnload";
 import { cn } from "@/lib/cn";
+import { saveDraft, loadDraft, clearDraft } from "@/lib/useReadingDraft";
 
 const STEPS = [
   { key: "spread", label: "เลือก Spread", icon: Sparkles },
@@ -106,6 +107,32 @@ function ReadingPageInner() {
     "คุณกำลังอ่านไพ่อยู่ หากออกจะสูญเสียแต้ม"
   );
 
+  // Persist unfinished reading for "ทำต่อ" on dashboard / refresh
+  useEffect(() => {
+    if (step === "spread") {
+      clearDraft();
+      return;
+    }
+    saveDraft({ spreadType, question, drawnCards, step });
+  }, [step, spreadType, question, drawnCards]);
+
+  // Restore draft if user returns without ?spread
+  useEffect(() => {
+    if (loading) return;
+    if (hasInitialSpread) return;
+    const draft = loadDraft();
+    if (draft && draft.question && draft.spreadType) {
+      setSpreadType(draft.spreadType);
+      setQuestion(draft.question);
+      if (draft.drawnCards) setDrawnCards(draft.drawnCards as DrawnCard[]);
+      if (draft.step === "draw" || draft.step === "result") {
+        // Don't auto-restore to draw/result to avoid duplicate spend; stay at question
+        setStep("question");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
   if (loading) {
     return (
       <DashboardShell>
@@ -144,6 +171,7 @@ function ReadingPageInner() {
   };
 
   const handleResultDone = () => {
+    clearDraft();
     setDrawnCards(null);
     setQuestion("");
     setStep("spread");
