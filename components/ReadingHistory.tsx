@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { SPREADS } from "@/lib/cards";
+import { SPREADS, ALL_CARDS } from "@/lib/cards";
 import type { Reading } from "@/lib/types";
 
 interface ReadingHistoryProps {
@@ -12,6 +12,25 @@ interface ReadingHistoryProps {
 }
 
 const PAGE_SIZE = 10;
+
+const SPREAD_LABELS: Record<string, string> = {
+  oracle: "ไพ่ลางสังหรณ์",
+};
+
+// Extract a display name from a stored card row, handling both tarot
+// ({ cardId, positionLabel, reversed }) and oracle ({ id, nameTh, keywordTh }) shapes.
+function cardDisplayName(c: unknown): string {
+  if (!c || typeof c !== "object") return "";
+  const obj = c as Record<string, unknown>;
+  if (typeof obj.cardId === "number") {
+    return ALL_CARDS.find((x) => x.id === obj.cardId)?.nameTh ?? "";
+  }
+  if (obj.card && typeof obj.card === "object") {
+    return (obj.card as { nameTh?: string }).nameTh ?? "";
+  }
+  if (typeof obj.nameTh === "string") return obj.nameTh;
+  return "";
+}
 
 export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -42,6 +61,19 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
 
   useEffect(() => {
     fetchReadings();
+  }, [fetchReadings]);
+
+  // Refresh when the tab regains focus so newly created readings appear
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === "visible") fetchReadings();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, [fetchReadings]);
 
   const loadMore = () => {
@@ -128,7 +160,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>
-                    {spread?.nameTh || r.spread_type}
+                    {SPREAD_LABELS[r.spread_type] || spread?.nameTh || r.spread_type}
                   </span>
                   <span
                     style={{
@@ -183,33 +215,33 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                   </div>
                 )}
 
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--text-muted)" }}>
-                    การทำนาย
+                {r.interpretation && (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--text-muted)" }}>
+                      การทำนาย
+                    </div>
+                    <p style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text-secondary)", whiteSpace: "pre-wrap" }}>
+                      {r.interpretation}
+                    </p>
                   </div>
-                  <p style={{ fontSize: 13, lineHeight: 1.75, color: "var(--text-secondary)", whiteSpace: "pre-wrap" }}>
-                    {r.interpretation}
-                  </p>
-                </div>
+                )}
 
-                {spread && r.cards && Array.isArray(r.cards) && (
+                {r.cards && Array.isArray(r.cards) && r.cards.length > 0 && (
                   <div style={{ marginTop: 14 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: "var(--text-muted)" }}>
                       ไพ่ที่เปิด
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {(r.cards as { card: { nameTh: string }; reversed: boolean }[]).map(
-                        (c, i) => (
-                          <span
-                            key={i}
-                            className="badge badge-neutral"
-                            style={{ fontSize: 10.5 }}
-                          >
-                            {c.card.nameTh}
-                            {c.reversed && " (กลับ)"}
-                          </span>
-                        )
-                      )}
+                      {r.cards.map((c, i) => (
+                        <span
+                          key={i}
+                          className="badge badge-neutral"
+                          style={{ fontSize: 10.5 }}
+                        >
+                          {cardDisplayName(c)}
+                          {(c as { reversed?: boolean })?.reversed ? " (กลับ)" : ""}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 )}

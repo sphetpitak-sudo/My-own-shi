@@ -493,9 +493,10 @@ export async function POST(request: Request) {
               interpretation: fullText,
               points_spent: cost,
             });
-          } catch {
+          } catch (e) {
             // Saving failed after a successful stream — user already received
-            // the reading, so no refund. The error is logged by Supabase.
+            // the reading, so no refund. Log for diagnosis.
+            console.error("Failed to save reading:", e);
           }
         }
       },

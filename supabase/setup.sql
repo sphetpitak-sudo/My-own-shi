@@ -61,13 +61,20 @@ GRANT UPDATE (display_name, avatar_url) ON public.profiles TO authenticated;
 CREATE TABLE IF NOT EXISTS readings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  spread_type TEXT NOT NULL CHECK (spread_type IN ('single', 'three_card', 'celtic')),
+  spread_type TEXT NOT NULL CHECK (spread_type IN ('single', 'three_card', 'celtic', 'oracle')),
   cards JSONB NOT NULL DEFAULT '[]'::jsonb,
   question TEXT NOT NULL DEFAULT '',
   interpretation TEXT NOT NULL DEFAULT '',
   points_spent INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Ensure the spread_type constraint accepts 'oracle' (idempotent migration)
+DO $$ BEGIN
+  ALTER TABLE readings DROP CONSTRAINT IF EXISTS readings_spread_type_check;
+  ALTER TABLE readings ADD CONSTRAINT readings_spread_type_check
+    CHECK (spread_type IN ('single', 'three_card', 'celtic', 'oracle'));
+EXCEPTION WHEN undefined_table THEN NULL; END $$;
 
 ALTER TABLE readings ENABLE ROW LEVEL SECURITY;
 

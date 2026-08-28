@@ -211,7 +211,6 @@ export default function TarotCard({
             src={`/Taro/${card.imageFile}`}
             alt={card.name}
             className="w-full h-full"
-            loading="lazy"
             decoding="async"
             style={{
               objectFit: "contain",

@@ -1336,6 +1336,10 @@ button:focus-visible {
   transition: transform 0.4s var(--ease);
   user-select: none;
 }
+.tarot-card-inner {
+  position: absolute;
+  inset: 0;
+}
 .tarot-card .tarot-face {
   position: absolute;
   inset: 0;

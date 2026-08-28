@@ -28,6 +28,7 @@ export default function OraclePage() {
   const [aiLoading, setAiLoading] = useState(false);
   const startedRef = useRef(false);
   const textRef = useRef<HTMLDivElement | null>(null);
+  const readingIdRef = useRef<string | null>(null);
 
   const spread = ORACLE_SPREADS.find((s) => s.id === spreadId)!;
 
@@ -80,10 +81,26 @@ export default function OraclePage() {
     }
 
     setPoints((p) => Math.max(0, p - spread.cost));
-    setCards(drawOracleCards(spread.count));
+    const drawnCards = drawOracleCards(spread.count);
+    setCards(drawnCards);
     setRevealed(0);
     setInterpretation("");
     setPhase("shuffle");
+
+    // Save to history immediately (interpretation is filled in when AI completes)
+    const { data: inserted } = await supabase
+      .from("readings")
+      .insert({
+        user_id: user.id,
+        spread_type: "oracle",
+        cards: drawnCards.map((c) => ({ id: c.id, nameTh: c.nameTh, keywordTh: c.keywordTh })),
+        question,
+        interpretation: "",
+        points_spent: spread.cost,
+      })
+      .select("id")
+      .single();
+    readingIdRef.current = inserted?.id ?? null;
   };
 
   const handleShuffleComplete = useCallback(() => {
@@ -125,6 +142,7 @@ export default function OraclePage() {
 
       const decoder = new TextDecoder();
       let buffer = "";
+      let fullText = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -138,6 +156,7 @@ export default function OraclePage() {
             try {
               const parsed = JSON.parse(data);
               if (parsed.content) {
+                fullText += parsed.content;
                 setInterpretation((prev) => prev + parsed.content);
               }
             } catch {
@@ -145,6 +164,16 @@ export default function OraclePage() {
             }
           }
         }
+      }
+
+      // Persist the AI text into the reading history row
+      if (readingIdRef.current && fullText) {
+        const supabase = createClient();
+        await supabase
+          .from("readings")
+          .update({ interpretation: fullText })
+          .eq("id", readingIdRef.current)
+          .catch(() => {});
       }
     } catch {
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
@@ -173,6 +202,7 @@ export default function OraclePage() {
     setInterpretation("");
     setError("");
     startedRef.current = false;
+    readingIdRef.current = null;
   };
 
   if (loading) {

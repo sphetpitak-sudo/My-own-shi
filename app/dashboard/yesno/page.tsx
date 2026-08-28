@@ -176,6 +176,18 @@ export default function YesNoPage() {
           return;
         }
 
+        // Save to history so the yes/no reading appears in the history page
+        await supabase.from("readings").insert({
+          user_id: user.id,
+          spread_type: "single",
+          cards: [
+            { cardId: drawn[0]!.card.id, positionLabel: "คำตอบ", reversed: drawn[0]!.reversed },
+          ],
+          question,
+          interpretation: "",
+          points_spent: cost,
+        }).catch(() => {});
+
         setAnswer(next);
         setPoints((p) => Math.max(0, p - cost));
         setPhase("result");

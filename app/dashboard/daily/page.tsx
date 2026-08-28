@@ -168,7 +168,6 @@ export default function DailyPage() {
                   objectFit: "contain",
                   transform: day.card.reversed ? "rotate(180deg)" : undefined,
                 }}
-                loading="lazy"
               />
             </div>
           </div>
