@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
-import { ORACLE_CARDS } from "@/lib/oracle";
+import { ALL_CARDS } from "@/lib/cards";
 
 const systemPrompt = `คุณคือ "เสียงจากจักรวาล" นักอ่านไพ่ออราเคิลมืออาชีพที่อ่อนโยน ลึกซึ้ง และมีสัญชาตญาณ
 
@@ -86,7 +86,8 @@ function getOpenAI() {
 }
 
 interface OracleCardInput {
-  id: number;
+  cardId: number;
+  reversed: boolean;
 }
 
 export async function POST(request: Request) {
@@ -107,11 +108,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid cards data" }, { status: 400 });
     }
 
-    // Validate card ids
-    const idSet = new Set(ORACLE_CARDS.map((c) => c.id));
+    // Validate card ids (oracle now uses Tarot deck)
+    const cardMap = new Map(ALL_CARDS.map((c) => [c.id, c]));
     for (const c of cards) {
-      if (typeof c.id !== "number" || !idSet.has(c.id)) {
+      if (typeof c.cardId !== "number" || !cardMap.has(c.cardId)) {
         return NextResponse.json({ error: "Invalid card ID" }, { status: 400 });
+      }
+      if (typeof c.reversed !== "boolean") {
+        return NextResponse.json({ error: "Invalid card data" }, { status: 400 });
       }
     }
 
@@ -141,18 +145,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429 });
     }
 
-    const resolved = cards.map((c) => {
-      const card = ORACLE_CARDS.find((o) => o.id === c.id)!;
-      return `- ${card.nameTh} (${card.keywordTh})\n  ข้อความ: ${card.messageTh}\n  คำยืนยัน: ${card.affirmationTh}`;
-    }).join("\n\n");
+    const resolved = cards
+      .map((c, i) => {
+        const card = cardMap.get(c.cardId)!;
+        const status = c.reversed ? "กลับหัว" : "หงาย";
+        const meaning = c.reversed ? card.reversedTh : card.uprightTh;
+        return `${i + 1}. ${card.nameTh} (${card.name}) — ${status}\n   ความหมาย: ${meaning}`;
+      })
+      .join("\n\n");
 
     const userPrompt = `คำถามของผู้ใช้:
 ${trimmedQuestion || "ไม่มีคำถามเฉพาะ — อ่านโดยรวม"}
 
-ไพ่ออราเคิลที่เปิดได้:
+ไพ่ทาโรต์ที่เปิดได้ (สำหรับไพ่ออราเคิล - ตีความอย่างอ่อนโยนแบบออราเคิล):
 ${resolved}
 
-จงอ่านไพ่ชุดนี้ให้ผู้ใช้อย่างอ่อนโยนและลึกซึ้ง`;
+จงอ่านไพ่ชุดนี้ให้ผู้ใช้ในสไตล์ออราเคิล — อ่อนโยน สั้นกระชับ เน้นข้อความให้กำลังใจและสัญชาตญาณ`;
 
     const stream = await getOpenAI()
       .chat.completions.create(

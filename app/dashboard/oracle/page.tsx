@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import DashboardShell from "@/components/DashboardShell";
 import ShuffleAnimation from "@/components/ShuffleAnimation";
-import OracleCard from "@/components/OracleCard";
+import TarotCard from "@/components/TarotCard";
 import { Sparkles, Coins, ArrowLeft, RefreshCw, CircleHelp } from "lucide-react";
-import { ORACLE_SPREADS, drawOracleCards, type OracleCard as OracleCardType, type OracleSpreadId } from "@/lib/oracle";
+import { ORACLE_SPREADS, type OracleSpreadId } from "@/lib/oracle";
+import { SPREADS, drawCards, type DrawnCard } from "@/lib/cards";
 import { cn } from "@/lib/cn";
 import { stripMarkdownMultiline } from "@/lib/text";
 
@@ -22,7 +23,7 @@ export default function OraclePage() {
   const [spreadId, setSpreadId] = useState<OracleSpreadId>("single");
   const [question, setQuestion] = useState("");
   const [aiEnabled, setAiEnabled] = useState(true);
-  const [cards, setCards] = useState<OracleCardType[]>([]);
+  const [cards, setCards] = useState<DrawnCard[]>([]);
   const [revealed, setRevealed] = useState(0);
   const [error, setError] = useState("");
   const [interpretation, setInterpretation] = useState("");
@@ -82,7 +83,9 @@ export default function OraclePage() {
     }
 
     setPoints((p) => Math.max(0, p - spread.cost));
-    const drawnCards = drawOracleCards(spread.count);
+    // Oracle now uses the Tarot deck (78 Rider-Waite) - draw real tarot cards
+    const tarotSpread = spread.count === 1 ? SPREADS.single : SPREADS.three_card;
+    const drawnCards = drawCards(tarotSpread);
     setCards(drawnCards);
     setRevealed(0);
     setInterpretation("");
@@ -94,7 +97,11 @@ export default function OraclePage() {
       .insert({
         user_id: user.id,
         spread_type: "oracle",
-        cards: drawnCards.map((c) => ({ id: c.id, nameTh: c.nameTh, keywordTh: c.keywordTh })),
+        cards: drawnCards.map((c) => ({
+          cardId: c.card.id,
+          positionLabel: c.position.labelTh,
+          reversed: c.reversed,
+        })),
         question,
         interpretation: "",
         points_spent: spread.cost,
@@ -118,7 +125,7 @@ export default function OraclePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question,
-          cards: cards.map((c) => ({ id: c.id })),
+          cards: cards.map((c) => ({ cardId: c.card.id, reversed: c.reversed })),
         }),
       });
 
@@ -375,23 +382,34 @@ export default function OraclePage() {
               {cards.map((c, i) => {
                 const isFlipped = i < revealed;
                 return (
-                  <div key={c.id} className="oracle-slot" style={{ animation: `fadeUp 0.5s var(--ease) ${i * 0.1}s both` }}>
-                    <OracleCard card={c} flipped={isFlipped} size={spread.count === 3 ? "sm" : "lg"} />
+                  <div key={i} className="oracle-slot" style={{ animation: `fadeUp 0.5s var(--ease) ${i * 0.1}s both` }}>
+                    <TarotCard
+                      card={c.card}
+                      reversed={c.reversed}
+                      flipped={isFlipped}
+                      size={spread.count === 3 ? "sm" : "lg"}
+                      showLabel
+                    />
                     <div className="text-center" style={{ opacity: isFlipped ? 1 : 0, transition: "opacity 0.3s var(--ease)" }}>
-                      <div className="oracle-slot-name">{c.nameTh}</div>
-                      <div className="oracle-slot-keyword">{c.keywordTh}</div>
+                      <div className="oracle-slot-name">{c.position.labelTh}</div>
+                      <div className="text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                        {c.card.nameTh}
+                        {c.reversed && <span style={{ color: "var(--gold)", marginLeft: 4 }}>กลับหัว</span>}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Messages for revealed cards */}
+            {/* Meanings for revealed cards - tarot upright/reversed */}
             {cards.slice(0, revealed).map((c, i) => (
-              <div key={c.id} className="oracle-message-card" style={{ animationDelay: `${i * 0.08}s` }}>
-                <div className="oracle-message-name">{c.nameTh} · {c.keywordTh}</div>
-                <p className="oracle-message-text">{c.messageTh}</p>
-                <div className="oracle-affirmation">{c.affirmationTh}</div>
+              <div key={i} className="oracle-message-card" style={{ animationDelay: `${i * 0.08}s` }}>
+                <div className="oracle-message-name">
+                  {c.position.labelTh} · {c.card.nameTh}
+                  {c.reversed ? " · กลับหัว" : ""}
+                </div>
+                <p className="oracle-message-text">{c.reversed ? c.card.reversedTh : c.card.uprightTh}</p>
               </div>
             ))}
 
