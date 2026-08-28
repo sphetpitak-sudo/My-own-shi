@@ -9,6 +9,7 @@ import OracleCard from "@/components/OracleCard";
 import { Sparkles, Coins, ArrowLeft, RefreshCw, CircleHelp } from "lucide-react";
 import { ORACLE_SPREADS, drawOracleCards, type OracleCard as OracleCardType, type OracleSpreadId } from "@/lib/oracle";
 import { cn } from "@/lib/cn";
+import { stripMarkdownMultiline } from "@/lib/text";
 
 type Phase = "setup" | "shuffle" | "reveal";
 
@@ -404,7 +405,7 @@ export default function OraclePage() {
                   aria-live="polite"
                   style={{ minHeight: aiLoading && !interpretation ? 60 : undefined }}
                 >
-                  {interpretation}
+                  {stripMarkdownMultiline(interpretation)}
                   {aiLoading && !interpretation && (
                     <div className="reading-empty-stream">
                       <div className="mystical-loader">

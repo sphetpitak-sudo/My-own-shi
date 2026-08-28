@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import DashboardShell from "@/components/DashboardShell";
 import { getZodiacSign, getChineseZodiac, isValidBirthDate } from "@/lib/zodiac";
+import { stripMarkdownMultiline } from "@/lib/text";
 import { ZODIAC_SIGNS } from "@/lib/astrology/types";
 import { Calendar, Sparkles, RefreshCw } from "lucide-react";
 
@@ -229,7 +230,7 @@ export default function ZodiacPage() {
                 aria-live="polite"
                 style={{ minHeight: loading && !reading ? 80 : undefined }}
               >
-                {reading}
+                {stripMarkdownMultiline(reading)}
                 {loading && !reading && (
                   <div className="reading-empty-stream">
                     <div className="mystical-loader">

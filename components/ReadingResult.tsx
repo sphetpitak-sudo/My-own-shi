@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { stripMarkdownMultiline } from "@/lib/text";
 
 interface Props {
   cards: DrawnCard[];
@@ -22,13 +23,6 @@ interface Props {
   onPointsSpent?: (cost: number) => void;
 }
 
-function stripMarkdown(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/^#+\s/gm, "")
-    .replace(/^[-*]\s/gm, "");
-}
-
 interface ParsedSections {
   overview: string;
   detailed: string;
@@ -36,7 +30,7 @@ interface ParsedSections {
 }
 
 function parseSections(text: string): ParsedSections {
-  const stripped = stripMarkdown(text);
+  const stripped = stripMarkdownMultiline(text);
   // Heuristic: split on common Thai markers
   const lines = stripped.split("\n").map((l) => l.trim()).filter(Boolean);
   const overview: string[] = [];
@@ -323,7 +317,7 @@ function ReadingBody({
           aria-live="polite"
           aria-label="คำทำนายจาก AI"
         >
-          {stripMarkdown(text)}
+          {stripMarkdownMultiline(text)}
           {loading && text && <span className="reading-streaming" />}
         </div>
         {loading && !text && (

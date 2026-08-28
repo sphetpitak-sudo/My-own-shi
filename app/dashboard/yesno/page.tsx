@@ -7,6 +7,7 @@ import DashboardShell from "@/components/DashboardShell";
 import { drawCards, type DrawnCard } from "@/lib/cards";
 import TarotCard from "@/components/TarotCard";
 import { CircleHelp, Sparkles, ArrowLeft, RefreshCw, Coins, AlertTriangle } from "lucide-react";
+import { stripMarkdownMultiline } from "@/lib/text";
 
 type Phase = "question" | "shuffle" | "result";
 
@@ -425,7 +426,7 @@ export default function YesNoPage() {
                   className="reading-section-text"
                   aria-live="polite"
                 >
-                  {interpretation}
+                  {stripMarkdownMultiline(interpretation)}
                   {submitting && <span className="reading-streaming" />}
                 </div>
               </div>
