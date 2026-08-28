@@ -18,6 +18,18 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+-- ============================================
+-- 1a. Admin helper (SECURITY DEFINER so it bypasses RLS — avoids
+--     "infinite recursion" when policies reference profiles)
+-- ============================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE((SELECT is_admin FROM profiles WHERE id = auth.uid()), false);
+$$;
+
 -- Drop old policies so they can be recreated with admin access
 DROP POLICY IF EXISTS "Profiles select" ON profiles;
 DROP POLICY IF EXISTS "Profiles insert" ON profiles;
@@ -25,7 +37,7 @@ DROP POLICY IF EXISTS "Profiles update" ON profiles;
 
 -- Users can read their own row; admins can read everyone
 CREATE POLICY "Profiles select" ON profiles FOR SELECT
-  USING (auth.uid() = id OR (SELECT is_admin FROM profiles WHERE id = auth.uid()));
+  USING (auth.uid() = id OR public.is_admin());
 
 CREATE POLICY "Profiles insert" ON profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
@@ -64,7 +76,7 @@ DROP POLICY IF EXISTS "Readings insert" ON readings;
 
 -- Users read their own readings; admins read all
 CREATE POLICY "Readings select" ON readings FOR SELECT
-  USING (auth.uid() = user_id OR (SELECT is_admin FROM profiles WHERE id = auth.uid()));
+  USING (auth.uid() = user_id OR public.is_admin());
 
 -- Inserted server-side after a completed reading (user session owns the row)
 CREATE POLICY "Readings insert" ON readings FOR INSERT
@@ -100,7 +112,7 @@ DROP POLICY IF EXISTS "PointTransactions insert" ON point_transactions;
 
 -- Users read their own ledger; admins read all
 CREATE POLICY "PointTransactions select" ON point_transactions FOR SELECT
-  USING (auth.uid() = user_id OR (SELECT is_admin FROM profiles WHERE id = auth.uid()));
+  USING (auth.uid() = user_id OR public.is_admin());
 
 -- NOTE: No INSERT policy. The ledger is written exclusively by the
 -- SECURITY DEFINER RPCs below (spend_points, refund_points,
@@ -137,13 +149,13 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   DROP POLICY IF EXISTS "Admin settings update" ON admin_settings;
   CREATE POLICY "Admin settings update" ON admin_settings
-    FOR UPDATE USING ((SELECT is_admin FROM profiles WHERE id = auth.uid()));
+    FOR UPDATE USING (public.is_admin());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   DROP POLICY IF EXISTS "Admin settings insert" ON admin_settings;
   CREATE POLICY "Admin settings insert" ON admin_settings
-    FOR INSERT WITH CHECK ((SELECT is_admin FROM profiles WHERE id = auth.uid()));
+    FOR INSERT WITH CHECK (public.is_admin());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================
@@ -303,7 +315,7 @@ SELECT
   COALESCE(u.raw_user_meta_data->>'display_name', u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1)),
   COALESCE(u.raw_user_meta_data->>'avatar_url', ''),
   0,
-  (u.email = 'sphetpitak@gmail.com')
+  (LOWER(u.email) = 'sphetpitak@gmail.com')
 FROM auth.users u
 ON CONFLICT (id) DO UPDATE SET
   is_admin = EXCLUDED.is_admin,

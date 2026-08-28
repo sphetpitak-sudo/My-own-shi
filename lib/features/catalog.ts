@@ -131,7 +131,7 @@ export const FEATURES: FeatureMeta[] = [
     subtitleTh: "ข้อความจากจักรวาล",
     descriptionTh: "ไพ่ออราเคิลให้ข้อความสั้นกระชับ เน้นความรู้สึกและสัญชาตญาณ",
     icon: Eye,
-    status: "soon",
+    status: "live",
     cost: 5,
     route: "/dashboard/oracle",
     theme: "rose",
