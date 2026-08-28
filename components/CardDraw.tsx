@@ -109,6 +109,8 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
               style={{
                 animationDelay: `${i * 0.06}s`,
                 animation: "fadeUp 0.5s var(--ease) both",
+                transform: isFlipped ? "translateY(-6px)" : "translateY(0)",
+                transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
               }}
             >
               <TarotCard
