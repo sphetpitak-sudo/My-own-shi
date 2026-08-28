@@ -283,7 +283,13 @@ ${cardLines}
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
     const { question, spreadType, cards } = body as {
       question?: string;
       spreadType?: string;
@@ -338,6 +344,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Rate limit: cap AI readings per user within a rolling window
+    const { count: recentCount } = await supabase
+      .from("point_transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("type", "reading_purchase")
+      .gte("created_at", new Date(Date.now() - 60_000).toISOString());
+
+    if ((recentCount ?? 0) >= 5) {
+      return NextResponse.json(
+        { error: "Too many readings. Please try again shortly." },
+        { status: 429 }
+      );
+    }
+
     // Fetch reading cost from admin_settings
     const { data: costRow } = await supabase
       .from("admin_settings")
@@ -348,10 +369,11 @@ export async function POST(request: Request) {
     const costs = (costRow?.value as Record<string, number>) || { single: 5, three_card: 15, celtic: 50 };
     const cost = costs[spreadType as SpreadType] || spread.cost;
 
-    // Atomic point spend using RPC
+    // Atomic point spend + ledger entry via RPC (self-only, race-safe)
     const { data: spent, error: spendError } = await supabase.rpc("spend_points", {
       p_user_id: user.id,
       p_amount: cost,
+      p_description: `${spreadType} reading`,
     });
 
     if (spendError) {
@@ -392,22 +414,46 @@ export async function POST(request: Request) {
       cards: resolvedCards,
     });
 
-    const stream = await getOpenAI().chat.completions.create({
-      model: "typhoon-v2.5-30b-a3b-instruct",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.8,
-      max_tokens: 1500,
-      stream: true,
-    });
+    const stream = await getOpenAI()
+      .chat.completions.create(
+        {
+          model: "typhoon-v2.5-30b-a3b-instruct",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.8,
+          max_tokens: 1500,
+          stream: true,
+        },
+        { timeout: 60_000, maxRetries: 0 }
+      )
+      .catch(async () => {
+        // AI request failed before streaming — refund the spent points
+        try {
+          await supabase.rpc("refund_points", {
+            p_user_id: user.id,
+            p_amount: cost,
+          });
+        } catch {
+          // refund failed — ignore
+        }
+        return null;
+      });
+
+    if (!stream) {
+      return NextResponse.json(
+        { error: "AI generation unavailable. Points refunded." },
+        { status: 502 }
+      );
+    }
 
     const encoder = new TextEncoder();
     let fullText = "";
 
     const readable = new ReadableStream({
       async start(controller) {
+        let streamFailed = false;
         try {
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
@@ -418,41 +464,39 @@ export async function POST(request: Request) {
           }
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
-
-          // Record the reading
-          await supabase.from("readings").insert({
-            user_id: user.id,
-            spread_type: spreadType,
-            cards: cards,
-            question: trimmedQuestion,
-            interpretation: fullText,
-            points_spent: cost,
-          });
-
-          // Record point transaction
-          await supabase.from("point_transactions").insert({
-            user_id: user.id,
-            amount: -cost,
-            type: "reading_purchase",
-            description: `${spreadType} reading`,
-          });
         } catch {
-          // Refund points if streaming fails
+          streamFailed = true;
+          // Refund points if the stream failed mid-way (atomic credit + ledger)
           try {
-            await supabase.rpc("increment_points", {
+            await supabase.rpc("refund_points", {
               p_user_id: user.id,
               p_amount: cost,
-            });
-            await supabase.from("point_transactions").insert({
-              user_id: user.id,
-              amount: cost,
-              type: "admin_grant",
-              description: "Refund: reading failed",
             });
           } catch {
             // Refund failed — logged via Supabase
           }
-          controller.error(new Error("Streaming failed"));
+          try {
+            controller.error(new Error("Streaming failed"));
+          } catch {
+            // controller may already be closed
+          }
+        }
+
+        // Persist the reading only if the stream completed successfully
+        if (!streamFailed) {
+          try {
+            await supabase.from("readings").insert({
+              user_id: user.id,
+              spread_type: spreadType,
+              cards: cards,
+              question: trimmedQuestion,
+              interpretation: fullText,
+              points_spent: cost,
+            });
+          } catch {
+            // Saving failed after a successful stream — user already received
+            // the reading, so no refund. The error is logged by Supabase.
+          }
         }
       },
     });

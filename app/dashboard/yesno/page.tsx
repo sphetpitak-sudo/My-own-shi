@@ -114,6 +114,8 @@ export default function YesNoPage() {
             setError(`คะแนนไม่พอ (ต้องการ ${data.needed ?? cost})`);
           } else if (data.error === "Unauthorized") {
             setError("กรุณาเข้าสู่ระบบใหม่");
+          } else if (res.status === 429) {
+            setError("ทำนายถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
           } else {
             setError("ไม่สามารถทำนายได้ กรุณาลองใหม่");
           }
@@ -157,10 +159,11 @@ export default function YesNoPage() {
         }
         setSubmitting(false);
       } else {
-        // Non-AI path: single atomic spend
+        // Non-AI path: single atomic spend (RPC also writes the ledger)
         const { data: spent, error: spendErr } = await supabase.rpc("spend_points", {
           p_user_id: user.id,
           p_amount: cost,
+          p_description: "single reading (yes/no)",
         });
         if (spendErr) {
           setError("ไม่สามารถดำเนินการได้");
@@ -172,13 +175,6 @@ export default function YesNoPage() {
           setSubmitting(false);
           return;
         }
-
-        await supabase.from("point_transactions").insert({
-          user_id: user.id,
-          amount: -cost,
-          type: "reading_purchase",
-          description: "single reading (yes/no)",
-        });
 
         setAnswer(next);
         setPoints((p) => Math.max(0, p - cost));
@@ -192,7 +188,8 @@ export default function YesNoPage() {
   }, [aiEnabled, cost, question]);
 
   const handleStart = () => {
-    if (!question.trim()) return;
+    if (!question.trim() || submitting) return;
+    setSubmitting(true);
     setPhase("shuffle");
     setTimeout(() => {
       performReading();
@@ -206,6 +203,7 @@ export default function YesNoPage() {
     setAnswer(null);
     setInterpretation("");
     setError("");
+    setSubmitting(false);
   };
 
   useEffect(() => {

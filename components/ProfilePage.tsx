@@ -16,6 +16,7 @@ const txTypeLabels: Record<string, { label: string; icon: typeof Coins; positive
   daily_bonus: { label: "โบนัสรายวัน", icon: Coins, positive: true },
   admin_grant: { label: "ได้รับจากแอดมิน", icon: ArrowDownLeft, positive: true },
   referral: { label: "แนะนำเพื่อน", icon: ArrowDownLeft, positive: true },
+  refund: { label: "คืนคะแนน", icon: ArrowDownLeft, positive: true },
   reading_purchase: { label: "ค่าทำนาย", icon: ArrowUpRight, positive: false },
 };
 

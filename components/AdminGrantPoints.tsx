@@ -29,31 +29,24 @@ export default function AdminGrantPoints({ user, onClose, onGrant }: Props) {
 
     const delta = mode === "grant" ? amount : -amount;
 
-    // Use atomic increment_points RPC (has balance floor check)
-    const { error: rpcErr } = await supabase.rpc("increment_points", {
+    // Server-side admin check + atomic balance change + ledger via RPC
+    const { error: rpcErr } = await supabase.rpc("admin_adjust_points", {
       p_user_id: user.id,
       p_amount: delta,
+      p_reason: reason,
     });
 
     if (rpcErr) {
       if (rpcErr.message.includes("Insufficient points")) {
         setError("คะแนนไม่พอสำหรับการหัก");
+      } else if (rpcErr.message.includes("Unauthorized")) {
+        setError("คุณไม่มีสิทธิ์ดำเนินการนี้");
       } else {
         setError("ไม่สามารถดำเนินการได้ กรุณาลองใหม่");
       }
       setLoading(false);
       return;
     }
-
-    const { error: txErr } = await supabase.from("point_transactions").insert({
-      user_id: user.id,
-      amount: delta,
-      type: "admin_grant",
-      description: reason || (mode === "grant" ? "Admin grant" : "Admin deduction"),
-      admin_id: admin.id,
-    });
-
-    if (txErr) { setError(txErr.message); setLoading(false); return; }
 
     onGrant();
   }

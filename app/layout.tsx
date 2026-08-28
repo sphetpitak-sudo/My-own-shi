@@ -18,9 +18,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/LOGO.png",
-        width: 1254,
-        height: 1254,
+        url: "/logo-512.png",
+        width: 512,
+        height: 512,
         alt: "Sealo Logo",
       },
     ],
@@ -29,12 +29,12 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Sealo — เปิดไพ่ชะตา",
     description: "ค้นพบอนาคตของคุณด้วยไพ่ทาโรต์",
-    images: ["/LOGO.png"],
+    images: ["/logo-512.png"],
   },
   icons: {
-    icon: "/LOGO.png",
-    shortcut: "/LOGO.png",
-    apple: "/LOGO.png",
+    icon: "/logo-192.png",
+    shortcut: "/logo-192.png",
+    apple: "/logo-180.png",
   },
 };
 

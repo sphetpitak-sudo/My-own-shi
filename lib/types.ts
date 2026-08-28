@@ -26,7 +26,7 @@ export interface PointTransaction {
   id: string;
   user_id: string;
   amount: number;
-  type: "admin_grant" | "reading_purchase" | "daily_bonus" | "referral";
+  type: "admin_grant" | "reading_purchase" | "daily_bonus" | "referral" | "refund";
   description: string;
   admin_id: string | null;
   created_at: string;

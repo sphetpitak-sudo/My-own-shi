@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { Coins, Lock, Sparkles, type LucideIcon } from "lucide-react";
+import { Coins, Lock, Sparkles, ArrowRight, type LucideIcon } from "lucide-react";
 import type { FeatureMeta } from "@/lib/features/catalog";
 
 interface FeatureCardProps {
@@ -114,8 +114,18 @@ export default function FeatureCard({
                   )}
                 </span>
               )}
-              <span className="hero-cta" style={{ color: THEME_ACCENT[feature.theme] }}>
-                {isLocked ? "ดูตัวอย่าง" : "เริ่มเลย"} →
+              <span
+                className="hero-cta"
+                style={{
+                  background: THEME_ACCENT[feature.theme],
+                  color: "#ffffff",
+                  padding: "7px 14px",
+                  borderRadius: 999,
+                  boxShadow: "0 4px 14px rgba(0, 0, 0, 0.14)",
+                }}
+              >
+                {isLocked ? "ดูตัวอย่าง" : "เริ่มเลย"}
+                <ArrowRight size={13} style={{ display: "inline", marginLeft: 2 }} />
               </span>
             </div>
           </div>

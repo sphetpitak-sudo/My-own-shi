@@ -87,6 +87,7 @@ export default function ReadingResult({
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
+  const startedRef = useRef(false);
   const spread = SPREADS[spreadType];
 
   const startReading = async () => {
@@ -116,6 +117,8 @@ export default function ReadingResult({
           setError(`คะแนนไม่พอ (ต้องการ ${data.needed} มี ${data.current})`);
         } else if (data.error === "Unauthorized") {
           setError("กรุณาเข้าสู่ระบบใหม่");
+        } else if (res.status === 429) {
+          setError("ทำนายถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
         } else {
           setError("ไม่สามารถทำนายได้ กรุณาลองใหม่");
         }
@@ -167,6 +170,10 @@ export default function ReadingResult({
   };
 
   useEffect(() => {
+    // Guard against duplicate mounts (e.g. React StrictMode in dev) which
+    // would otherwise trigger a second point-spending request.
+    if (startedRef.current) return;
+    startedRef.current = true;
     startReading();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
