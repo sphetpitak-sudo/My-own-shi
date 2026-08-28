@@ -192,6 +192,27 @@ export default function DailyPage() {
           </div>
         </div>
 
+        {/* Energy */}
+        <div className="mx-4 mb-4 card p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] mb-3 flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
+            <Sparkles size={11} /> พลังงานวันนี้
+          </div>
+          {[
+            { label: "ความรัก", pct: ((day.card.id * 13 + day.lucky.number * 7) % 35) + 58, color: "#f472b6" },
+            { label: "การงาน", pct: ((day.card.id * 7 + day.lucky.number * 11) % 35) + 60, color: "#14b8a6" },
+            { label: "การเงิน", pct: ((day.card.id * 11 + day.lucky.number * 13) % 35) + 55, color: "#fbbf24" },
+          ].map((b) => (
+            <div key={b.label} className="mb-3 last:mb-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{b.label}</span>
+                <span className="text-[11px] font-bold" style={{ color: b.color }}>{b.pct}%</span>
+              </div>
+              <div className="bar"><div style={{ width: `${b.pct}%`, background: b.color }} /></div>
+            </div>
+          ))}
+          <p className="text-[11px] mt-3 text-center" style={{ color: "var(--text-muted)" }}>กลับมาเปิดไพ่ใหม่พรุ่งนี้เพื่อเติมพลังใหม่</p>
+        </div>
+
         {/* Aspects */}
         <div className="mx-4 mb-4">
           <div

@@ -216,6 +216,22 @@ function HistoryCopyButton({ text }: { text: string }) {
           ))}
         </div>
       )}
+      {readings.length >= 2 && (
+        <div className="card p-3 grid grid-cols-3 gap-2 text-center" style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.04), rgba(212,175,55,0.04))" }}>
+          <div>
+            <div className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "var(--text-muted)" }}>อ่านทั้งหมด</div>
+            <div className="text-[18px] font-extrabold" style={{ letterSpacing: "-0.02em" }}>{readings.length}</div>
+          </div>
+          <div style={{ borderLeft: "1px solid var(--border-subtle)", borderRight: "1px solid var(--border-subtle)" }}>
+            <div className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "var(--text-muted)" }}>ไพ่ที่เปิด</div>
+            <div className="text-[18px] font-extrabold">{readings.reduce((s, r) => s + (Array.isArray(r.cards) ? r.cards.length : 0), 0)}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "var(--text-muted)" }}>ใช้แต้ม</div>
+            <div className="text-[18px] font-extrabold" style={{ color: "var(--gold)" }}>{readings.reduce((s, r) => s + (r.points_spent || 0), 0)}</div>
+          </div>
+        </div>
+      )}
       {filteredReadings.map((r) => {
         const isExpanded = expandedId === r.id;
         const spread = SPREADS[r.spread_type];

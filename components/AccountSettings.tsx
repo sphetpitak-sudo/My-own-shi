@@ -159,14 +159,18 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
 
         {/* Display Name */}
         <div className="field mb-5">
-          <label className="label" htmlFor="display-name">ชื่อที่แสดง</label>
+          <div className="flex items-center justify-between">
+            <label className="label" htmlFor="display-name">ชื่อที่แสดง</label>
+            <span className="text-[11px]" style={{ color: displayName.length > 28 ? "var(--amber)" : "var(--text-muted)" }}>{displayName.length}/32</span>
+          </div>
           <input
             id="display-name"
             type="text"
             className="input"
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            onChange={(e) => setDisplayName(e.target.value.slice(0, 32))}
             placeholder="ใส่ชื่อของคุณ"
+            maxLength={32}
           />
         </div>
 

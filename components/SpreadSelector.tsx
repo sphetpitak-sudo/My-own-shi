@@ -56,7 +56,7 @@ export default function SpreadSelector({
               active && "selected"
             )}
           >
-            <div className="spread-option-preview">
+            <div className="spread-option-preview group-hover:shadow-sm transition-shadow">
               {dots.map((pos, i) => (
                 <div
                   key={i}
@@ -67,13 +67,15 @@ export default function SpreadSelector({
                     left: `${pos[0]}%`,
                     top: `${pos[1]}%`,
                     transform: "translate(-50%, -50%)",
-                    background: "rgba(201,168,76,0.35)",
-                    border: "1px solid rgba(201,168,76,0.45)",
+                    background: active ? "rgba(201,168,76,0.5)" : "rgba(201,168,76,0.35)",
+                    border: "1px solid rgba(201,168,76,0.5)",
                     borderRadius: 2,
                     zIndex: 1,
+                    boxShadow: active ? "0 0 8px rgba(212,175,55,0.35)" : "none",
                   }}
                 />
               ))}
+              {active && <div className="absolute inset-0 rounded-[10px] pointer-events-none" style={{ border: "1px solid rgba(109,40,217,0.12)", background: "radial-gradient(circle at 50% 20%, rgba(109,40,217,0.08), transparent 60%)" }} />}
             </div>
 
             <div className="spread-option-title">{spread.nameTh}</div>

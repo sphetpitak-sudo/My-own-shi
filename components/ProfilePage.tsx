@@ -190,8 +190,8 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em" }}>ประวัติคะแนน</h2>
             {transactions.length > 0 && (
-              <span style={{ fontSize: 11.5, color: "var(--text-muted)", fontWeight: 500 }}>
-                {transactions.length} รายการ
+              <span className="badge badge-neutral" style={{ fontSize: 11 }}>
+                {transactions.length} รายการ · รวม {transactions.reduce((s, t) => s + t.amount, 0) > 0 ? "+" : ""}{transactions.reduce((s, t) => s + t.amount, 0)} แต้ม
               </span>
             )}
           </div>

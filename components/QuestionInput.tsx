@@ -55,7 +55,7 @@ export default function QuestionInput({
                 key={s}
                 type="button"
                 onClick={() => onChange(s)}
-                className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-full transition-all"
+                className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-full transition-all hover:shadow-sm hover:-translate-y-[1px] active:scale-[0.98]"
                 style={{
                   background: "var(--bg)",
                   border: "1px solid var(--border)",
@@ -69,7 +69,15 @@ export default function QuestionInput({
         )}
 
         <div className="q-actions">
-          <span className="q-counter">{value.length}/500</span>
+          <span
+            className="q-counter"
+            style={{
+              color: value.length > 450 ? (value.length > 480 ? "var(--red)" : "var(--amber)") : "var(--text-muted)",
+              fontWeight: value.length > 450 ? 700 : 600,
+            }}
+          >
+            {value.length}/500
+          </span>
           <button
             onClick={onSubmit}
             disabled={!value.trim() || loading}
@@ -100,7 +108,8 @@ export default function QuestionInput({
           </button>
         </div>
       </div>
-      <p className="q-helper">
+      <p className="q-helper" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="w-1 h-1 rounded-full" style={{ background: "var(--text-muted)" }} />
         กด Enter เพื่อจั่วไพ่ · Shift+Enter เพื่อขึ้นบรรทัดใหม่
       </p>
     </div>

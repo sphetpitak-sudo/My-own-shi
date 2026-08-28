@@ -102,7 +102,7 @@ export default function AuthForm() {
         </div>
 
         {/* Auth card */}
-        <div className="card p-6 animate-in" style={{ animationDelay: "0.1s" }}>
+        <div className="card p-6 animate-in relative overflow-hidden" style={{ animationDelay: "0.1s", borderTop: "3px solid var(--primary)" }}>
           <h2 className="text-[17px] font-bold text-center mb-5" style={{ letterSpacing: "-0.01em" }}>
             {forgotMode ? "รีเซ็ตรหัสผ่าน" : isSignUp ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
           </h2>
@@ -227,8 +227,8 @@ export default function AuthForm() {
 
               <button
                 onClick={handleGoogleLogin}
-                className="btn btn-ghost w-full"
-                style={{ gap: "10px" }}
+                className="btn btn-ghost w-full hover:shadow-sm"
+                style={{ gap: "10px", borderColor: "var(--border-strong)" }}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>

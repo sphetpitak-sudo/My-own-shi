@@ -152,7 +152,9 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
 
         {claimed ? (
           <>
-            <Check size={16} />
+            <span className="w-6 h-6 rounded-full grid place-items-center" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.14)" }}>
+              <Check size={14} />
+            </span>
             <span>มารับใหม่พรุ่งนี้</span>
           </>
         ) : loading ? (

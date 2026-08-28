@@ -121,7 +121,11 @@ export default function AdminSettings() {
 
         <div className="space-y-6">
           <div className="card p-5">
-            <h2 className="sec-title mb-4">ค่าทำนาย</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="sec-title">ค่าทำนาย</h2>
+              <span className="badge badge-neutral">แต้ม</span>
+            </div>
+            <p className="text-[12px] mb-4" style={{ color: "var(--text-muted)" }}>กำหนดแต้มที่ใช้ต่อการอ่านแต่ละรูปแบบ — 0 = ฟรี</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {(["single", "three_card", "celtic"] as const).map((spread) => (
                 <div key={spread} className="field">
@@ -132,7 +136,7 @@ export default function AdminSettings() {
                     value={settings.reading_costs[spread]}
                     onChange={(e) => setSettings({
                       ...settings,
-                      reading_costs: { ...settings.reading_costs, [spread]: parseInt(e.target.value) || 0 }
+                      reading_costs: { ...settings.reading_costs, [spread]: Math.max(0, parseInt(e.target.value) || 0) }
                     })}
                     className="input"
                   />

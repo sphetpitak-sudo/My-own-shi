@@ -10,7 +10,7 @@ interface Props {
   reducedMotion?: boolean;
 }
 
-const DEFAULT_CARD_COUNT = 8;
+const DEFAULT_CARD_COUNT = 12;
 
 export default function ShuffleAnimation({
   onComplete,
@@ -190,16 +190,16 @@ export default function ShuffleAnimation({
 
 function SparkleField() {
   const sparkles = useMemo(() => {
-    return Array.from({ length: 16 }, (_, i) => {
-      const angle = (i / 16) * Math.PI * 2;
-      const r = 90 + (i % 3) * 30;
+    return Array.from({ length: 20 }, (_, i) => {
+      const angle = (i / 20) * Math.PI * 2;
+      const r = 85 + (i % 4) * 22;
       return {
         id: i,
         x: Math.cos(angle) * r,
         y: Math.sin(angle) * r * 0.5,
-        delay: i * 0.05,
+        delay: i * 0.04,
         size: 2 + (i % 3),
-        color: i % 2 === 0 ? "#d4af37" : "#a78bfa",
+        color: i % 3 === 0 ? "#d4af37" : i % 3 === 1 ? "#a78bfa" : "#f472b6",
       };
     });
   }, []);

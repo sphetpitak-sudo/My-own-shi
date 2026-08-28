@@ -86,6 +86,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
   const [done, setDone] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
+  const detailedRef = useRef<HTMLElement>(null);
   const spread = SPREADS[spreadType];
   const readingDate = new Date().toLocaleDateString("th-TH", {
     day: "numeric",
@@ -240,13 +241,18 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
         aria-label="ไพ่ที่เปิดได้"
       >
         {cards.map((c, i) => (
-          <div
+          <button
             key={i}
             role="listitem"
             className="reading-journal-card-cell"
             style={{
               animation: `fadeUp 0.6s var(--ease) ${i * 0.08}s both`,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
             }}
+            onClick={() => detailedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            aria-label={`ดูความหมายของ ${c.card.nameTh} ตำแหน่ง ${c.position.labelTh}`}
           >
             <div className="reading-journal-card-wrap">
               <TarotCard
@@ -263,7 +269,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
               <span className="reading-journal-card-name">{c.card.nameTh}</span>
               {c.reversed && <span className="reading-journal-card-reversed">กลับหัว</span>}
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -308,9 +314,11 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
           {sections.map((sec, idx) => {
             const Icon = sec.key === "overview" ? Compass : sec.key === "detailed" ? BookOpen : Lightbulb;
             const isLastStreaming = idx === sections.length - 1 && loading;
+            const isDetailed = sec.key === "detailed";
             return (
               <section
                 key={sec.key}
+                ref={isDetailed ? detailedRef : undefined}
                 className={"reading-journal-section reading-journal-section--" + sec.key}
                 style={{ animation: `fadeUp 0.5s var(--ease) ${0.08 * idx}s both` } as React.CSSProperties}
                 aria-labelledby={"reading-section-" + sec.key}
@@ -339,7 +347,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
         </div>
       ) : (
         <div className="reading-journal-sections">
-          <section className="reading-journal-section reading-journal-section--single">
+          <section ref={detailedRef} className="reading-journal-section reading-journal-section--single">
             <div className="reading-journal-section-header">
               <span className="reading-journal-section-icon">
                 <Compass size={14} />
