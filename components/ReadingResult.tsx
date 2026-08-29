@@ -260,6 +260,9 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     setFollowAnswer("");
     setFollowError("");
 
+    const abortController = new AbortController();
+    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 45_000);
+    const clearClientTimeout = () => { if (clientTimeout) { clearTimeout(clientTimeout); clientTimeout = null; } };
     try {
       const res = await fetch("/api/reading", {
         method: "POST",
@@ -273,9 +276,11 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
           question,
           spreadType,
         }),
+        signal: abortController.signal,
       });
 
       if (!res.ok) {
+        clearClientTimeout();
         const data = await res.json().catch(() => ({}));
         if (data.error === "Not enough points") {
           setError(`คะแนนไม่พอ (ต้องการ ${data.needed} มี ${data.current})`);
@@ -295,6 +300,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
 
       const reader = res.body?.getReader();
       if (!reader) {
+        clearClientTimeout();
         setError("ไม่สามารถอ่านการตอบกลับได้");
         setLoading(false);
         return;
@@ -312,6 +318,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") {
+              clearClientTimeout();
               setDone(true);
               setLoading(false);
               return;
@@ -329,9 +336,15 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
       }
       setDone(true);
       setLoading(false);
+      clearClientTimeout();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Network error";
-      setError(message);
+      clearClientTimeout();
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("AI ไม่ตอบสนองภายใน 45 วินาที กรุณาลองใหม่ — แต้มจะถูกคืนอัตโนมัติ");
+      } else {
+        const message = err instanceof Error ? err.message : "Network error";
+        setError(message);
+      }
       setLoading(false);
     }
   };

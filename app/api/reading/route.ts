@@ -427,6 +427,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to create reading" }, { status: 500 });
     }
 
+    // Spread-aware max_tokens to reduce latency for small spreads
+    const maxTokens = spreadType === "single" ? 800 : spreadType === "three_card" ? 1200 : 1500;
+    const abortController = new AbortController();
+    const overallTimeout = setTimeout(() => abortController.abort(), 45_000);
+
     const stream = await getOpenAI()
       .chat.completions.create(
         {
@@ -436,13 +441,15 @@ export async function POST(request: Request) {
             { role: "user", content: userPrompt },
           ],
           temperature: 0.8,
-          max_tokens: 1500,
+          max_tokens: maxTokens,
           stream: true,
         },
-        { timeout: 60_000, maxRetries: 0 }
+        { timeout: 30_000, maxRetries: 0, signal: abortController.signal } as unknown as Record<string, unknown>
       )
-      .catch(async () => {
+      .catch(async (err: unknown) => {
+        clearTimeout(overallTimeout);
         // AI request failed before streaming — refund and delete pending
+        const isAbort = err instanceof Error && err.name === "AbortError";
         try {
           if (pendingReadingId) {
             try { await supabase.from("readings").delete().eq("id", pendingReadingId).eq("user_id", user.id); } catch {}
@@ -453,6 +460,7 @@ export async function POST(request: Request) {
             await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
           }
         } catch {}
+        if (isAbort) console.error("AI timeout (45s overall) before stream");
         return null;
       });
 
@@ -465,6 +473,9 @@ export async function POST(request: Request) {
 
     const encoder = new TextEncoder();
     let fullText = "";
+    let firstTokenTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      try { abortController.abort(); } catch {}
+    }, 20_000);
 
     const readable = new ReadableStream({
       async start(controller) {
@@ -473,15 +484,20 @@ export async function POST(request: Request) {
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
+              if (firstTokenTimeout) { clearTimeout(firstTokenTimeout); firstTokenTimeout = null; }
               fullText += content;
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
             }
           }
+          if (firstTokenTimeout) { clearTimeout(firstTokenTimeout); firstTokenTimeout = null; }
+          clearTimeout(overallTimeout);
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
         } catch {
           streamFailed = true;
-          // Refund and delete pending on mid-stream failure
+          if (firstTokenTimeout) { clearTimeout(firstTokenTimeout); firstTokenTimeout = null; }
+          clearTimeout(overallTimeout);
+          // Refund and delete pending on mid-stream failure / timeout
           try {
             if (pendingReadingId) {
               try { await supabase.from("readings").delete().eq("id", pendingReadingId).eq("user_id", user.id); } catch {}
@@ -503,9 +519,16 @@ export async function POST(request: Request) {
             await supabase.from("readings").update({ interpretation: fullText }).eq("id", pendingReadingId).eq("user_id", user.id);
           } catch (e) {
             console.error("Failed to update reading:", e);
-            // If update fails, try to keep original pending — not critical, user already got stream
           }
+        } else if (streamFailed && firstTokenTimeout) {
+          clearTimeout(firstTokenTimeout);
+          clearTimeout(overallTimeout);
         }
+      },
+      cancel() {
+        try { abortController.abort(); } catch {}
+        if (firstTokenTimeout) clearTimeout(firstTokenTimeout);
+        clearTimeout(overallTimeout);
       },
     });
 
