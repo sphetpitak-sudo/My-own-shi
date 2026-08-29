@@ -26,7 +26,10 @@ export const AI_PARAMS = {
     celtic: { temperature: 0.7, max_tokens: 1100, timeoutMs: 50_000, firstTokenMs: 22_000 },
   },
   followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 25_000, firstTokenMs: 15_000 },
-  oracle: { temperature: 0.7, max_tokens: 650, timeoutMs: 35_000, firstTokenMs: 18_000 }, // single ~380, three ~650; unified 650 prevents truncation (was 400 truncated at 23:40)
+  oracle: {
+    single: { temperature: 0.7, max_tokens: 500, timeoutMs: 35_000, firstTokenMs: 18_000 },
+    three: { temperature: 0.7, max_tokens: 900, timeoutMs: 45_000, firstTokenMs: 18_000 },
+  },
   daily: { temperature: 0.7, max_tokens: 400, timeoutMs: 18_000 },
   zodiac: { temperature: 0.7, max_tokens: 500, timeoutMs: 22_000 },
 } as const;

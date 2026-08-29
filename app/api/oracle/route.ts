@@ -122,6 +122,8 @@ export async function POST(request: Request) {
 
     const userPrompt = buildOracleUserPrompt({ question: trimmedQuestion, cards: resolved });
 
+    const params = cards.length === 1 ? AI_PARAMS.oracle.single : AI_PARAMS.oracle.three;
+
     const abortController = new AbortController();
     const onClientAbort = () => {
       try {
@@ -136,7 +138,7 @@ export async function POST(request: Request) {
       try {
         abortController.abort();
       } catch {}
-    }, AI_PARAMS.oracle.timeoutMs);
+    }, params.timeoutMs);
 
     let stream: Awaited<ReturnType<typeof getOpenAI extends () => infer R ? R extends { chat: { completions: { create: (...a: unknown[]) => Promise<infer S> } } } ? () => Promise<S> : never : never>> | null = null;
     try {
@@ -147,13 +149,13 @@ export async function POST(request: Request) {
             { role: "system", content: ORACLE_SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
           ],
-          temperature: AI_PARAMS.oracle.temperature,
-          max_tokens: AI_PARAMS.oracle.max_tokens,
+          temperature: params.temperature,
+          max_tokens: params.max_tokens,
           stream: true,
         },
-        { timeout: AI_PARAMS.oracle.timeoutMs, maxRetries: 0, signal: abortController.signal } as unknown as Record<string, unknown>
+        { timeout: params.timeoutMs, maxRetries: 0, signal: abortController.signal } as unknown as Record<string, unknown>
       );
-      const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("AI_CREATE_TIMEOUT")), AI_PARAMS.oracle.timeoutMs + 3000));
+      const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("AI_CREATE_TIMEOUT")), params.timeoutMs + 3000));
       const s = await Promise.race([createPromise, timeoutPromise]);
       stream = s as unknown as typeof stream;
     } catch (err) {
@@ -175,13 +177,19 @@ export async function POST(request: Request) {
       try {
         abortController.abort();
       } catch {}
-    }, AI_PARAMS.oracle.firstTokenMs);
+    }, params.firstTokenMs);
+    let truncatedByLength = false;
 
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream as unknown as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>) {
-            const content = chunk.choices[0]?.delta?.content || "";
+          for await (const chunk of stream as unknown as AsyncIterable<{ choices: Array<{ delta?: { content?: string }; finish_reason?: string | null }> }>) {
+            const choice = chunk.choices[0] as { delta?: { content?: string }; finish_reason?: string | null };
+            if (choice?.finish_reason === "length") {
+              truncatedByLength = true;
+              console.warn("oracle truncated by length", { cards: cards.length, max_tokens: params.max_tokens });
+            }
+            const content = choice?.delta?.content || "";
             if (content) {
               if (firstTokenTimeout) {
                 clearTimeout(firstTokenTimeout);
@@ -196,6 +204,12 @@ export async function POST(request: Request) {
           }
           clearTimeout(timeoutId);
           if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+          if (truncatedByLength) {
+            // Send truncation notice — client will show but keep content (no refund)
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ warning: "truncated" })}\n\n`));
+            } catch {}
+          }
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
         } catch (err) {

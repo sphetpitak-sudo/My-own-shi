@@ -128,7 +128,7 @@ export default function OraclePage() {
       try {
         abortController.abort();
       } catch {}
-    }, 40000);
+    }, 55000);
     const attemptRefund = async () => {
       const supabase = createClient();
       const rid = readingIdRef.current;
