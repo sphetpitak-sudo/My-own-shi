@@ -16,7 +16,6 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mockEnabled, setMockEnabled] = useState<boolean | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -24,13 +23,10 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
       const enabled = (data?.value as { enabled?: boolean })?.enabled ?? false;
       setMockEnabled(enabled);
     });
-    supabase.from("profiles").select("is_admin").eq("id", userId).single().then(({ data }: { data: { is_admin: boolean } | null }) => {
-      if (data?.is_admin) setIsAdmin(true);
-    });
   }, [userId]);
 
   const handleBuy = async (b: typeof BUNDLES[number]) => {
-    if (mockEnabled !== true && !isAdmin) {
+    if (mockEnabled !== true) {
       setError("Mock purchase disabled");
       return;
     }
@@ -51,7 +47,7 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
     }
   };
 
-  const mockBlocked = mockEnabled !== true && !isAdmin;
+  const mockBlocked = mockEnabled !== true;
 
   return (
     <div className="space-y-3">
@@ -63,11 +59,11 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
       {mockBlocked && (
         <div className="p-3 rounded-xl text-[12.5px] flex gap-2" style={{ background:"var(--amber-soft)", color:"var(--amber)", border:"1px solid rgba(184,148,42,0.2)"}}>
           <ShieldAlert size={14} className="shrink-0 mt-0.5" />
-          <span>ระบบทดสอบปิดอยู่ในโปรดักชัน — เฉพาะแอดมินเท่านั้นที่ทดสอบได้ รอระบบชำระเงินจริง</span>
+          <span>ระบบเติมแต้มปิดอยู่ — รอระบบชำระเงินจริง (PromptPay/Stripe) เร็ว ๆ นี้</span>
         </div>
       )}
       {success && <div className="p-3 rounded-xl text-[13px] font-semibold flex items-center gap-2" style={{ background:"var(--green-soft)", color:"var(--green)"}}><Check size={14}/> {success}</div>}
-      {error && <div className="p-3 rounded-xl text-[13px]" style={{ background:"var(--red-soft)", color:"var(--red)"}}>{error === "Mock purchase disabled" ? "ระบบทดสอบปิดอยู่ — เฉพาะแอดมินเท่านั้น" : error}</div>}
+      {error && <div className="p-3 rounded-xl text-[13px]" style={{ background:"var(--red-soft)", color:"var(--red)"}}>{error === "Mock purchase disabled" ? "ระบบเติมแต้มปิดอยู่ในขณะนี้" : error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {BUNDLES.map(b=>(
           <button key={b.thb} onClick={()=>handleBuy(b)} disabled={loading!==null || mockBlocked} className={`card p-4 text-left relative overflow-hidden transition-all ${mockBlocked ? "opacity-50 cursor-not-allowed" : "hover:border-[var(--primary)]"}`}>

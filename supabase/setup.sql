@@ -570,9 +570,9 @@ DECLARE mock_enabled BOOLEAN := false;
 BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
   IF p_amount_thb IS NULL OR p_points IS NULL THEN RAISE EXCEPTION 'Invalid bundle'; END IF;
-  -- Check if mock is enabled (admin setting) or caller is admin — otherwise block in production
+  -- Mock purchase disabled for everyone (including admin) — closed in production
   SELECT COALESCE((value->>'enabled')::boolean, false) INTO mock_enabled FROM admin_settings WHERE key = 'enable_mock_purchase';
-  IF NOT mock_enabled AND NOT public.is_admin() THEN
+  IF NOT mock_enabled THEN
     RAISE EXCEPTION 'Mock purchase disabled';
   END IF;
   -- Whitelist bundles: 99->120, 199->280, 399->650, 19->25,49->70
