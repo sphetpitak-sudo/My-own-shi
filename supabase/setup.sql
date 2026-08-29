@@ -329,5 +329,21 @@ ON CONFLICT (id) DO UPDATE SET
   display_name = EXCLUDED.display_name;
 
 -- ============================================
+-- 11. REALTIME (points live update)
+-- ============================================
+ALTER TABLE profiles REPLICA IDENTITY FULL;
+ALTER TABLE point_transactions REPLICA IDENTITY FULL;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE point_transactions;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ============================================
 -- DONE
 -- ============================================

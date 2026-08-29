@@ -47,18 +47,56 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
     fetchData();
   }, [userId]);
 
-  const handleDailyBonus = (amount: number) => {
-    setProfile((prev) => (prev ? { ...prev, points: prev.points + amount } : prev));
-    const newTx: PointTransaction = {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      amount,
-      type: "daily_bonus",
-      description: "Daily bonus",
-      admin_id: null,
-      created_at: new Date().toISOString(),
+  // Realtime: keep points and ledger live across tabs / admin grants
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`profile-live-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+        (payload: { new: unknown }) => {
+          const next = payload.new as { points?: number; display_name?: string; avatar_url?: string } | undefined;
+          if (next && typeof next.points === "number") {
+            setProfile((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    points: next.points as number,
+                    display_name: (next.display_name as string) ?? prev.display_name,
+                    avatar_url: (next.avatar_url as string) ?? prev.avatar_url,
+                  }
+                : prev
+            );
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "point_transactions", filter: `user_id=eq.${userId}` },
+        (payload: { new: unknown }) => {
+          const row = payload.new as PointTransaction | undefined;
+          if (!row) return;
+          setTransactions((prev) => {
+            if (prev.some((t) => t.id === row.id)) return prev;
+            // remove optimistic daily_bonus placeholder if present (same amount, very recent)
+            const cleaned = prev.filter(
+              (t) => !(t.type === "daily_bonus" && t.amount === row.amount && Date.now() - new Date(t.created_at).getTime() < 5000 && t.id.length > 30)
+            );
+            const next = [row, ...cleaned];
+            return next.slice(0, 50);
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
     };
-    setTransactions((prev) => [newTx, ...prev]);
+  }, [userId]);
+
+  const handleDailyBonus = (amount: number) => {
+    // Optimistic points — the transaction row will arrive via realtime
+    setProfile((prev) => (prev ? { ...prev, points: prev.points + amount } : prev));
   };
 
   const formatTxDate = (dateStr: string) => {

@@ -13,6 +13,7 @@ import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/ca
 import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
+import { useShell } from "./DashboardShell";
 
 interface ProfileLite {
   display_name: string | null;
@@ -70,6 +71,7 @@ const CATEGORY_ORDER: FeatureCategory[] = [
 
 export default function DashboardHome() {
   const router = useRouter();
+  const shell = useShell();
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileLite | null>(null);
   const [costs, setCosts] = useState<Record<string, number>>({});
@@ -115,6 +117,19 @@ export default function DashboardHome() {
         }
       });
   }, []);
+
+  // Keep points/display_name in sync with Shell realtime (single source of truth)
+  useEffect(() => {
+    if (shell.profile) {
+      setProfile((prev) => ({
+        display_name: shell.profile!.display_name ?? prev?.display_name ?? null,
+        points: shell.profile!.points,
+      }));
+      if (shell.profile.display_name && !userId) {
+        // shell already has userId implicitly via profile; keep local userId in sync if needed
+      }
+    }
+  }, [shell.profile, userId]);
 
   const handleSpreadSelect = (spreadId: SpreadType) => {
     router.push(`/dashboard/reading?spread=${spreadId}`);

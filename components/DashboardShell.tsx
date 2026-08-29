@@ -34,12 +34,14 @@ interface DashboardShellProps {
 export default function DashboardShell({ children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
 
       const { data: p } = await supabase
         .from("profiles")
@@ -61,6 +63,37 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [loadProfile]);
+
+  // Realtime points — keeps Topbar/Sidebar in sync across tabs and after admin grants
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`points-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+        (payload: { new: unknown }) => {
+          const next = payload.new as { points?: number; display_name?: string; avatar_url?: string } | undefined;
+          if (next && typeof next.points === "number") {
+            setProfile((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    points: next.points as number,
+                    display_name: (next.display_name as string) ?? prev.display_name,
+                    avatar_url: (next.avatar_url as string) ?? prev.avatar_url,
+                  }
+                : prev
+            );
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   return (
     <ShellContext.Provider value={{ profile, refreshProfile: loadProfile }}>
