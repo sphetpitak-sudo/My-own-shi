@@ -1,6 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Per-instance cache for admin_settings.maintenance_mode — avoids per-request DB roundtrip on AI paths
+let maintenanceCache: { value: { enabled?: boolean } | null; at: number } | null = null;
+const MAINT_TTL_MS = 30_000;
+
+async function getMaintenanceCached(supabase: ReturnType<typeof createServerClient>): Promise<{ enabled?: boolean } | null> {
+  const now = Date.now();
+  if (maintenanceCache && now - maintenanceCache.at < MAINT_TTL_MS) return maintenanceCache.value;
+  const { data } = await supabase.from("admin_settings").select("value").eq("key", "maintenance_mode").single();
+  const v = (data?.value as { enabled?: boolean } | null) ?? null;
+  maintenanceCache = { value: v, at: now };
+  return v;
+}
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -43,39 +56,34 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Server-side admin check
+  // Server-side admin check — cache result for maintenance reuse
+  let isAdminUser: boolean | null = null;
   if (user && isAdmin) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_admin")
       .eq("id", user.id)
       .single();
-
-    if (!profile?.is_admin) {
+    isAdminUser = !!profile?.is_admin;
+    if (!isAdminUser) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
-  // Maintenance mode: block non-admin, non-auth pages
+  // Maintenance mode: block non-admin, non-auth pages (skip for /api to keep AI latency low)
   if (!isAdmin && !isApi) {
-    const { data: maintenanceRow } = await supabase
-      .from("admin_settings")
-      .select("value")
-      .eq("key", "maintenance_mode")
-      .single();
-
-    const maintenance = maintenanceRow?.value as { enabled?: boolean } | undefined;
+    const maintenance = await getMaintenanceCached(supabase as unknown as ReturnType<typeof createServerClient>);
     if (maintenance?.enabled && !isRoot) {
-      // Allow landing page during maintenance, block everything else
-      // Admin users can still access admin panel
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_admin")
-          .eq("id", user.id)
-          .single();
-
-        if (!profile?.is_admin) {
+        if (isAdminUser === null) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_admin")
+            .eq("id", user.id)
+            .single();
+          isAdminUser = !!profile?.is_admin;
+        }
+        if (!isAdminUser) {
           return NextResponse.redirect(new URL("/", request.url));
         }
       } else {

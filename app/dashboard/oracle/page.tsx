@@ -158,12 +158,14 @@ export default function OraclePage() {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
-        for (const line of lines) {
+        for (const rawLine of lines) {
+          const line = rawLine.replace(/\r$/, "");
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") break;
             try {
               const parsed = JSON.parse(data);
+              if (parsed.readingId) continue;
               if (parsed.content) {
                 fullText += parsed.content;
                 setInterpretation((prev) => prev + parsed.content);

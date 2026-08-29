@@ -230,7 +230,8 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
-        for (const line of lines) {
+        for (const rawLine of lines) {
+          const line = rawLine.replace(/\r$/, "");
           if (line.startsWith("data: ")) {
             const d = line.slice(6);
             if (d === "[DONE]") break;
@@ -296,9 +297,6 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
         return;
       }
 
-      // Notify parent about spent points to immediately update UI balances (use actual cost)
-      onPointsSpent?.(effectiveCost);
-
       const reader = res.body?.getReader();
       if (!reader) {
         clearClientTimeout();
@@ -315,17 +313,24 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
-        for (const line of lines) {
+        for (const rawLine of lines) {
+          const line = rawLine.replace(/\r$/, "");
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") {
               clearClientTimeout();
+              // Deduct points only after confirmed persistence (server inserted generating row before stream)
+              onPointsSpent?.(effectiveCost);
               setDone(true);
               setLoading(false);
               return;
             }
             try {
               const parsed = JSON.parse(data);
+              if (parsed.readingId && typeof parsed.readingId === "string") {
+                setReadingId(parsed.readingId);
+                continue;
+              }
               if (parsed.content) {
                 setText((prev) => prev + parsed.content);
               }
@@ -335,6 +340,8 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
           }
         }
       }
+      // Fallback if stream ended without explicit [DONE]
+      onPointsSpent?.(effectiveCost);
       setDone(true);
       setLoading(false);
       clearClientTimeout();

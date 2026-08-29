@@ -135,12 +135,15 @@ export default function YesNoPage() {
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
           buffer = lines.pop() || "";
-          for (const line of lines) {
+          for (const rawLine of lines) {
+            const line = rawLine.replace(/\r$/, "");
             if (line.startsWith("data: ")) {
               const data = line.slice(6);
               if (data === "[DONE]") break;
               try {
                 const parsed = JSON.parse(data);
+                // Server also sends {"readingId":...} — ignore for yesno
+                if (parsed.readingId) continue;
                 if (parsed.content) {
                   setInterpretation((prev) => prev + parsed.content);
                 }
@@ -152,7 +155,13 @@ export default function YesNoPage() {
         }
         setSubmitting(false);
       } else {
-        // Non-AI path: authoritative spend via spend_for_spread
+        // Non-AI path: enforce rate limit before authoritative spend
+        const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "reading", p_limit: 5, p_window_seconds: 60 });
+        if (rateOk === false) {
+          setError("ทำนายถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
+          setSubmitting(false);
+          return;
+        }
         const { data: charged, error: spendErr } = await supabase.rpc("spend_for_spread", {
           p_spread: "single",
           p_description: "single reading (yes/no)",

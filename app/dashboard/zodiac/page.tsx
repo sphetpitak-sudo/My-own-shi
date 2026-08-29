@@ -88,7 +88,8 @@ export default function ZodiacPage() {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
-        for (const line of lines) {
+        for (const rawLine of lines) {
+          const line = rawLine.replace(/\r$/, "");
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") break;

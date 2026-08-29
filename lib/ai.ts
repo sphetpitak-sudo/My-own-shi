@@ -1,18 +1,71 @@
 import OpenAI from "openai";
 
-export function getOpenAI() {
+// ============================================
+// Centralised OpenAI / OpenTyphoon client (singleton, connection reuse)
+// ============================================
+let _client: OpenAI | null = null;
+
+export const AI_MODEL = "typhoon-v2.5-30b-a3b-instruct" as const;
+export const AI_BASE_URL = "https://api.opentyphoon.ai/v1" as const;
+
+export function getOpenAI(): OpenAI {
+  if (_client) return _client;
   const apiKey = process.env.OPEN_TYPHOON_API_KEY;
   if (!apiKey) throw new Error("OPEN_TYPHOON_API_KEY is not set");
-  return new OpenAI({
-    apiKey,
-    baseURL: "https://api.opentyphoon.ai/v1",
-  });
+  _client = new OpenAI({ apiKey, baseURL: AI_BASE_URL });
+  return _client;
+}
+
+// ============================================
+// Central model configuration — single source of truth
+// ============================================
+export const AI_PARAMS = {
+  reading: {
+    single: { temperature: 0.7, max_tokens: 600, timeoutMs: 22_000, firstTokenMs: 12_000 },
+    three_card: { temperature: 0.7, max_tokens: 800, timeoutMs: 25_000, firstTokenMs: 12_000 },
+    celtic: { temperature: 0.7, max_tokens: 1100, timeoutMs: 28_000, firstTokenMs: 14_000 },
+  },
+  followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 20_000 },
+  oracle: { temperature: 0.7, max_tokens: 400, timeoutMs: 20_000 }, // 120-200 words => ~300 tokens; capped at 400
+  daily: { temperature: 0.7, max_tokens: 400, timeoutMs: 15_000 },
+  zodiac: { temperature: 0.7, max_tokens: 500, timeoutMs: 20_000 },
+} as const;
+
+// ============================================
+// Content limits (server-enforced, before token spend)
+// ============================================
+export const LIMITS = {
+  questionMax: 500,
+  followQuestionMax: 200,
+  positionLabelMax: 50,
+  interpretationMax: 9500, // DB check is 10000; keep headroom for insert
+  promptInjectionExtra: 1500, // max overall user payload size guard
+} as const;
+
+// Escape user-controlled text so it cannot become an instruction.
+// Replaces our fence markers and normalises XML-like brackets.
+export function sanitizeForPrompt(input: string, maxLen: number): string {
+  let s = (input || "").trim().slice(0, maxLen);
+  // Neutralise our own fences if the user typed them
+  s = s.replace(/<\/?(user_question|cards|context|question|cards_block)>/gi, (m) => m.replace(/</g, "‹").replace(/>/g, "›"));
+  s = s.replace(/---(USER|CARDS|CONTEXT)(_START|_END)---/g, (m) => m.replace(/-/g, "—"));
+  // Collapse excessive newlines / control tricks
+  s = s.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n");
+  return s;
+}
+
+// Validate positionLabel charset: Thai/EN/numbers/space/punctuation only
+// Rejects Zalgo / emoji / control that bloats tokens.
+export function isValidPositionLabel(s: string): boolean {
+  if (typeof s !== "string") return false;
+  if (s.length === 0 || s.length > LIMITS.positionLabelMax) return false;
+  // Allow Thai range ก-๛, basic Latin, digits, space, -_.(),/
+  return /^[\u0E00-\u0E7FA-Za-z0-9 \-_.(),\/]+$/.test(s);
 }
 
 // Extract a JSON object from an AI response (handles markdown fences / stray text)
 export function extractJSON(text: string): Record<string, unknown> | null {
   let t = (text || "").trim();
-  // strip ```json ... ``` fences
   t = t.replace(/^```(?:json)?/m, "").replace(/```$/m, "").trim();
   try {
     const parsed = JSON.parse(t);
@@ -22,7 +75,6 @@ export function extractJSON(text: string): Record<string, unknown> | null {
   } catch {
     // fall through
   }
-  // find first {...}
   const start = t.indexOf("{");
   const end = t.lastIndexOf("}");
   if (start !== -1 && end > start) {
@@ -64,13 +116,12 @@ const COLOR_MAP: Record<string, string> = {
 export function colorToHex(name: string, fallbackHex = "#d4af37"): { hex: string; name: string } {
   const n = (name || "").trim();
   const hex = COLOR_MAP[n] || fallbackHex;
-  // If unknown, return the raw name if it looks like a hex color
   const finalName = /^#[0-9a-fA-F]{6}$/.test(n) ? "ทอง" : n || "ทอง";
   return { hex, name: finalName };
 }
 
 // ============================================
-// In-memory rate limiting (per process)
+// In-memory rate limiting (per process) — fallback only; primary is DB RPC
 // ============================================
 const rateBuckets = new Map<string, number[]>();
 
@@ -88,8 +139,7 @@ export function checkRateLimit(key: string, limit: number, windowMs: number): bo
 }
 
 // ============================================
-// In-memory daily cache (per process)
-// Keeps daily readings stable within a day & reduces AI cost
+// In-memory daily cache (per process) — best-effort, not authoritative
 // ============================================
 const fortuneCache = new Map<string, { at: number; value: unknown }>();
 
