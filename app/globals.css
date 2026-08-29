@@ -111,21 +111,31 @@ body {
   z-index: -2;
   background-image: url('/Background.png');
   background-size: cover;
-  background-position: center center;
+  background-position: center top;
   background-repeat: no-repeat;
   pointer-events: none;
+  /* soften cute pastel → mystical */
+  filter: saturate(0.82) brightness(0.88) contrast(1.05);
+  opacity: 0.85;
 }
 .global-bg-overlay {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: color-mix(in srgb, var(--bg) 68%, transparent);
-  backdrop-filter: blur(0.5px) saturate(1.05);
-  -webkit-backdrop-filter: blur(0.5px) saturate(1.05);
+  /* harmonious mystical veil — matches sidebar #0e0a18 + image lavender */
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(167,139,250,0.18), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 90% 20%, rgba(212,175,55,0.10), transparent 60%),
+    linear-gradient(180deg, rgba(14,10,24,0.38) 0%, rgba(14,10,24,0.62) 55%, rgba(7,5,13,0.78) 100%);
+  backdrop-filter: blur(2px) saturate(1.08);
+  -webkit-backdrop-filter: blur(2px) saturate(1.08);
   pointer-events: none;
 }
 .dark .global-bg-overlay {
-  background: color-mix(in srgb, var(--bg) 64%, transparent);
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(167,139,250,0.14), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 90% 20%, rgba(212,175,55,0.07), transparent 60%),
+    linear-gradient(180deg, rgba(7,5,13,0.42) 0%, rgba(7,5,13,0.66) 55%, rgba(7,5,13,0.82) 100%);
 }
 
 /* ============ DARK THEME ============ */
@@ -350,10 +360,12 @@ body {
 
 /* ============ CARDS & SURFACES ============ */
 .card {
-  background: var(--bg-card);
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
   transition: box-shadow 0.25s var(--ease), border-color 0.25s var(--ease), transform 0.25s var(--ease);
 }
 .card-hover:hover {
