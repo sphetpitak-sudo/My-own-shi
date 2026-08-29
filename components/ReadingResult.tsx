@@ -278,6 +278,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
         }),
         signal: abortController.signal,
       });
+      // keep timeout for streaming — do not clear yet
 
       if (!res.ok) {
         clearClientTimeout();
