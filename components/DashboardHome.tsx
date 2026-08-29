@@ -227,7 +227,7 @@ export default function DashboardHome() {
               <p className="hero-desc !text-white/70 !text-[13.5px] !leading-relaxed mt-2 max-w-[420px]">พิธีกรรมสามใบเชื่อมเส้นเวลา — เห็นอดีต เข้าใจปัจจุบัน รับคำทำนายเชิงลึกจาก AI หมอดูทิพย์</p>
               <div className="hero-meta !mt-4">
                 <span className="inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.12)" }}><Coins size={13} style={{ color: "#fde68a" }} /> {costs["three_card"] ?? SPREADS.three_card.cost} แต้ม</span>
-                <span className="hero-cta !bg-white !text-[#1a1033] !px-5 !py-2.5 !text-[13.5px] !font-extrabold !shadow-[0_8px_20px_rgba(0,0,0,0.22)] group-hover:!translate-x-1">เริ่มเลย <ArrowRight size={14} /></span>
+                <span className="hero-cta !bg-white !text-[#1a1033] !pl-5 !pr-1.5 !py-1.5 !text-[13.5px] !font-extrabold !rounded-full !gap-2.5 !shadow-[0_8px_20px_rgba(0,0,0,0.22)] group-hover:!scale-[1.02] !transition-all">เริ่มเลย <span className="w-8 h-8 rounded-full grid place-items-center shrink-0" style={{ background: "#1a1033", color: "white" }}><ArrowRight size={14} /></span></span>
               </div>
             </div>
           </div>
