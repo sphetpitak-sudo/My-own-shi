@@ -118,7 +118,7 @@ export const FEATURES: FeatureMeta[] = [
     descriptionTh: "ถามคำถามสั้น ๆ แล้วให้ไพ่ช่วยตอบ เหมาะกับการตัดสินใจเล็ก ๆ",
     icon: CircleHelp,
     status: "live",
-    cost: 3,
+    cost: 5,
     route: "/dashboard/yesno",
     theme: "amber",
   },

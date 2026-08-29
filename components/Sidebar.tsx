@@ -18,6 +18,7 @@ import {
   Sun,
   Star,
   Coins,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -34,6 +35,7 @@ const PRIMARY = [
   { href: "/dashboard/reading", label: "เปิดไพ่พยากรณ์", icon: Sparkles },
   { href: "/dashboard/daily", label: "ดูดวงรายวัน", icon: Sun },
   { href: "/dashboard/yesno", label: "ถามใช่หรือไม่", icon: CircleHelp },
+  { href: "/dashboard/collection", label: "คอลเลกชันไพ่", icon: Layers },
   { href: "/dashboard/history", label: "บันทึกคำทำนาย", icon: Clock },
 ];
 

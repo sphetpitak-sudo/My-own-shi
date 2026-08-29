@@ -6,6 +6,7 @@ import Link from "next/link";
 import { User, Calendar, BookOpen, Coins, ArrowUpRight, ArrowDownLeft, Settings, Ticket } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import DailyBonus from "./DailyBonus";
+import PurchaseBundles from "./PurchaseBundles";
 import type { Profile, PointTransaction } from "@/lib/types";
 
 interface ProfilePageProps {
@@ -14,6 +15,8 @@ interface ProfilePageProps {
 
 const txTypeLabels: Record<string, { label: string; icon: typeof Coins; positive: boolean }> = {
   daily_bonus: { label: "โบนัสรายวัน", icon: Coins, positive: true },
+  streak_bonus: { label: "โบนัสต่อเนื่อง", icon: Coins, positive: true },
+  purchase: { label: "เติมแต้ม", icon: Coins, positive: true },
   admin_grant: { label: "ได้รับจากแอดมิน", icon: ArrowDownLeft, positive: true },
   redeem: { label: "แลกโค้ด", icon: Ticket, positive: true },
   referral: { label: "แนะนำเพื่อน", icon: ArrowDownLeft, positive: true },
@@ -223,6 +226,9 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
             <DailyBonus userId={userId} onClaim={handleDailyBonus} />
           </div>
         </div>
+
+        {/* Purchase Bundles */}
+        <PurchaseBundles userId={userId} onPurchased={(pts)=> setProfile(prev=> prev? {...prev, points: prev.points+pts}:prev)} />
 
         {/* Transaction History */}
         <div>

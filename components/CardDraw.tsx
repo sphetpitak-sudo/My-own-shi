@@ -50,7 +50,14 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
   );
 
   if (phase === "shuffle") {
-    return <ShuffleAnimation onComplete={handleShuffleComplete} reducedMotion={reducedMotion} />;
+    return (
+      <div className="relative">
+        <ShuffleAnimation onComplete={handleShuffleComplete} reducedMotion={reducedMotion} />
+        <button onClick={handleShuffleComplete} className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[12px] font-semibold underline" style={{ color: "var(--text-muted)" }}>
+          ข้ามพิธีกรรม →
+        </button>
+      </div>
+    );
   }
 
   const progressPct = (flippedIndices.size / spread.cardCount) * 100;
@@ -129,11 +136,18 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
       {/* Submit / Proceed Action */}
       <div className="flex flex-col items-center gap-3 pt-2">
         {!allFlipped ? (
-          <p className="text-[12.5px] font-semibold text-[var(--text-muted)]">
-            {flippedIndices.size === 0
-              ? "แตะไพ่ใบแรกเพื่อเปิดคำทำนาย"
-              : `เหลืออีก ${spread.cardCount - flippedIndices.size} ใบ`}
-          </p>
+          <>
+            <p className="text-[12.5px] font-semibold text-[var(--text-muted)]">
+              {flippedIndices.size === 0
+                ? "แตะไพ่ใบแรกเพื่อเปิดคำทำนาย"
+                : `เหลืออีก ${spread.cardCount - flippedIndices.size} ใบ`}
+            </p>
+            {flippedIndices.size > 0 && (
+              <button onClick={() => setFlippedIndices(new Set(drawnCards.map((_, i) => i)))} className="btn btn-ghost text-[12.5px] px-4 py-2">
+                เปิดทั้งหมด ({spread.cardCount} ใบ)
+              </button>
+            )}
+          </>
         ) : (
           <button
             ref={submitRef}

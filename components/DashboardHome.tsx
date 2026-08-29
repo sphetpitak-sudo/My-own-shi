@@ -14,6 +14,8 @@ import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, ArrowRight, type Luc
 import { cn } from "@/lib/cn";
 import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
 import { useShell } from "./DashboardShell";
+import dynamic from "next/dynamic";
+const PushOptInWrapper = dynamic(() => import("./PushOptIn"), { ssr: false });
 
 interface ProfileLite {
   display_name: string | null;
@@ -267,13 +269,12 @@ export default function DashboardHome() {
             return (
               <button
                 key={key}
-                onClick={() => handleSpreadSelect(key)}
-                disabled={insufficient}
+                onClick={() => insufficient ? router.push("/dashboard/daily") : handleSpreadSelect(key)}
                 className={cn(
                   "dash-spread group text-left",
-                  insufficient && "opacity-50 cursor-not-allowed"
+                  insufficient && "opacity-75"
                 )}
-                aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ, ${cost} แต้ม`}
+                aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ, ${cost} แต้ม${insufficient ? " (แต้มไม่พอ)" : ""}`}
               >
                 <div className="dash-spread-thumb relative">
                   {positions.map((p, i) => (
@@ -299,14 +300,19 @@ export default function DashboardHome() {
                 </div>
                 <div className="dash-spread-meta flex items-center justify-between text-[11.5px] text-[var(--text-muted)]">
                   <span>{spread.cardCount} ใบ</span>
-                  <span className="dash-spread-cost font-extrabold text-[var(--gold)] flex items-center gap-1">
-                    <Coins size={11} /> {cost} แต้ม
-                  </span>
+                  {insufficient ? (
+                    <span className="font-bold text-[var(--red)] flex items-center gap-1">ขาด {cost - (profile?.points ?? 0)} แต้ม</span>
+                  ) : (
+                    <span className="dash-spread-cost font-extrabold text-[var(--gold)] flex items-center gap-1">
+                      <Coins size={11} /> {cost} แต้ม
+                    </span>
+                  )}
                 </div>
                 <div
-                  className="absolute top-2.5 right-3 text-[9.5px] font-extrabold uppercase tracking-wider text-[var(--primary)] bg-[var(--primary-soft)] px-2 py-0.5 rounded-full"
+                  className="absolute top-2.5 right-3 text-[9.5px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  style={{ background: insufficient ? "var(--red-soft)" : "var(--primary-soft)", color: insufficient ? "var(--red)" : "var(--primary)" }}
                 >
-                  {SPREAD_BADGE[key]}
+                  {insufficient ? "แต้มไม่พอ" : SPREAD_BADGE[key]}
                 </div>
               </button>
             );
@@ -323,6 +329,9 @@ export default function DashboardHome() {
             handleDailyBonus(amount);
           }}
         />
+      </div>
+      <div className="dash-section">
+        <PushOptInWrapper />
       </div>
 
       {/* Announcement Banner */}
@@ -401,7 +410,7 @@ export default function DashboardHome() {
                 id: "yesno",
                 icon: CircleHelp,
                 title: "ถามใช่หรือไม่",
-                sub: "3 แต้ม · คำตอบชัดเจนใน 1 ใบ",
+                sub: `${costs["single"] ?? 5} แต้ม · คำตอบชัดเจนใน 1 ใบ`,
                 href: "/dashboard/yesno",
                 cat: "quick" as FeatureCategory,
               },
@@ -478,7 +487,7 @@ export default function DashboardHome() {
             {recentReadings.map((r) => (
               <a
                 key={r.id}
-                href="/dashboard/history"
+                href={`/dashboard/history?r=${r.id}`}
                 className="card p-4 flex items-center gap-3.5 hover:border-[var(--border-strong)] hover:shadow-sm transition-all duration-200 group"
               >
                 <span
@@ -500,6 +509,18 @@ export default function DashboardHome() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Collection Teaser */}
+      <div className="dash-section">
+        <a href="/dashboard/collection" className="card p-4 flex items-center gap-3.5 hover:border-[var(--primary)] transition-all group">
+          <div className="w-11 h-11 rounded-xl grid place-items-center" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}><Sparkles size={18} /></div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-extrabold" style={{ color:"var(--text)"}}>คอลเลกชันไพ่ 78 ใบ</div>
+            <div className="text-[12px]" style={{ color:"var(--text-muted)"}}>ดูไพ่ที่สะสม ธาตุ และไพ่เด่นของคุณ</div>
+          </div>
+          <span className="text-[18px]" style={{ color:"var(--text-muted)"}}>›</span>
+        </a>
       </div>
 
       {/* Points Balance Footer Widget */}

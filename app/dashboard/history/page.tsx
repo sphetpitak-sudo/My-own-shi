@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import DashboardShell from "@/components/DashboardShell";
 import ReadingHistory from "@/components/ReadingHistory";
@@ -51,7 +51,9 @@ export default function HistoryPage() {
             <h1 className="page-title">ประวัติการทำนาย</h1>
             <p className="page-sub">ดูการทำนายทั้งหมดของคุณ</p>
           </div>
-          <ReadingHistory userId={userId} />
+          <Suspense fallback={<div className="shimmer h-[72px] w-full" />}>
+            <ReadingHistory userId={userId} />
+          </Suspense>
         </div>
       </div>
     </DashboardShell>

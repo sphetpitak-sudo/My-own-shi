@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles, BookOpen, Compass, Lightbulb, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
@@ -100,6 +101,7 @@ function HistoryCopyButton({ text }: { text: string }) {
 }
 
 export default function ReadingHistory({ userId }: ReadingHistoryProps) {
+  const searchParams = useSearchParams();
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -118,13 +120,22 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
         .range(offset, offset + PAGE_SIZE - 1);
 
       if (data) {
-        setReadings((prev) => (append ? [...prev, ...data] : data));
+        setReadings((prev) => {
+          const next = append ? [...prev, ...data] : data;
+          const rParam = searchParams.get("r");
+          if (rParam && next.some((r: { id: string }) => r.id === rParam)) {
+            setExpandedId(rParam);
+            // scroll after render
+            setTimeout(() => document.getElementById(`reading-${rParam}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+          }
+          return next;
+        });
         setHasMore(data.length === PAGE_SIZE);
       }
       setLoading(false);
       setLoadingMore(false);
     },
-    [userId]
+    [userId, searchParams]
   );
 
   useEffect(() => {
@@ -239,7 +250,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
         const cardCount = r.cards && Array.isArray(r.cards) ? r.cards.length : 0;
 
         return (
-          <div key={r.id} className="card" style={{ overflow: "hidden" }}>
+          <div key={r.id} id={`reading-${r.id}`} className="card" style={{ overflow: "hidden" }}>
             <button
               onClick={() => setExpandedId(isExpanded ? null : r.id)}
               style={{

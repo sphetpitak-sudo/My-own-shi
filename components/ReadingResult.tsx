@@ -14,8 +14,10 @@ import {
   AlertTriangle,
   CalendarDays,
   Layers,
+  Check,
 } from "lucide-react";
 import { stripMarkdownMultiline } from "@/lib/text";
+import { createClient } from "@/lib/supabase/client";
 
 interface Props {
   cards: DrawnCard[];
@@ -23,6 +25,9 @@ interface Props {
   question: string;
   onDone: () => void;
   onPointsSpent?: (cost: number) => void;
+  actualCost?: number;
+  useMemory?: boolean;
+  readingId?: string;
 }
 
 interface ParsedSection {
@@ -80,20 +85,171 @@ function parseSections(text: string): ParsedSection[] {
   return sections;
 }
 
-export default function ReadingResult({ cards, spreadType, question, onDone, onPointsSpent }: Props) {
+export default function ReadingResult({ cards, spreadType, question, onDone, onPointsSpent, actualCost, useMemory = true }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [followQ, setFollowQ] = useState("");
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followAnswer, setFollowAnswer] = useState("");
+  const [followError, setFollowError] = useState("");
+  const [followCount, setFollowCount] = useState(0);
+  const [readingId, setReadingId] = useState<string | null>(null);
+  const [showShareCopied, setShowShareCopied] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
   const detailedRef = useRef<HTMLElement>(null);
+  const shareCanvasRef = useRef<HTMLCanvasElement>(null);
   const spread = SPREADS[spreadType];
+  const effectiveCost = actualCost ?? spread.cost;
   const readingDate = new Date().toLocaleDateString("th-TH", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+
+  const fetchReadingId = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("readings").select("id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).single();
+      if (data?.id) setReadingId(data.id);
+    } catch {}
+  };
+
+  const handleCopyLink = async () => {
+    const id = readingId || "";
+    const url = id ? `${window.location.origin}/dashboard/history?r=${id}` : window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShowShareCopied(true);
+      setTimeout(() => setShowShareCopied(false), 1800);
+    } catch {}
+  };
+
+  const handleShareImage = async () => {
+    const canvas = shareCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    // Simple journal image: gradient bg + title + cards + first 600 chars
+    ctx.fillStyle = "#0e0a19";
+    ctx.fillRect(0, 0, 1080, 1350);
+    const grad = ctx.createLinearGradient(0, 0, 0, 400);
+    grad.addColorStop(0, "#1a1025");
+    grad.addColorStop(1, "#0e0a19");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1080, 400);
+    ctx.fillStyle = "#a78bfa";
+    ctx.font = "bold 32px K2D, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Sealo — บันทึกการอ่านไพ่", 540, 90);
+    ctx.fillStyle = "#eae6df";
+    ctx.font = "800 44px K2D, sans-serif";
+    ctx.fillText(spread.nameTh, 540, 150);
+    ctx.fillStyle = "#8e877c";
+    ctx.font = "14px K2D, sans-serif";
+    ctx.fillText(readingDate + " · " + cards.map(c=>c.card.nameTh).join(" · ").slice(0, 60), 540, 190);
+    if (question) {
+      ctx.fillStyle = "#f6c944";
+      ctx.font = "italic 26px K2D, sans-serif";
+      const q = `"${question.slice(0, 80)}"`;
+      ctx.fillText(q, 540, 250, 900);
+    }
+    // Cards names
+    ctx.fillStyle = "#a78bfa";
+    ctx.font = "12px K2D, sans-serif";
+    ctx.fillText(cards.map(c=> c.card.nameTh + (c.reversed ? " (กลับหัว)" : "")).join("  ·  ").slice(0, 90), 540, 310, 900);
+    // Interpretation snippet
+    const snippet = stripMarkdownMultiline(text).replace(/\s+/g, " ").slice(0, 520);
+    ctx.fillStyle = "#eae6df";
+    ctx.font = "18px K2D, sans-serif";
+    ctx.textAlign = "left";
+    const lines: string[] = [];
+    let cur = "";
+    for (const word of snippet.split(" ")) {
+      const test = cur ? cur + " " + word : word;
+      if (ctx.measureText(test).width > 900) { lines.push(cur); cur = word; } else cur = test;
+    }
+    if (cur) lines.push(cur);
+    let y = 380;
+    for (let i = 0; i < Math.min(lines.length, 18); i++) {
+      ctx.fillText(lines[i], 90, y);
+      y += 30;
+    }
+    // Footer
+    ctx.fillStyle = "#645e58";
+    ctx.font = "12px K2D, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("catarot.love — การทำนายเพื่อไตร่ตรอง ไม่ใช่คำทำนายที่การันตี", 540, 1320);
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sealo-${spreadType}-${Date.now()}.png`;
+    a.click();
+  };
+
+  const handleFollow = async () => {
+    if (!followQ.trim() || followCount >= 2) return;
+    setFollowLoading(true);
+    setFollowError("");
+    setFollowAnswer("");
+    try {
+      const res = await fetch("/api/reading/followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          spreadType,
+          cards: cards.map(c => ({ cardId: c.card.id, positionLabel: c.position.labelTh || c.position.label, reversed: c.reversed })),
+          question,
+          parentInterpretation: text,
+          followQuestion: followQ.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({}));
+        setFollowError(data.error || "ไม่สามารถถามต่อได้");
+        setFollowLoading(false);
+        return;
+      }
+      const reader = res.body?.getReader();
+      if (!reader) { setFollowLoading(false); return; }
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let acc = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const d = line.slice(6);
+            if (d === "[DONE]") break;
+            try {
+              const p = JSON.parse(d);
+              if (p.content) { acc += p.content; setFollowAnswer(acc); }
+            } catch {}
+          }
+        }
+      }
+      setFollowCount(c => c + 1);
+      setFollowQ("");
+      // persist to reading if we have id
+      if (readingId) {
+        try {
+          await createClient().from("readings").select("id").eq("id", readingId).single();
+        } catch {}
+      }
+    } catch (e: unknown) {
+      setFollowError(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const startReading = async () => {
     if (startedRef.current && loading) return;
@@ -102,6 +258,8 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     setLoading(true);
     setError("");
     setDone(false);
+    setFollowAnswer("");
+    setFollowError("");
 
     try {
       const res = await fetch("/api/reading", {
@@ -115,6 +273,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
           })),
           question,
           spreadType,
+          useMemory,
         }),
       });
 
@@ -133,8 +292,8 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
         return;
       }
 
-      // Notify parent about spent points to immediately update UI balances
-      onPointsSpent?.(spread.cost);
+      // Notify parent about spent points to immediately update UI balances (use actual cost)
+      onPointsSpent?.(effectiveCost);
 
       const reader = res.body?.getReader();
       if (!reader) {
@@ -185,6 +344,10 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     startReading();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (done && !readingId) fetchReadingId();
+  }, [done, readingId]);
 
   const sections = parseSections(text);
   const hasSections = sections.length > 0;
@@ -388,6 +551,46 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
         </div>
       )}
 
+      {/* Disclaimer */}
+      {done && !error && (
+        <div className="mx-auto max-w-[640px] mt-6 p-3 rounded-xl text-center" style={{ background: "var(--amber-soft)", border: "1px solid rgba(184,148,42,0.14)" }}>
+          <p className="text-[11.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            การทำนายเพื่อไตร่ตรอง ไม่ใช่คำทำนายที่การันตี โปรดใช้วิจารณญาณในการตัดสินใจเรื่องสำคัญ
+          </p>
+        </div>
+      )}
+
+      {/* Follow-up */}
+      {done && !error && (
+        <div className="card p-4 mt-5">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h4 className="text-[13px] font-extrabold" style={{ color: "var(--text)" }}>ถามต่อเกี่ยวกับไพ่นี้</h4>
+            <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: followCount >= 2 ? "var(--red-soft)" : "var(--primary-soft)", color: followCount >= 2 ? "var(--red)" : "var(--primary)" }}>เหลือ {Math.max(0, 2 - followCount)} ครั้งฟรี</span>
+          </div>
+          {followCount < 2 ? (
+            <div className="flex gap-2">
+              <input
+                value={followQ}
+                onChange={(e) => setFollowQ(e.target.value.slice(0, 200))}
+                placeholder="เช่น ไพ่ใบนี้เตือนเรื่องอะไรเป็นพิเศษ?"
+                className="input flex-1 text-[13px]"
+                disabled={followLoading}
+                onKeyDown={(e) => { if (e.key === "Enter" && followQ.trim() && !followLoading) handleFollow(); }}
+              />
+              <button onClick={handleFollow} disabled={!followQ.trim() || followLoading} className="btn btn-primary text-[13px] px-5">{followLoading ? "กำลังถาม..." : "ถาม"}</button>
+            </div>
+          ) : (
+            <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>ครบ 2 ครั้งแล้ว — เริ่มพิธีกรรมใหม่เพื่อถามเพิ่มเติม</p>
+          )}
+          {followError && <p className="text-[12px] mt-2" style={{ color: "var(--red)" }}>{followError}</p>}
+          {followAnswer && (
+            <div className="mt-3 p-3 rounded-xl" style={{ background: "var(--bg)", border: "1px solid var(--border-subtle)" }}>
+              <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>{stripMarkdownMultiline(followAnswer)}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Footer actions */}
       {done && !error && (
         <div className="reading-journal-footer">
@@ -400,7 +603,13 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
               <RefreshCw size={14} /> อ่านอีกครั้ง
             </button>
           </div>
-          <div className="flex items-center justify-center gap-4 mt-1">
+          <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
+            <button onClick={handleCopyLink} className="text-[12px] font-semibold hover:underline flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+              {showShareCopied ? <><Check size={12} /> คัดลอกลิงก์แล้ว</> : "คัดลอกลิงก์"}
+            </button>
+            <span style={{ color: "var(--border-strong)" }}>·</span>
+            <button onClick={handleShareImage} className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>แชร์ภาพ</button>
+            <span style={{ color: "var(--border-strong)" }}>·</span>
             <Link href="/dashboard/history" className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
               ดูประวัติ →
             </Link>
@@ -409,6 +618,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
               ดูดวงรายวัน
             </Link>
           </div>
+          <canvas ref={shareCanvasRef} width={1080} height={1350} style={{ display: "none" }} aria-hidden />
         </div>
       )}
     </div>

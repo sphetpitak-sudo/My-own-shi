@@ -127,10 +127,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify the user paid for an oracle reading recently (prevents free AI abuse)
-    const { count } = await supabase
+    // Verify the user paid for an oracle reading recently (prevents free AI abuse) — also validate amount matches spread
+    const expectedCost = cards.length === 1 ? 5 : 15;
+    const { data: recentTx, count } = await supabase
       .from("point_transactions")
-      .select("id", { count: "exact", head: true })
+      .select("id, amount", { count: "exact" })
       .eq("user_id", user.id)
       .eq("type", "reading_purchase")
       .ilike("description", "oracle:%")
@@ -138,6 +139,11 @@ export async function POST(request: Request) {
 
     if ((count ?? 0) < 1) {
       return NextResponse.json({ error: "Please open an oracle reading first" }, { status: 403 });
+    }
+    // Ensure at least one transaction matches expected cost (prevents tampering 1pt for 3-card)
+    const hasValidCost = (recentTx || []).some(r => r.amount === -expectedCost);
+    if (!hasValidCost) {
+      return NextResponse.json({ error: "Invalid oracle purchase amount" }, { status: 403 });
     }
 
     // Rate limit AI elaboration (max 5 within the purchase window)

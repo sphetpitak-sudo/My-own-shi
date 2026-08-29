@@ -63,6 +63,7 @@ function ReadingPageInner() {
   );
   const [question, setQuestion] = useState("");
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
+  const [useMemory, setUseMemory] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
@@ -161,7 +162,6 @@ function ReadingPageInner() {
   };
 
   const handleQuestionSubmit = () => {
-    if (!question.trim()) return;
     setStep("draw");
   };
 
@@ -277,7 +277,11 @@ function ReadingPageInner() {
           />
         )}
 
-        {step === "question" && (
+        {step === "question" && (() => {
+          const actualCost = costs[spreadType] ?? spread.cost;
+          const shortage = actualCost - points;
+          const insufficient = points < actualCost;
+          return (
           <div className="animate-in">
             <div className="flex items-center gap-3 px-4 mb-4">
               <div
@@ -289,25 +293,40 @@ function ReadingPageInner() {
               >
                 <Sparkles size={18} />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="text-[14.5px] font-bold" style={{ color: "var(--text)" }}>
                   {spread.nameTh}
                 </div>
                 <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>
                   {spread.cardCount} ใบ · ใช้{" "}
-                  <span style={{ color: "var(--gold)", fontWeight: 700 }}>
-                    {costs[spreadType] ?? spread.cost}
+                  <span style={{ color: insufficient ? "var(--red)" : "var(--gold)", fontWeight: 700 }}>
+                    {actualCost}
                   </span>{" "}
-                  แต้ม
+                  แต้ม · คงเหลือ {points.toLocaleString()}
                 </div>
               </div>
             </div>
+
+            {insufficient && (
+              <div className="mx-4 mb-3 flex items-center gap-2 text-[12.5px] font-semibold rounded-xl px-3 py-2.5" style={{ background: "var(--red-soft)", color: "var(--red)", border: "1px solid rgba(194,65,48,0.14)" }}>
+                ขาดอีก {shortage} แต้ม — <button onClick={() => router.push("/dashboard/daily")} className="underline">รับแต้มฟรี</button> หรือ <button onClick={() => router.push("/dashboard/profile")} className="underline">เติมแต้ม</button>
+              </div>
+            )}
 
             <QuestionInput
               value={question}
               onChange={setQuestion}
               onSubmit={handleQuestionSubmit}
             />
+
+            <label className="flex items-center gap-2.5 mx-4 mt-3 p-3 rounded-xl cursor-pointer select-none border" style={{ background: useMemory ? "var(--primary-soft)" : "var(--bg-card)", borderColor: useMemory ? "rgba(167,139,250,0.25)" : "var(--border)" }}>
+              <input type="checkbox" checked={useMemory} onChange={(e) => setUseMemory(e.target.checked)} className="rounded" />
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-bold" style={{ color: "var(--text)" }}>ให้ Sealo จำเรื่องเดิม</div>
+                <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>อ้างอิง 3 ครั้งล่าสุดเพื่อคำทำนายที่ต่อเนื่อง</div>
+              </div>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full" style={{ background: useMemory ? "var(--primary)" : "var(--border)", color: useMemory ? "white" : "var(--text-muted)" }}>{useMemory ? "เปิด" : "ปิด"}</span>
+            </label>
 
             <button
               onClick={() => setStep("spread")}
@@ -317,7 +336,8 @@ function ReadingPageInner() {
               เลือก Spread ใหม่
             </button>
           </div>
-        )}
+          );
+        })()}
 
         {step === "draw" && drawnCards === null && (
           <CardDraw
@@ -332,6 +352,8 @@ function ReadingPageInner() {
             spreadType={spreadType}
             question={question}
             onDone={handleResultDone}
+            actualCost={costs[spreadType] ?? SPREADS[spreadType].cost}
+            useMemory={useMemory}
             onPointsSpent={(cost) => setPoints((p) => Math.max(0, p - cost))}
           />
         )}

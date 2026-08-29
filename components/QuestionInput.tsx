@@ -16,14 +16,22 @@ const CATEGORY_PROMPTS = [
   { icon: Compass, text: "สิ่งที่ไพ่อยากบอกเพื่อเป็นแนวทางชีวิตในขณะนี้คืออะไร?" },
 ];
 
+function qualityHint(len: number, text: string) {
+  if (!text.trim()) return { label: "ไม่ระบุก็ได้ — จะอ่านภาพรวมทั่วไป", color: "var(--text-muted)" };
+  if (len < 12) return { label: "ลองเพิ่มบริบทอีกนิด — เรื่องอะไร ช่วงไหน?", color: "var(--amber)" };
+  if (len < 30) return { label: "ดี — เพิ่มรายละเอียดจะตรงใจขึ้น", color: "var(--text-secondary)" };
+  return { label: "เยี่ยม — คำถามชัดเจน จะได้คำตอบตรงใจ", color: "var(--green)" };
+}
+
 export default function QuestionInput({
   value,
   onChange,
   onSubmit,
   loading = false,
 }: Props) {
+  const hint = qualityHint(value.length, value);
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && value.trim() && !loading) {
+    if (e.key === "Enter" && !e.shiftKey && !loading) {
       e.preventDefault();
       onSubmit();
     }
@@ -47,12 +55,13 @@ export default function QuestionInput({
           </span>
         </div>
 
+        <p className="text-[11.5px] font-semibold" style={{ color: hint.color }}>{hint.label}</p>
         <textarea
           id="question-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="เขียนคำถามหรือสิ่งที่อยู่ในใจของคุณ... (หรือเปิดดูภาพรวมโดยไม่ต้องระบุคำถาม)"
+          placeholder="เขียนคำถามหรือสิ่งที่อยู่ในใจของคุณ... (เว้นว่างได้ — จะอ่านภาพรวมทั่วไป)"
           rows={4}
           maxLength={500}
           disabled={loading}
@@ -72,7 +81,11 @@ export default function QuestionInput({
                 <button
                   key={i}
                   type="button"
-                  onClick={() => onChange(p.text)}
+                  onClick={() => {
+                    const next = value ? `${value.trim()} ${p.text}` : p.text;
+                    onChange(next.slice(0, 500));
+                    document.getElementById("question-input")?.focus();
+                  }}
                   className="text-left text-[12px] p-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--primary)] hover:bg-[var(--primary-soft)] transition-all flex items-start gap-2 text-[var(--text-secondary)] hover:text-[var(--text)] group"
                 >
                   <Icon size={14} className="text-[var(--primary)] shrink-0 mt-0.5" />

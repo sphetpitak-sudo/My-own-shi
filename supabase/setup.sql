@@ -460,5 +460,136 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ============================================
+-- 13. PURCHASES (PromptPay/Stripe)
+-- ============================================
+CREATE TABLE IF NOT EXISTS purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  amount_thb INTEGER NOT NULL CHECK (amount_thb > 0),
+  points INTEGER NOT NULL CHECK (points > 0),
+  provider TEXT NOT NULL CHECK (provider IN ('promptpay','stripe','mock')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','completed','failed')),
+  provider_ref TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Purchases select" ON purchases;
+CREATE POLICY "Purchases select" ON purchases FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "Purchases insert" ON purchases;
+CREATE POLICY "Purchases insert" ON purchases FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_user ON purchases(user_id);
+
+-- ============================================
+-- 14. PUSH SUBSCRIPTIONS
+-- ============================================
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Push select" ON push_subscriptions;
+CREATE POLICY "Push select" ON push_subscriptions FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "Push insert" ON push_subscriptions;
+CREATE POLICY "Push insert" ON push_subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Push delete" ON push_subscriptions;
+CREATE POLICY "Push delete" ON push_subscriptions FOR DELETE USING (auth.uid() = user_id OR public.is_admin());
+
+-- ============================================
+-- 15. API RATE LIMITS (DB-backed)
+-- ============================================
+CREATE TABLE IF NOT EXISTS api_rate_limits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE api_rate_limits ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "RateLimits select" ON api_rate_limits;
+CREATE POLICY "RateLimits select" ON api_rate_limits FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "RateLimits insert" ON api_rate_limits;
+CREATE POLICY "RateLimits insert" ON api_rate_limits FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_user_endpoint ON api_rate_limits(user_id, endpoint, created_at);
+
+-- ============================================
+-- 16. SECURITY HARDENING: Readings UPDATE lockdown
+-- ============================================
+-- Revoke broad update and allow only interpretation/followups
+DO $$ BEGIN
+  REVOKE UPDATE ON public.readings FROM anon, authenticated;
+EXCEPTION WHEN undefined_object THEN NULL; END $$;
+-- Grant only safe columns if columns exist (interpretation)
+DO $$ BEGIN
+  GRANT UPDATE (interpretation) ON public.readings TO authenticated;
+EXCEPTION WHEN undefined_column THEN NULL; END $$;
+
+-- ============================================
+-- 17. POINTS UPPER BOUND
+-- ============================================
+DO $$ BEGIN
+  ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_points_upper;
+  ALTER TABLE profiles ADD CONSTRAINT profiles_points_upper CHECK (points >= 0 AND points <= 1000000);
+EXCEPTION WHEN undefined_table THEN NULL; END $$;
+-- Cap admin_adjust_points: add check inside function (recreate)
+CREATE OR REPLACE FUNCTION admin_adjust_points(p_user_id UUID, p_amount INTEGER, p_reason TEXT DEFAULT '')
+RETURNS void AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin) THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+  IF ABS(p_amount) > 10000 THEN RAISE EXCEPTION 'Amount too large (max 10000)'; END IF;
+  UPDATE profiles
+  SET points = LEAST(1000000, GREATEST(0, points + p_amount))
+  WHERE id = p_user_id AND (points + p_amount) >= 0 AND (points + p_amount) <= 1000000;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Insufficient points or user not found';
+  END IF;
+  INSERT INTO point_transactions (user_id, amount, type, description, admin_id)
+  VALUES (p_user_id, p_amount, 'admin_grant', COALESCE(NULLIF(p_reason, ''), 'Admin adjustment'), auth.uid());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Extend point_transactions type to include purchase/streak_bonus
+DO $$ BEGIN
+  ALTER TABLE point_transactions DROP CONSTRAINT IF EXISTS point_transactions_type_check;
+  ALTER TABLE point_transactions ADD CONSTRAINT point_transactions_type_check
+    CHECK (type IN ('admin_grant','reading_purchase','daily_bonus','referral','refund','redeem','purchase','streak_bonus'));
+EXCEPTION WHEN undefined_table THEN NULL; END $$;
+
+-- ============================================
+-- 18. MOCK PURCHASE RPC (self-service for demo bundles)
+-- ============================================
+CREATE OR REPLACE FUNCTION create_mock_purchase(p_amount_thb INTEGER, p_points INTEGER)
+RETURNS UUID AS $$
+DECLARE new_id UUID;
+DECLARE allowed BOOLEAN := false;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+  IF p_amount_thb IS NULL OR p_points IS NULL THEN RAISE EXCEPTION 'Invalid bundle'; END IF;
+  -- Whitelist bundles: 99->120, 199->280, 399->650, 19->25,49->70
+  IF (p_amount_thb=99 AND p_points=120) OR (p_amount_thb=199 AND p_points=280) OR (p_amount_thb=399 AND p_points=650) OR (p_amount_thb=19 AND p_points=25) OR (p_amount_thb=49 AND p_points=70) OR (p_amount_thb=9 AND p_points=10) THEN
+    allowed := true;
+  END IF;
+  IF NOT allowed THEN RAISE EXCEPTION 'Invalid bundle'; END IF;
+  -- Insert purchase
+  INSERT INTO purchases (user_id, amount_thb, points, provider, status, provider_ref)
+  VALUES (auth.uid(), p_amount_thb, p_points, 'mock', 'completed', 'mock-'||gen_random_uuid()::text)
+  RETURNING id INTO new_id;
+  -- Grant points (capped)
+  UPDATE profiles SET points = LEAST(1000000, points + p_points) WHERE id = auth.uid();
+  INSERT INTO point_transactions (user_id, amount, type, description) VALUES (auth.uid(), p_points, 'purchase', 'Purchase: '||p_amount_thb||'฿ → '||p_points||'pts');
+  RETURN new_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- ============================================
+-- 19. STREAK BONUS HELPER (optional)
+-- ============================================
+-- No extra RPC needed — handled in app/api/daily-bonus
+
+-- ============================================
 -- DONE
 -- ============================================

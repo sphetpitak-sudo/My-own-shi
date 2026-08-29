@@ -17,7 +17,33 @@ export async function POST() {
       .eq("key", "daily_bonus")
       .single();
 
-    const bonusAmount = (settingsRow?.value as { amount: number })?.amount || 10;
+    const baseBonus = (settingsRow?.value as { amount: number })?.amount || 10;
+
+    // Compute streak bonus: count consecutive daily_bonus days before today (Bangkok)
+    let streakBefore = 0;
+    try {
+      const { data: recent } = await supabase.from("point_transactions").select("created_at").eq("user_id", user.id).eq("type", "daily_bonus").order("created_at", { ascending: false }).limit(35);
+      if (recent && recent.length > 0) {
+        const toBangkokDate = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+        const todayBangkok = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+        const days = new Set(recent.map(r => toBangkokDate(r.created_at as string)));
+        const base = new Date(`${todayBangkok}T00:00:00+07:00`);
+        for (let i = 1; i <= 35; i++) {
+          const check = new Date(base);
+          check.setDate(base.getDate() - i);
+          const ds = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(check);
+          if (days.has(ds)) streakBefore++;
+          else break;
+        }
+      }
+    } catch {}
+    const newStreak = streakBefore + 1;
+    let tierBonus = 0;
+    if (newStreak >= 30) tierBonus = 30;
+    else if (newStreak >= 14) tierBonus = 20;
+    else if (newStreak >= 7) tierBonus = 15;
+    else if (newStreak >= 3) tierBonus = 5;
+    const bonusAmount = baseBonus + tierBonus;
 
     // Use atomic RPC to claim bonus (prevents race conditions)
     const { data: claimed, error: rpcErr } = await supabase.rpc("claim_daily_bonus", {
@@ -33,7 +59,7 @@ export async function POST() {
       return NextResponse.json({ error: "Already claimed today" }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, amount: bonusAmount });
+    return NextResponse.json({ success: true, amount: bonusAmount, base: baseBonus, tier: tierBonus, streak: newStreak });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to claim daily bonus";
     return NextResponse.json({ error: message }, { status: 500 });

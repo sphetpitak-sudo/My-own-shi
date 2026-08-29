@@ -16,6 +16,9 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
   const [bonusAmount, setBonusAmount] = useState(10);
   const [error, setError] = useState("");
   const [burst, setBurst] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [heatmap, setHeatmap] = useState<boolean[]>(Array(35).fill(false));
+  const [nextTier, setNextTier] = useState<{ need: number; bonus: number } | null>(null);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -67,12 +70,61 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
         if (data && data.length > 0) {
           setClaimed(true);
         }
+
+        // Fetch streak + heatmap (last 35 days)
+        const { data: recent } = await supabase
+          .from("point_transactions")
+          .select("created_at")
+          .eq("user_id", userId)
+          .eq("type", "daily_bonus")
+          .gte("created_at", new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString())
+          .order("created_at", { ascending: false })
+          .limit(35);
+        const toBangkokDate = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+        const todayBangkok = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+        const days = new Set((recent || []).map((r: { created_at: string }) => toBangkokDate(r.created_at)));
+        // streak if today claimed, includes today else consecutive ending yesterday
+        let s = 0;
+        if (claimed || (recent && recent.some((r: { created_at: string }) => toBangkokDate(r.created_at) === todayBangkok))) {
+          // today claimed, count today + backwards
+          const base = new Date(`${todayBangkok}T00:00:00+07:00`);
+          for (let i = 0; i < 35; i++) {
+            const check = new Date(base); check.setDate(base.getDate() - i);
+            const ds = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(check);
+            if (days.has(ds)) s++; else break;
+          }
+        } else {
+          // not claimed today, streak is consecutive ending yesterday
+          const base = new Date(`${todayBangkok}T00:00:00+07:00`);
+          for (let i = 1; i < 35; i++) {
+            const check = new Date(base); check.setDate(base.getDate() - i);
+            const ds = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(check);
+            if (days.has(ds)) s++; else break;
+          }
+        }
+        setStreak(s);
+        // heatmap 35 days: oldest -> newest
+        const hm: boolean[] = [];
+        const baseHm = new Date(`${todayBangkok}T00:00:00+07:00`);
+        baseHm.setDate(baseHm.getDate() - 34);
+        for (let i = 0; i < 35; i++) {
+          const d = new Date(baseHm); d.setDate(baseHm.getDate() + i);
+          const ds = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+          hm.push(days.has(ds));
+        }
+        setHeatmap(hm);
+        // next tier
+        if (s < 3) setNextTier({ need: 3 - s, bonus: 5 });
+        else if (s < 7) setNextTier({ need: 7 - s, bonus: 15 });
+        else if (s < 14) setNextTier({ need: 14 - s, bonus: 20 });
+        else if (s < 30) setNextTier({ need: 30 - s, bonus: 30 });
+        else setNextTier(null);
       } catch {
         // server will reject duplicate claim
       }
     }
     checkClaimed();
-  }, [userId]);
+  }, [userId, claimed]);
 
   useEffect(() => {
     return () => {
@@ -101,6 +153,7 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
       setBurst(true);
       setTimeout(() => setBurst(false), 1200);
       setClaimed(true);
+      if (typeof data.streak === "number") setStreak(data.streak);
       onClaim(data.amount || 10);
     } catch {
       // Silently fail — user can retry
@@ -119,6 +172,17 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
           {error}
         </div>
       )}
+      {streak > 0 && (
+        <div className="flex items-center justify-center gap-1.5 mb-2 text-[12.5px] font-bold" style={{ color: streak >= 7 ? "var(--gold)" : "var(--text-secondary)" }}>
+          <span className="text-[16px]">🔥</span> ต่อเนื่อง {streak} วัน
+          {nextTier && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>อีก {nextTier.need} วัน → +{nextTier.bonus}</span>}
+        </div>
+      )}
+      <div className="flex justify-center gap-1 mb-2.5">
+        {heatmap.map((hit, i) => (
+          <div key={i} className="w-[7px] h-[7px] rounded-[2px]" title={hit ? "รับแล้ว" : "ยังไม่รับ"} style={{ background: hit ? (i === 34 && !claimed ? "var(--primary)" : "var(--gold)") : "var(--border)", opacity: hit ? 1 : 0.5 }} />
+        ))}
+      </div>
 
       <button
         onClick={handleClaim}

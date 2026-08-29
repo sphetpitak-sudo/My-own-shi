@@ -103,6 +103,12 @@ export async function POST(request: Request) {
     if (!checkRateLimit(`zodiac:${user.id}`, 10, 3600_000)) {
       return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
     }
+    try {
+      const since = new Date(Date.now() - 3600_000).toISOString();
+      const { count } = await supabase.from("api_rate_limits").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("endpoint", "zodiac").gte("created_at", since);
+      if ((count ?? 0) >= 10) return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+      await supabase.from("api_rate_limits").insert({ user_id: user.id, endpoint: "zodiac" });
+    } catch {}
 
     const fallback = buildZodiacFortune(birthDate, today);
     const sign = ZODIAC_SIGNS.find((s) => s.id === fallback.signId)!;
