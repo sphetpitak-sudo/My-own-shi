@@ -252,7 +252,7 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
                   positive: true,
                 };
                 const meta = isRedeem
-                  ? { label: `แลกโค้ด ${tx.description.replace("Redeem:", "").trim() ? `· ${tx.description.replace("Redeem:", "").trim()}` : ""}`, icon: Ticket, positive: true }
+                  ? { label: "แลกโค้ด", icon: Ticket, positive: true }
                   : baseMeta;
                 const Icon = meta.icon;
                 return (
