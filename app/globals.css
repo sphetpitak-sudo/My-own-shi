@@ -91,13 +91,11 @@
   }
 }
 
+html {
+  background: var(--bg);
+}
 body {
-  background-color: var(--bg);
-  background-image: url('/Background.png');
-  background-size: cover;
-  background-position: center center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+  background: transparent;
   color: var(--text);
   font-family: "K2D", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -105,19 +103,29 @@ body {
   text-rendering: optimizeLegibility;
   letter-spacing: -0.015em;
   position: relative;
+  min-height: 100vh;
 }
-body::before {
-  content: '';
+.global-bg {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(1px);
+  z-index: -2;
+  background-image: url('/Background.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
   pointer-events: none;
-  z-index: -1;
 }
-.dark body::before {
-  background: color-mix(in srgb, var(--bg) 84%, transparent);
+.global-bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  backdrop-filter: blur(0.5px) saturate(1.05);
+  -webkit-backdrop-filter: blur(0.5px) saturate(1.05);
+  pointer-events: none;
+}
+.dark .global-bg-overlay {
+  background: color-mix(in srgb, var(--bg) 64%, transparent);
 }
 
 /* ============ DARK THEME ============ */
@@ -176,7 +184,7 @@ body::before {
 }
 
 .dark body {
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
 }
 

@@ -62,6 +62,8 @@ export default function RootLayout({
         ` }} />
       </head>
       <body className="min-h-full flex flex-col">
+        <div aria-hidden className="global-bg" />
+        <div aria-hidden className="global-bg-overlay" />
         <noscript>
           <div style={{ padding: "2rem", textAlign: "center", fontFamily: "sans-serif" }}>
             <p>Sealo ต้องการ JavaScript</p>
