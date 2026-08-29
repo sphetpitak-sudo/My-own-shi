@@ -27,8 +27,8 @@ export const AI_PARAMS = {
   },
   followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 25_000, firstTokenMs: 15_000 },
   oracle: {
-    single: { temperature: 0.7, max_tokens: 500, timeoutMs: 35_000, firstTokenMs: 18_000 },
-    three: { temperature: 0.7, max_tokens: 900, timeoutMs: 45_000, firstTokenMs: 18_000 },
+    single: { temperature: 0.7, max_tokens: 700, timeoutMs: 35_000, firstTokenMs: 18_000 },
+    three: { temperature: 0.7, max_tokens: 1200, timeoutMs: 45_000, firstTokenMs: 18_000 },
   },
   daily: { temperature: 0.7, max_tokens: 400, timeoutMs: 18_000 },
   zodiac: { temperature: 0.7, max_tokens: 500, timeoutMs: 22_000 },
