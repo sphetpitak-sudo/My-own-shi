@@ -4,6 +4,9 @@ import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel } from "@/lib/ai";
 import { READING_SYSTEM_PROMPT, buildReadingUserPrompt } from "@/lib/prompts";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 type ReadingCardInput = { cardId: number; positionLabel: string; reversed: boolean };
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {

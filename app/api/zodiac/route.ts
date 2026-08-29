@@ -5,6 +5,9 @@ import { ZODIAC_SYSTEM_PROMPT, buildZodiacUserPrompt } from "@/lib/prompts";
 import { ZODIAC_SIGNS } from "@/lib/astrology/types";
 import { buildZodiacFortune, fortuneToProse, isValidBirthDate } from "@/lib/zodiac";
 
+export const maxDuration = 30;
+export const dynamic = "force-dynamic";
+
 function streamText(text: string) {
   const encoder = new TextEncoder();
   const readable = new ReadableStream({

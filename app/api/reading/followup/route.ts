@@ -4,6 +4,9 @@ import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel } from "@/lib/ai";
 import { FOLLOWUP_SYSTEM_PROMPT, buildFollowupUserPrompt } from "@/lib/prompts";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 type FollowCard = { cardId: number; positionLabel: string; reversed: boolean };
 
 function isUUID(v: string) {
