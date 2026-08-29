@@ -261,7 +261,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     setFollowError("");
 
     const abortController = new AbortController();
-    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 45_000);
+    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 30_000);
     const clearClientTimeout = () => { if (clientTimeout) { clearTimeout(clientTimeout); clientTimeout = null; } };
     try {
       const res = await fetch("/api/reading", {
@@ -341,7 +341,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     } catch (err: unknown) {
       clearClientTimeout();
       if (err instanceof Error && err.name === "AbortError") {
-        setError("AI ไม่ตอบสนองภายใน 45 วินาที กรุณาลองใหม่ — แต้มจะถูกคืนอัตโนมัติ");
+        setError("AI ไม่ตอบสนองภายใน 30 วินาที กรุณาลองใหม่ — แต้มคืนแล้ว");
       } else {
         const message = err instanceof Error ? err.message : "Network error";
         setError(message);

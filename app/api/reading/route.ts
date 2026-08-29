@@ -58,20 +58,20 @@ export async function POST(request: Request) {
     const cardMap=new Map(ALL_CARDS.map(c=>[c.id,c]));
     const resolved=cards.map(c=>{ const card=cardMap.get(c.cardId)!; return {name:card.name,nameTh:card.nameTh,position:c.positionLabel,reversed:c.reversed};});
     const userPrompt = buildUserPrompt(trimmedQuestion, spread.nameTh, resolved);
-    const maxTokens = spreadType==="single"?800:spreadType==="three_card"?1200:1500;
+    const maxTokens = spreadType==="single"?700:spreadType==="three_card"?1000:1300;
     const abortController=new AbortController();
-    const overallTimeout=setTimeout(()=>abortController.abort(),45000);
-    const aiPromise=getOpenAI().chat.completions.create({model:"typhoon-v2.5-30b-a3b-instruct",messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}],temperature:0.8,max_tokens:maxTokens,stream:true},{timeout:30000,maxRetries:0,signal:abortController.signal} as any);
-    const timeoutPromise=new Promise<null>((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),45000));
+    const overallTimeout=setTimeout(()=>abortController.abort(),30000);
+    const aiPromise=getOpenAI().chat.completions.create({model:"typhoon-v2.5-30b-a3b-instruct",messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}],temperature:0.75,max_tokens:maxTokens,stream:true},{timeout:20000,maxRetries:0,signal:abortController.signal} as any);
+    const timeoutPromise=new Promise<null>((_,reject)=>setTimeout(()=>reject(new Error("AI_TIMEOUT")),25000));
     const stream=await Promise.race([aiPromise,timeoutPromise]).catch(async (err:unknown)=>{
       clearTimeout(overallTimeout);
       try{ await supabase.rpc("refund_points",{p_user_id:user.id,p_amount:cost}); }catch{}
       console.error("AI create failed",err);
       return null;
-    }) as any;
-    if (!stream) return NextResponse.json({error:"AI generation unavailable. Points refunded."},{status:502});
+    }) as unknown as null | Awaited<typeof aiPromise>;
+    if (!stream) return NextResponse.json({error:"AI ไม่ตอบสนองภายใน 25 วินาที กรุณาลองใหม่ — แต้มคืนแล้ว"},{status:502});
     const encoder=new TextEncoder(); let fullText="";
-    let firstTokenTimeout: ReturnType<typeof setTimeout>|null=setTimeout(()=>{ try{abortController.abort();}catch{} },20000);
+    let firstTokenTimeout: ReturnType<typeof setTimeout>|null=setTimeout(()=>{ try{abortController.abort();}catch{} },15000);
     const readable=new ReadableStream({
       async start(controller){
         let failed=false;
