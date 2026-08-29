@@ -63,7 +63,6 @@ function ReadingPageInner() {
   );
   const [question, setQuestion] = useState("");
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
-  const [useMemory, setUseMemory] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
@@ -319,15 +318,6 @@ function ReadingPageInner() {
               onSubmit={handleQuestionSubmit}
             />
 
-            <label className="flex items-center gap-2.5 mx-4 mt-3 p-3 rounded-xl cursor-pointer select-none border" style={{ background: useMemory ? "var(--primary-soft)" : "var(--bg-card)", borderColor: useMemory ? "rgba(167,139,250,0.25)" : "var(--border)" }}>
-              <input type="checkbox" checked={useMemory} onChange={(e) => setUseMemory(e.target.checked)} className="rounded" />
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-bold" style={{ color: "var(--text)" }}>ให้ Sealo จำเรื่องเดิม</div>
-                <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>อ้างอิง 3 ครั้งล่าสุดเพื่อคำทำนายที่ต่อเนื่อง</div>
-              </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full" style={{ background: useMemory ? "var(--primary)" : "var(--border)", color: useMemory ? "white" : "var(--text-muted)" }}>{useMemory ? "เปิด" : "ปิด"}</span>
-            </label>
-
             <button
               onClick={() => setStep("spread")}
               className="btn btn-ghost mt-4 mx-4 text-[13px]"
@@ -353,7 +343,6 @@ function ReadingPageInner() {
             question={question}
             onDone={handleResultDone}
             actualCost={costs[spreadType] ?? SPREADS[spreadType].cost}
-            useMemory={useMemory}
             onPointsSpent={(cost) => setPoints((p) => Math.max(0, p - cost))}
           />
         )}

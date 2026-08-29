@@ -263,7 +263,6 @@ function buildUserPrompt(input: {
     reversed: boolean;
     contextMeaning: string;
   }>;
-  memoryBlock?: string;
 }): string {
   const cardLines = input.cards.map((c, i) => {
     const status = c.reversed ? "กลับหัว" : "หงาย";
@@ -278,11 +277,9 @@ ${input.spreadNameTh}
 
 ไพ่ที่เปิดได้:
 ${cardLines}
-${input.memoryBlock || ""}
 
 จงอ่านไพ่ชุดนี้ให้ผู้ใช้โดยยึดตาม System Prompt
-ตอบตรงคำถาม และเชื่อมโยงไพ่ทั้งหมดเป็นเรื่องราวเดียวกัน
-หากมีบริบทอดีต ให้อ้างอิงอย่างอ่อนโยนเมื่อเกี่ยวข้องเท่านั้น ไม่บังคับเชื่อมทุกครั้ง`;
+ตอบตรงคำถาม และเชื่อมโยงไพ่ทั้งหมดเป็นเรื่องราวเดียวกัน`;
 }
 
 export async function POST(request: Request) {
@@ -294,11 +291,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { question, spreadType, cards, useMemory } = body as {
+    const { question, spreadType, cards } = body as {
       question?: string;
       spreadType?: string;
       cards?: ReadingCardInput[];
-      useMemory?: boolean;
     };
 
     // Validate input
@@ -405,34 +401,10 @@ export async function POST(request: Request) {
       };
     });
 
-    // Continuity memory: fetch last 3 readings if enabled (default true)
-    let memoryBlock = "";
-    const shouldUseMemory = useMemory !== false;
-    if (shouldUseMemory) {
-      try {
-        const { data: past } = await supabase
-          .from("readings")
-          .select("question, interpretation, created_at, spread_type, cards")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(3);
-        if (past && past.length > 0) {
-          const summaries = past.map((r, idx) => {
-            const q = (r.question || "ไม่มีคำถาม").slice(0, 80);
-            const interp = (r.interpretation || "").replace(/\s+/g, " ").slice(0, 300);
-            const date = new Date(r.created_at).toLocaleDateString("th-TH");
-            return `${idx + 1}. [${date} · ${r.spread_type}] คำถาม: ${q} — สรุป: ${interp}${interp.length >= 300 ? "…" : ""}`;
-          }).join("\n");
-          memoryBlock = `\n\nบริบทจาก 3 ครั้งล่าสุดของผู้ใช้นี้ (เพื่อความต่อเนื่องเท่านั้น — อย่าคัดลอกตรง ๆ แต่ให้เชื่อมโยงอย่างอ่อนโยนเมื่อเกี่ยวข้อง):\n${summaries}\nหากไม่เกี่ยวข้อง ให้ละไว้`;
-        }
-      } catch {}
-    }
-
     const userPrompt = buildUserPrompt({
       question: trimmedQuestion || "ไม่มีคำถามเฉพาะ ดูโดยรวม",
       spreadNameTh: spread.nameTh,
       cards: resolvedCards,
-      memoryBlock,
     });
 
     // Create pending reading before AI (ensures history exists even if insert after would fail)

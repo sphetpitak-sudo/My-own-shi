@@ -26,7 +26,6 @@ interface Props {
   onDone: () => void;
   onPointsSpent?: (cost: number) => void;
   actualCost?: number;
-  useMemory?: boolean;
   readingId?: string;
 }
 
@@ -85,7 +84,7 @@ function parseSections(text: string): ParsedSection[] {
   return sections;
 }
 
-export default function ReadingResult({ cards, spreadType, question, onDone, onPointsSpent, actualCost, useMemory = true }: Props) {
+export default function ReadingResult({ cards, spreadType, question, onDone, onPointsSpent, actualCost }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -273,7 +272,6 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
           })),
           question,
           spreadType,
-          useMemory,
         }),
       });
 
