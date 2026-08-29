@@ -6,11 +6,57 @@ import { createClient } from "@/lib/supabase/client";
 import DashboardShell from "@/components/DashboardShell";
 import ShuffleAnimation from "@/components/ShuffleAnimation";
 import TarotCard from "@/components/TarotCard";
-import { Sparkles, Coins, ArrowLeft, RefreshCw, CircleHelp } from "lucide-react";
+import { Sparkles, Coins, ArrowLeft, RefreshCw, CircleHelp, Heart, Briefcase, Wallet, Activity, Lightbulb } from "lucide-react";
 import { ORACLE_SPREADS, type OracleSpreadId } from "@/lib/oracle";
 import { SPREADS, drawCards, type DrawnCard } from "@/lib/cards";
 import { cn } from "@/lib/cn";
 import { stripMarkdownMultiline } from "@/lib/text";
+
+const ORACLE_HEADINGS = [
+  { key: "overview", label: "ภาพรวม", icon: Sparkles, color: "#a78bfa" },
+  { key: "love", label: "ความรัก", icon: Heart, color: "#f472b6" },
+  { key: "work", label: "การงาน", icon: Briefcase, color: "#14b8a6" },
+  { key: "finance", label: "การเงิน", icon: Wallet, color: "#fbbf24" },
+  { key: "health", label: "สุขภาพ", icon: Activity, color: "#22c55e" },
+  { key: "advice", label: "คำแนะนำ", icon: Lightbulb, color: "#d4af37" },
+] as const;
+
+function parseOracleSections(raw: string): { key: string; title: string; content: string; icon: typeof Sparkles; color: string }[] {
+  const text = stripMarkdownMultiline(raw);
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+  const buckets: Record<string, string[]> = {};
+  let current: string | null = null;
+  const headingRe = /^(ภาพรวม|ความรัก|การงาน|การเงิน|สุขภาพ|คำแนะนำ)\s*[:：]/;
+  for (const line of lines) {
+    const clean = line.replace(/^[-•\d.\s]+/, "");
+    const m = clean.match(headingRe);
+    if (m) {
+      const label = m[1]!;
+      current = label;
+      const rest = clean.replace(headingRe, "").trim().replace(/^[:：\s]+/, "");
+      if (!buckets[current]) buckets[current] = [];
+      if (rest) buckets[current].push(rest);
+      continue;
+    }
+    // If no explicit heading yet, treat as overview
+    if (!current) {
+      current = "ภาพรวม";
+      if (!buckets[current]) buckets[current] = [];
+    }
+    buckets[current]!.push(line);
+  }
+  const ordered = ORACLE_HEADINGS.map((h) => {
+    const c = (buckets[h.label] || []).join(" ").trim();
+    return c ? { key: h.key, title: h.label, content: c, icon: h.icon, color: h.color } : null;
+  }).filter(Boolean) as { key: string; title: string; content: string; icon: typeof Sparkles; color: string }[];
+  // Fallback: if no headings detected, show as single stream
+  if (ordered.length === 0) {
+    const fallback = text.trim();
+    if (fallback) return [{ key: "single", title: "เสียงจากจักรวาล", content: fallback, icon: Sparkles, color: "#a78bfa" }];
+  }
+  return ordered;
+}
 
 type Phase = "setup" | "shuffle" | "reveal";
 
@@ -517,31 +563,45 @@ export default function OraclePage() {
               </div>
             ))}
 
-            {/* AI interpretation */}
+            {/* AI interpretation — multi-topic sections */}
             {revealed === cards.length && aiEnabled && (interpretation || aiLoading) && (
-              <div className="reading-section-card">
-                <div className="reading-section-title">เสียงจากจักรวาล</div>
-                <div
-                  ref={textRef}
-                  className="reading-section-text"
-                  aria-live="polite"
-                  style={{ minHeight: aiLoading && !interpretation ? 60 : undefined }}
-                >
-                  {stripMarkdownMultiline(interpretation)}
-                  {aiLoading && !interpretation && (
-                    <div className="reading-empty-stream">
-                      <div className="mystical-loader">
-                        <div className="mystical-loader-dot" />
-                        <div className="mystical-loader-dot" />
-                        <div className="mystical-loader-dot" />
+              <div ref={textRef} aria-live="polite" className="space-y-3 mt-1">
+                {(() => {
+                  if (aiLoading && !interpretation) {
+                    return (
+                      <div className="reading-section-card">
+                        <div className="reading-empty-stream">
+                          <div className="mystical-loader">
+                            <div className="mystical-loader-dot" />
+                            <div className="mystical-loader-dot" />
+                            <div className="mystical-loader-dot" />
+                          </div>
+                          <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-muted)" }}>กำลังอ่านไพ่...</span>
+                        </div>
                       </div>
-                      <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-muted)" }}>
-                        กำลังอ่านไพ่...
-                      </span>
-                    </div>
-                  )}
-                  {aiLoading && interpretation && <span className="reading-streaming" />}
-                </div>
+                    );
+                  }
+                  const sections = parseOracleSections(interpretation);
+                  if (sections.length === 0) return null;
+                  return sections.map((sec, idx) => {
+                    const Icon = sec.icon;
+                    const isLast = idx === sections.length - 1;
+                    return (
+                      <div key={sec.key} className="reading-journal-section reading-journal-section--oracle" style={{ animation: `fadeUp 0.45s var(--ease) ${idx * 0.06}s both` }}>
+                        <div className="reading-journal-section-header">
+                          <span className="reading-journal-section-icon" style={{ background: `${sec.color}18`, color: sec.color, borderColor: `${sec.color}30` }}>
+                            <Icon size={13} />
+                          </span>
+                          <h3 className="reading-journal-section-title">{sec.title}</h3>
+                          <span className="reading-journal-section-line" aria-hidden />
+                        </div>
+                        <div className="reading-journal-section-body">
+                          <p className="reading-journal-paragraph">{sec.content}{isLast && aiLoading && <span className="reading-streaming" aria-hidden />}</p>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             )}
 
