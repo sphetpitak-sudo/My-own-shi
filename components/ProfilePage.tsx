@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Calendar, BookOpen, Coins, ArrowUpRight, ArrowDownLeft, Settings } from "lucide-react";
+import { User, Calendar, BookOpen, Coins, ArrowUpRight, ArrowDownLeft, Settings, Ticket } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import DailyBonus from "./DailyBonus";
 import type { Profile, PointTransaction } from "@/lib/types";
@@ -15,6 +15,7 @@ interface ProfilePageProps {
 const txTypeLabels: Record<string, { label: string; icon: typeof Coins; positive: boolean }> = {
   daily_bonus: { label: "โบนัสรายวัน", icon: Coins, positive: true },
   admin_grant: { label: "ได้รับจากแอดมิน", icon: ArrowDownLeft, positive: true },
+  redeem: { label: "แลกโค้ด", icon: Ticket, positive: true },
   referral: { label: "แนะนำเพื่อน", icon: ArrowDownLeft, positive: true },
   refund: { label: "คืนคะแนน", icon: ArrowDownLeft, positive: true },
   reading_purchase: { label: "ค่าทำนาย", icon: ArrowUpRight, positive: false },
@@ -244,11 +245,15 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
           ) : (
             <div>
               {transactions.map((tx) => {
-                const meta = txTypeLabels[tx.type] || {
+                const isRedeem = tx.type === "redeem" || tx.description.startsWith("Redeem:");
+                const baseMeta = txTypeLabels[tx.type] || {
                   label: tx.type,
                   icon: Coins,
                   positive: true,
                 };
+                const meta = isRedeem
+                  ? { label: `แลกโค้ด ${tx.description.replace("Redeem:", "").trim() ? `· ${tx.description.replace("Redeem:", "").trim()}` : ""}`, icon: Ticket, positive: true }
+                  : baseMeta;
                 const Icon = meta.icon;
                 return (
                   <div key={tx.id} className="list-item">
