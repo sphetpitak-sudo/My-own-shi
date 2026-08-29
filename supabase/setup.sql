@@ -743,6 +743,7 @@ DROP POLICY IF EXISTS "Followups insert" ON reading_followups;
 CREATE POLICY "Followups insert" ON reading_followups FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Followups update" ON reading_followups;
 CREATE POLICY "Followups update" ON reading_followups FOR UPDATE USING (auth.uid() = user_id OR public.is_admin()) WITH CHECK (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "Followups delete" ON reading_followups;
 CREATE POLICY "Followups delete" ON reading_followups FOR DELETE USING (auth.uid() = user_id OR public.is_admin());
 DO $$ BEGIN
   GRANT UPDATE (answer, question) ON public.reading_followups TO authenticated;
