@@ -3,8 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
+  const rawNext = searchParams.get("next") ?? "/dashboard";
+  // Protect against open redirect attacks (ensure next is a relative path)
+  const safeNext = (rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\"))
+    ? rawNext
+    : "/dashboard";
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
 
   if (code) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const cookies = request.cookies;
-    const response = NextResponse.redirect(`${origin}${next}`);
+    const response = NextResponse.redirect(`${origin}${safeNext}`);
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {

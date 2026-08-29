@@ -5,8 +5,8 @@ export type { DrawnCard, SpreadType };
 export interface Reading {
   id: string;
   user_id: string;
-  spread_type: SpreadType;
-  cards: DrawnCard[];
+  spread_type: SpreadType | "oracle";
+  cards: DrawnCard[] | unknown[];
   question: string;
   interpretation: string;
   points_spent: number;

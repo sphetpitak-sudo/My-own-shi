@@ -38,21 +38,30 @@ export default function DailyBonus({ userId, onClaim }: DailyBonusProps) {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
+
     async function checkClaimed() {
       try {
         const supabase = createClient();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        // Compute Bangkok midnight (UTC+7) to match database RPC claim_daily_bonus
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Asia/Bangkok",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).formatToParts(new Date());
+
+        const year = parts.find((p) => p.type === "year")?.value;
+        const month = parts.find((p) => p.type === "month")?.value;
+        const day = parts.find((p) => p.type === "day")?.value;
+        const todayStart = new Date(`${year}-${month}-${day}T00:00:00+07:00`);
 
         const { data } = await supabase
           .from("point_transactions")
           .select("id")
           .eq("user_id", userId)
           .eq("type", "daily_bonus")
-          .gte("created_at", today.toISOString())
-          .lt("created_at", tomorrow.toISOString())
+          .gte("created_at", todayStart.toISOString())
           .limit(1);
 
         if (data && data.length > 0) {

@@ -23,13 +23,44 @@ export function loadDraft(): ReadingDraft | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ReadingDraft;
-    // expire after 24h
-    if (Date.now() - parsed.updatedAt > 24 * 60 * 60 * 1000) {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
       localStorage.removeItem(KEY);
       return null;
     }
-    return parsed;
+
+    // Validate fields
+    const validSpreads = ["single", "three_card", "celtic"];
+    const validSteps = ["spread", "question", "draw", "result"];
+
+    if (!validSpreads.includes(parsed.spreadType)) {
+      localStorage.removeItem(KEY);
+      return null;
+    }
+
+    if (!validSteps.includes(parsed.step)) {
+      localStorage.removeItem(KEY);
+      return null;
+    }
+
+    if (typeof parsed.updatedAt !== "number" || isNaN(parsed.updatedAt)) {
+      localStorage.removeItem(KEY);
+      return null;
+    }
+
+    // expire after 24h
+    if (Date.now() - parsed.updatedAt > 24 * 60 * 60 * 1000 || parsed.updatedAt > Date.now() + 60_000) {
+      localStorage.removeItem(KEY);
+      return null;
+    }
+
+    return {
+      spreadType: parsed.spreadType as SpreadType,
+      question: typeof parsed.question === "string" ? parsed.question : "",
+      drawnCards: Array.isArray(parsed.drawnCards) ? (parsed.drawnCards as DrawnCard[]) : null,
+      step: parsed.step as ReadingDraft["step"],
+      updatedAt: parsed.updatedAt,
+    };
   } catch {
     return null;
   }

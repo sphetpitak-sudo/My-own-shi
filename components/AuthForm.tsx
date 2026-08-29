@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff } from "lucide-react";
 
 export default function AuthForm() {
+  const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,7 +64,7 @@ export default function AuthForm() {
             : "ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่";
         setError(msg); setLoading(false); return;
       }
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
       return;
     }
     setLoading(false);

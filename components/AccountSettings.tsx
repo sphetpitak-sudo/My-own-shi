@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { User, Mail, Lock, Save, Loader2, CheckCircle, AlertCircle, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +11,7 @@ interface AccountSettingsProps {
 }
 
 export default function AccountSettings({ userId }: AccountSettingsProps) {
+  const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [email, setEmail] = useState("");
@@ -98,7 +100,7 @@ export default function AccountSettings({ userId }: AccountSettingsProps) {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/";
+    router.push("/");
   };
 
   if (loading) {

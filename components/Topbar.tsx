@@ -24,47 +24,45 @@ export default function Topbar({
 
   return (
     <header
-      className="sticky top-0 z-50 flex items-center justify-between gap-3 px-4 lg:px-6 h-14"
+      className="sticky top-0 z-50 flex items-center justify-between gap-3 px-4 lg:px-8 h-15 border-b border-[var(--border-subtle)]"
       style={{
-        background: "color-mix(in srgb, var(--bg) 80%, transparent)",
+        background: "color-mix(in srgb, var(--bg) 82%, transparent)",
         backdropFilter: "blur(20px) saturate(1.2)",
         WebkitBackdropFilter: "blur(20px) saturate(1.2)",
-        borderBottom: "1px solid var(--border-subtle)",
       }}
     >
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMenuClick}
-          className="btn-icon lg:hidden"
+          className="btn-icon lg:hidden text-[var(--text-secondary)] hover:text-[var(--text)]"
           aria-label="เปิดเมนู"
         >
-          <Menu size={18} />
+          <Menu size={20} />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center relative overflow-hidden"
+            className="w-8 h-8 rounded-xl flex items-center justify-center relative overflow-hidden shrink-0 shadow-sm"
             style={{
-              background: "linear-gradient(135deg, var(--primary), #a78bfa)",
-              boxShadow: "0 2px 6px rgba(109, 40, 217, 0.25)",
+              background: "linear-gradient(135deg, var(--primary), #c4b5fd)",
             }}
           >
             <Image
               src="/LOGO.png"
               alt="Sealo"
-              width={28}
-              height={28}
+              width={32}
+              height={32}
               className="w-full h-full object-cover"
               priority
             />
           </div>
-          <span className="text-[15px] font-bold tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+          <span className="text-[16px] font-extrabold tracking-tight hidden sm:inline-block" style={{ letterSpacing: "-0.02em" }}>
             Sealo
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <PointsBadge points={points} size="sm" showPopOnChange />
+      <div className="flex items-center gap-2">
+        <PointsBadge points={points} size="sm" showPopOnChange tone="gold" />
 
         <button
           className="btn-icon"
@@ -72,19 +70,20 @@ export default function Topbar({
           title="การแจ้งเตือน"
           onClick={() => toast("ฟีเจอร์การแจ้งเตือนเร็ว ๆ นี้", "info")}
         >
-          <Bell size={15} />
+          <Bell size={16} />
         </button>
 
         <button
           onClick={toggle}
           className="btn-icon"
-          aria-label={theme === "light" ? "โหมดมืด" : "โหมดสว่าง"}
+          aria-label={theme === "light" ? "เปลี่ยนเป็นโหมดมืด" : "เปลี่ยนเป็นโหมดสว่าง"}
+          title={theme === "light" ? "โหมดมืด" : "โหมดสว่าง"}
         >
           {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
         </button>
 
         {userName && (
-          <div className="flex items-center">
+          <div className="flex items-center pl-1">
             {userAvatar ? (
               <Image
                 src={userAvatar}
@@ -92,15 +91,14 @@ export default function Topbar({
                 width={32}
                 height={32}
                 unoptimized
-                className="w-8 h-8 rounded-full object-cover"
-                style={{ border: "2px solid var(--border)" }}
+                className="w-8 h-8 rounded-full object-cover border border-[var(--border-strong)] shadow-xs"
               />
             ) : (
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-extrabold shadow-xs"
                 style={{
-                  background: "linear-gradient(135deg, var(--primary), #a78bfa)",
-                  color: "white",
+                  background: "linear-gradient(135deg, var(--primary), #c4b5fd)",
+                  color: "#ffffff",
                 }}
                 aria-hidden
               >

@@ -10,7 +10,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import AnnouncementCard from "@/components/ui/AnnouncementCard";
 import { SPREADS, type SpreadType } from "@/lib/cards";
 import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/catalog";
-import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, type LucideIcon } from "lucide-react";
+import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, ArrowRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
 import { useShell } from "./DashboardShell";
@@ -21,21 +21,21 @@ interface ProfileLite {
 }
 
 const CATEGORY_TONE: Record<FeatureCategory, { bg: string; color: string }> = {
-  tarot: { bg: "rgba(167,139,250,0.10)", color: "var(--primary)" },
-  astrology: { bg: "rgba(129,140,248,0.10)", color: "#818cf8" },
-  oracle: { bg: "rgba(244,114,182,0.10)", color: "#f472b6" },
-  quick: { bg: "rgba(251,191,36,0.10)", color: "#fbbf24" },
-  daily: { bg: "rgba(212,175,55,0.10)", color: "var(--gold)" },
-  numerology: { bg: "rgba(20,184,166,0.10)", color: "#14b8a6" },
+  tarot: { bg: "rgba(167,139,250,0.12)", color: "var(--primary)" },
+  astrology: { bg: "rgba(129,140,248,0.12)", color: "#818cf8" },
+  oracle: { bg: "rgba(244,114,182,0.12)", color: "#f472b6" },
+  quick: { bg: "rgba(251,191,36,0.12)", color: "#fbbf24" },
+  daily: { bg: "rgba(212,175,55,0.12)", color: "var(--gold)" },
+  numerology: { bg: "rgba(20,184,166,0.12)", color: "#14b8a6" },
 };
 
 const SPREAD_VISUAL: Record<SpreadType, { positions: { x: number; y: number }[] }> = {
   single: { positions: [{ x: 50, y: 50 }] },
   three_card: {
     positions: [
-      { x: 18, y: 50 },
+      { x: 20, y: 50 },
       { x: 50, y: 50 },
-      { x: 82, y: 50 },
+      { x: 80, y: 50 },
     ],
   },
   celtic: {
@@ -55,9 +55,9 @@ const SPREAD_VISUAL: Record<SpreadType, { positions: { x: number; y: number }[] 
 };
 
 const SPREAD_BADGE: Record<SpreadType, string> = {
-  single: "เร็ว",
-  three_card: "แนะนำ",
-  celtic: "ลึก",
+  single: "ตอบไว",
+  three_card: "ยอดนิยม",
+  celtic: "วิเคราะห์ลึก",
 };
 
 const CATEGORY_ORDER: FeatureCategory[] = [
@@ -125,11 +125,8 @@ export default function DashboardHome() {
         display_name: shell.profile!.display_name ?? prev?.display_name ?? null,
         points: shell.profile!.points,
       }));
-      if (shell.profile.display_name && !userId) {
-        // shell already has userId implicitly via profile; keep local userId in sync if needed
-      }
     }
-  }, [shell.profile, userId]);
+  }, [shell.profile]);
 
   const handleSpreadSelect = (spreadId: SpreadType) => {
     router.push(`/dashboard/reading?spread=${spreadId}`);
@@ -141,11 +138,11 @@ export default function DashboardHome() {
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
-    if (h < 5) return { hi: "ดึกแล้ว", emoji: "🌙" };
-    if (h < 11) return { hi: "สวัสดีตอนเช้า", emoji: "☀️" };
-    if (h < 16) return { hi: "สวัสดีตอนเที่ยง", emoji: "✨" };
-    if (h < 19) return { hi: "สวัสดีตอนเย็น", emoji: "🌅" };
-    return { hi: "สวัสดีตอนค่ำ", emoji: "🌙" };
+    if (h < 5) return { hi: "ดึกแล้ว", emoji: "🌙", sub: "ให้ไพ่ทาโรต์สะท้อนความสงบในค่ำคืนนี้" };
+    if (h < 11) return { hi: "สวัสดีตอนเช้า", emoji: "☀️", sub: "เริ่มต้นวันใหม่ด้วยพลังงานและทิศทางที่ดี" };
+    if (h < 16) return { hi: "สวัสดีตอนเที่ยง", emoji: "✨", sub: "พักใจรับสารจากจักรวาลระหว่างวัน" };
+    if (h < 19) return { hi: "สวัสดีตอนเย็น", emoji: "🌅", sub: "ทบทวนสิ่งต่าง ๆ ที่ผ่านเข้ามาระหว่างวัน" };
+    return { hi: "สวัสดีตอนค่ำ", emoji: "🌙", sub: "เปิดประตูแห่งสัญชาตญาณและความจริง" };
   }, []);
 
   const filteredFeatures = useMemo(() => {
@@ -154,64 +151,95 @@ export default function DashboardHome() {
   }, [activeCategory]);
 
   return (
-    <div className="dashboard-premium">
-      {/* Greeting + points */}
-      <header className="dash-greeting">
+    <div className="dashboard-premium space-y-7 pb-24">
+      {/* Header Greeting Banner */}
+      <header className="dash-greeting pt-6 pb-2">
         <div className="dash-greeting-text">
-          <div className="dash-greeting-hi">
-            {greeting.hi} {greeting.emoji}
+          <div className="dash-greeting-hi flex items-center gap-1.5">
+            <span>{greeting.hi}</span>
+            <span>{greeting.emoji}</span>
           </div>
-          <div className="dash-greeting-name">
+          <h1 className="dash-greeting-name text-[24px] sm:text-[28px] font-extrabold text-[var(--text)] tracking-tight">
             {profile?.display_name || "นักเดินทางแห่งดวงดาว"}
-          </div>
-          <div className="dash-greeting-sub">
-            วันนี้ไพ่ของคุณรออยู่ — เปิดประตูแห่งความจริง
-          </div>
+          </h1>
+          <p className="dash-greeting-sub text-[13px] text-[var(--text-secondary)] mt-0.5">
+            {greeting.sub}
+          </p>
         </div>
-        <div className="dash-points-pill" aria-label={`คะแนนคงเหลือ ${profile?.points ?? 0}`}>
-          <Coins size={13} />
-          {(profile?.points ?? 0).toLocaleString()}
+        <div
+          className="dash-points-pill cursor-pointer"
+          onClick={() => router.push("/dashboard/profile")}
+          aria-label={`แต้มคงเหลือ ${profile?.points ?? 0}`}
+        >
+          <Coins size={14} />
+          <span>{(profile?.points ?? 0).toLocaleString()} แต้ม</span>
         </div>
       </header>
 
-      {/* Continue reading */}
+      {/* Continue reading draft (if exists) */}
       {draft && draft.question && (
         <div className="dash-section">
-          <div className="card p-4 flex items-center gap-3" style={{ borderLeft: "3px solid var(--primary)", background: "linear-gradient(135deg, var(--primary-soft), transparent)" }}>
-            <span className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0" style={{ background: "var(--primary)", color: "white" }}>
-              <BookOpen size={14} />
+          <div
+            className="card p-4 flex items-center gap-3.5"
+            style={{
+              borderLeft: "4px solid var(--primary)",
+              background: "linear-gradient(135deg, var(--primary-soft), var(--bg-card))",
+            }}
+          >
+            <span
+              className="w-10 h-10 rounded-xl grid place-items-center shrink-0 shadow-xs"
+              style={{ background: "var(--primary)", color: "white" }}
+            >
+              <BookOpen size={16} />
             </span>
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "var(--primary)" }}>ทำต่อ</div>
-              <div className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>{draft.question.slice(0, 48)}{draft.question.length > 48 ? "…" : ""}</div>
-              <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>{draft.spreadType} · เหลือขั้นตอน {draft.step}</div>
+              <div className="text-[10.5px] font-bold tracking-widest uppercase text-[var(--primary)]">
+                ทำนายค้างไว้
+              </div>
+              <div className="text-[14px] font-bold truncate text-[var(--text)] mt-0.5">
+                {draft.question.slice(0, 50)}{draft.question.length > 50 ? "…" : ""}
+              </div>
+              <div className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
+                {SPREADS[draft.spreadType as SpreadType]?.nameTh ?? draft.spreadType} · ขั้นตอนที่ {draft.step}
+              </div>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <button onClick={() => router.push(`/dashboard/reading?spread=${draft.spreadType}`)} className="btn btn-primary text-[12px] px-4 py-2 rounded-xl">อ่านต่อ</button>
-              <button onClick={() => { clearDraft(); setDraft(null); }} className="btn btn-ghost text-[12px] px-3 py-2">ลบ</button>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => router.push(`/dashboard/reading?spread=${draft.spreadType}`)}
+                className="btn btn-primary text-[12.5px] px-4 py-2 rounded-xl"
+              >
+                ทำต่อ
+              </button>
+              <button
+                onClick={() => { clearDraft(); setDraft(null); }}
+                className="btn btn-ghost text-[12.5px] px-3 py-2"
+                aria-label="ลบดราฟต์"
+              >
+                ลบ
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Hero spread card */}
+      {/* Hero Spread Showcase Card */}
       <div className="dash-section">
         <FeatureCard
           feature={{
             id: "tarot-three-card",
             category: "tarot",
             title: "Three Card",
-            titleTh: "อ่านไพ่ทาโรต์",
+            titleTh: "เปิดไพ่ทาโรต์ 3 ใบ",
             subtitle: "Past · Present · Future",
             subtitleTh: "อดีต · ปัจจุบัน · อนาคต",
-            descriptionTh: "เปิดไพ่สามใบ เชื่อมโยงอดีต ปัจจุบัน และอนาคตของคุณ พร้อมคำทำนายจาก AI",
+            descriptionTh: "พิธีกรรมเปิดไพ่สามใบเพื่อเชื่อมโยงเส้นเวลา อธิบายสถานการณ์ และรับคำทำนายเชิงลึกจาก AI หมอดูทิพย์",
             icon: Sparkles,
             status: "live",
             cost: costs["three_card"] ?? SPREADS.three_card.cost,
             route: "/dashboard/reading?spread=three_card",
             theme: "violet",
             badge: "แนะนำ",
-            badgeTh: "แนะนำ",
+            badgeTh: "แนะนำยอดนิยม",
           }}
           userPoints={profile?.points ?? 0}
           variant="hero"
@@ -219,18 +247,18 @@ export default function DashboardHome() {
         />
       </div>
 
-      {/* Spread variants */}
-      <div className="dash-section">
+      {/* Spreads Showcase Carousel */}
+      <div className="dash-section space-y-3">
         <SectionHeader
-          title="เลือกรูปแบบการอ่าน"
-          subtitle="แต่ละแบบให้มุมมองที่แตกต่าง"
+          title="เลือกรูปแบบสำรับไพ่"
+          subtitle="สำรับ Rider-Waite-Smith 78 ใบ พร้อมภาพความหมายสมบูรณ์"
           trailing={
-            <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-muted)" }}>
-              ไพ่ Rider-Waite
+            <span className="text-[12px] font-semibold text-[var(--text-muted)]">
+              3 รูปแบบ
             </span>
           }
         />
-        <div className="dash-spreads" style={{ marginTop: 12 }}>
+        <div className="dash-spreads">
           {(Object.keys(SPREADS) as SpreadType[]).map((key) => {
             const spread = SPREADS[key];
             const cost = costs[key] ?? spread.cost;
@@ -241,10 +269,13 @@ export default function DashboardHome() {
                 key={key}
                 onClick={() => handleSpreadSelect(key)}
                 disabled={insufficient}
-                className={cn("dash-spread", insufficient && "opacity-50 cursor-not-allowed")}
+                className={cn(
+                  "dash-spread group text-left",
+                  insufficient && "opacity-50 cursor-not-allowed"
+                )}
                 aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ, ${cost} แต้ม`}
               >
-                <div className="dash-spread-thumb">
+                <div className="dash-spread-thumb relative">
                   {positions.map((p, i) => (
                     <div
                       key={i}
@@ -253,25 +284,27 @@ export default function DashboardHome() {
                         left: `${p.x}%`,
                         top: `${p.y}%`,
                         width: 10,
-                        height: 14,
-                        borderRadius: 2,
-                        background: "rgba(201,168,76,0.4)",
-                        border: "1px solid rgba(201,168,76,0.5)",
+                        height: 15,
+                        borderRadius: 2.5,
+                        background: "rgba(212, 175, 55, 0.45)",
+                        border: "1px solid rgba(212, 175, 55, 0.7)",
                         transform: "translate(-50%, -50%)",
+                        boxShadow: "0 0 6px rgba(212, 175, 55, 0.25)",
                       }}
                     />
                   ))}
                 </div>
-                <div className="dash-spread-name">{spread.nameTh}</div>
-                <div className="dash-spread-meta">
+                <div className="dash-spread-name text-[14px] font-bold text-[var(--text)] group-hover:text-[var(--primary)] transition-colors">
+                  {spread.nameTh}
+                </div>
+                <div className="dash-spread-meta flex items-center justify-between text-[11.5px] text-[var(--text-muted)]">
                   <span>{spread.cardCount} ใบ</span>
-                  <span className="dash-spread-cost flex items-center gap-1">
-                    <Coins size={10} /> {cost}
+                  <span className="dash-spread-cost font-extrabold text-[var(--gold)] flex items-center gap-1">
+                    <Coins size={11} /> {cost} แต้ม
                   </span>
                 </div>
                 <div
-                  className="absolute top-2.5 right-3 text-[9px] font-bold uppercase tracking-wider"
-                  style={{ color: "var(--primary)" }}
+                  className="absolute top-2.5 right-3 text-[9.5px] font-extrabold uppercase tracking-wider text-[var(--primary)] bg-[var(--primary-soft)] px-2 py-0.5 rounded-full"
                 >
                   {SPREAD_BADGE[key]}
                 </div>
@@ -281,20 +314,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Announcement */}
-      <div className="dash-section">
-        <AnnouncementCard
-          tag="ใหม่"
-          title="ดูดวงรายวันพร้อมไพ่แนะนำ"
-          subtitle="ข้อความสั้น ๆ ประจำวัน ฟรี"
-          icon={Gift}
-          cta="ดูเลย"
-          href="/dashboard/daily"
-          tone="gold"
-        />
-      </div>
-
-      {/* Daily bonus */}
+      {/* Daily Ritual & Bonus Section */}
       <div className="dash-section">
         <DailyBonusWrapper
           userId={userId}
@@ -305,10 +325,23 @@ export default function DashboardHome() {
         />
       </div>
 
-      {/* Category pills */}
+      {/* Announcement Banner */}
       <div className="dash-section">
-        <SectionHeader title="เครื่องมือทั้งหมด" subtitle="สำรวจศาสตร์แห่งการพยากรณ์" />
-        <div className="dash-category-pills" style={{ marginTop: 12 }}>
+        <AnnouncementCard
+          tag="ประจำวัน"
+          title="ดูดวงรายวันพร้อมคำแนะนำ 5 ด้าน"
+          subtitle="ความรัก · การงาน · การเงิน · สุขภาพ · ความเครียด (ฟรีทุกวัน)"
+          icon={Gift}
+          cta="เปิดดูดวงวันนี้"
+          href="/dashboard/daily"
+          tone="gold"
+        />
+      </div>
+
+      {/* Category Filter Pills */}
+      <div className="dash-section space-y-3">
+        <SectionHeader title="เครื่องมือทั้งหมด" subtitle="สำรวจศาสตร์แห่งการพยากรณ์และดวงชะตา" />
+        <div className="dash-category-pills">
           <button
             onClick={() => setActiveCategory("all")}
             className={cn("dash-category-pill", activeCategory === "all" && "active")}
@@ -326,7 +359,7 @@ export default function DashboardHome() {
                 onClick={() => setActiveCategory(cat)}
                 className={cn("dash-category-pill", activeCategory === cat && "active")}
               >
-                <Icon size={13} />
+                <Icon size={14} />
                 {meta.labelTh}
               </button>
             );
@@ -334,7 +367,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Feature grid */}
+      {/* Feature Catalog Grid */}
       <div className="dash-section">
         <div className="dash-grid-2">
           {filteredFeatures.map((f) => (
@@ -347,20 +380,20 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Tarot only secondary tools */}
+      {/* Quick Shortcuts (when viewing All) */}
       {activeCategory === "all" && (
-        <div className="dash-section">
+        <div className="dash-section space-y-3">
           <SectionHeader
-            title="เครื่องมือเสริม"
-            subtitle="ทางลัดและฟีเจอร์อื่น ๆ"
+            title="เครื่องมือด่วน"
+            subtitle="คำถามเฉพาะทางและลางสังหรณ์"
           />
-          <div className="dash-feature-row" style={{ marginTop: 12 }}>
+          <div className="dash-feature-row">
             {[
               {
                 id: "zodiac",
                 icon: Star,
                 title: "ดูดวงตามวันเกิด",
-                sub: "ฟรี · ราศี + ปีนักษัตร",
+                sub: "ฟรี · ราศี + 12 ปีนักษัตร",
                 href: "/dashboard/zodiac",
                 cat: "astrology" as FeatureCategory,
               },
@@ -368,7 +401,7 @@ export default function DashboardHome() {
                 id: "yesno",
                 icon: CircleHelp,
                 title: "ถามใช่หรือไม่",
-                sub: "3 แต้ม · ไพ่ 1 ใบ",
+                sub: "3 แต้ม · คำตอบชัดเจนใน 1 ใบ",
                 href: "/dashboard/yesno",
                 cat: "quick" as FeatureCategory,
               },
@@ -376,7 +409,7 @@ export default function DashboardHome() {
                 id: "daily",
                 icon: Gift,
                 title: "ดูดวงรายวัน",
-                sub: "ฟรี · อัปเดตทุกวัน",
+                sub: "ฟรี · อัปเดตทุกเช้า",
                 href: "/dashboard/daily",
                 cat: "daily" as FeatureCategory,
               },
@@ -387,12 +420,11 @@ export default function DashboardHome() {
                 <a
                   key={tool.id}
                   href={tool.href}
-                  className="fc-root"
-                  style={{ padding: "14px 16px" }}
+                  className="fc-root p-3.5 transition-all duration-200 hover:-translate-y-0.5"
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                       style={{
                         background: tone.bg,
                         color: tone.color,
@@ -401,14 +433,14 @@ export default function DashboardHome() {
                       <Icon size={18} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13.5px] font-bold" style={{ color: "var(--text)" }}>
+                      <div className="text-[13.5px] font-bold text-[var(--text)]">
                         {tool.title}
                       </div>
-                      <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+                      <div className="text-[11.5px] text-[var(--text-muted)]">
                         {tool.sub}
                       </div>
                     </div>
-                    <div className="text-[18px]" style={{ color: "var(--text-muted)" }}>
+                    <div className="text-[16px] text-[var(--text-muted)]">
                       ›
                     </div>
                   </div>
@@ -419,55 +451,58 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Recent readings */}
-      <div className="dash-section">
+      {/* Recent Readings (Tarot Journal Preview) */}
+      <div className="dash-section space-y-3">
         <SectionHeader
-          title="อ่านล่าสุด"
-          subtitle={recentReadings.length ? "กลับไปอ่านบันทึกเดิมของคุณ" : "ยังไม่มีบันทึก — เริ่มทำนายครั้งแรกกัน"}
+          title="บันทึกคำทำนายล่าสุด"
+          subtitle={recentReadings.length ? "ทบทวนข้อความและคำแนะนำจากไพ่" : "ยังไม่มีบันทึก — เริ่มเปิดไพ่ครั้งแรกได้เลย"}
           trailing={
             recentReadings.length ? (
-              <a href="/dashboard/history" className="text-[12px] font-semibold" style={{ color: "var(--primary)" }}>
-                ดูทั้งหมด →
+              <a href="/dashboard/history" className="text-[12.5px] font-bold text-[var(--primary)] hover:underline flex items-center gap-1">
+                ดูสมุดบันทึกทั้งหมด <ArrowRight size={13} />
               </a>
             ) : undefined
           }
         />
         {recentReadings.length === 0 ? (
-          <div className="card p-5 text-center" style={{ marginTop: 12 }}>
-            <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-              ยังไม่มีประวัติการอ่าน — เปิดไพ่ครั้งแรกเพื่อเริ่มต้น
+          <div className="card p-6 text-center">
+            <p className="text-[13.5px] text-[var(--text-secondary)]">
+              ยังไม่มีประวัติการอ่าน — เริ่มต้นเปิดไพ่สำรับแรกของคุณวันนี้
             </p>
-            <a href="/dashboard/reading?spread=three_card" className="btn btn-primary mt-3">
-              เริ่มทำนาย
+            <a href="/dashboard/reading?spread=three_card" className="btn btn-primary mt-3.5 inline-flex">
+              เริ่มเปิดไพ่พยากรณ์
             </a>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-2" style={{ marginTop: 12 }}>
+          <div className="grid grid-cols-1 gap-2.5">
             {recentReadings.map((r) => (
               <a
                 key={r.id}
                 href="/dashboard/history"
-                className="card p-3.5 flex items-center gap-3 hover:shadow-sm transition-shadow"
+                className="card p-4 flex items-center gap-3.5 hover:border-[var(--border-strong)] hover:shadow-sm transition-all duration-200 group"
               >
-                <span className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}>
-                  <Sparkles size={14} />
+                <span
+                  className="w-10 h-10 rounded-xl grid place-items-center shrink-0"
+                  style={{ background: "var(--primary-soft)", color: "var(--primary)" }}
+                >
+                  <Sparkles size={16} />
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>
-                    {r.question ? r.question.slice(0, 58) + (r.question.length > 58 ? "…" : "") : SPREADS[r.spread_type as SpreadType]?.nameTh ?? r.spread_type}
+                  <span className="block text-[13.5px] font-bold truncate text-[var(--text)] group-hover:text-[var(--primary)] transition-colors">
+                    {r.question ? r.question.slice(0, 60) + (r.question.length > 60 ? "…" : "") : SPREADS[r.spread_type as SpreadType]?.nameTh ?? r.spread_type}
                   </span>
-                  <span className="block text-[11px]" style={{ color: "var(--text-muted)" }}>
-                    {new Date(r.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })} · {SPREADS[r.spread_type as SpreadType]?.nameTh ?? r.spread_type} · {r.points_spent} แต้ม
+                  <span className="block text-[11.5px] text-[var(--text-muted)] mt-0.5">
+                    {new Date(r.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })} · {SPREADS[r.spread_type as SpreadType]?.nameTh ?? r.spread_type} · {r.points_spent} แต้ม
                   </span>
                 </span>
-                <span style={{ color: "var(--text-muted)" }}>›</span>
+                <span className="text-[var(--text-muted)] text-[18px] group-hover:translate-x-1 transition-transform">›</span>
               </a>
             ))}
           </div>
         )}
       </div>
 
-      {/* Points balance card */}
+      {/* Points Balance Footer Widget */}
       <div className="dash-section">
         <PointsBalance points={profile?.points ?? 0} />
       </div>
@@ -477,35 +512,33 @@ export default function DashboardHome() {
 
 function DailyBonusWrapper({
   userId,
-  points,
   onClaim,
 }: {
   userId: string | null;
-  points: number;
+  points?: number;
   onClaim: (amount: number) => void;
 }) {
-  if (!userId) {
-    return (
-      <div className="daily-bonus-section" style={{ borderRadius: "var(--radius-lg)" }}>
-        <div className="daily-bonus-inner">
-          <div className="daily-bonus-title">+ โบนัสรายวัน +</div>
-          <div className="daily-bonus-sub">รับแต้มทุกวัน</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
-      className="daily-bonus-section"
-      style={{ borderRadius: "var(--radius-lg)", border: "1px solid rgba(255,255,255,0.05)" }}
+      className="card p-6 relative overflow-hidden text-center"
+      style={{
+        background: "radial-gradient(ellipse at 50% 20%, rgba(167, 139, 250, 0.12) 0%, var(--bg-card) 70%)",
+        borderColor: "var(--border-gold)",
+      }}
     >
-      <div className="daily-bonus-inner">
-        <div className="daily-bonus-title">+ โบนัสรายวัน +</div>
-        <div className="daily-bonus-sub">
-          รับแต้มทุกวัน · ปัจจุบัน {points.toLocaleString()} แต้ม
+      <div className="relative z-10 max-w-sm mx-auto space-y-3">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-widest text-[var(--gold)] bg-[var(--gold-soft)] border border-[var(--border-gold)]">
+          <Star size={11} /> พิธีกรรมประจำวัน
         </div>
-        <DailyBonus userId={userId} onClaim={onClaim} />
+        <h3 className="text-[17px] font-extrabold text-[var(--text)] tracking-tight">
+          รับแต้มสะสมฟรีทุกวัน
+        </h3>
+        <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+          สะสมแต้มเพื่อใช้ในการเปิดไพ่ทาโรต์และเครื่องมือพยากรณ์ต่าง ๆ
+        </p>
+        <div className="pt-1">
+          <DailyBonus userId={userId || ""} onClaim={onClaim} />
+        </div>
       </div>
     </div>
   );

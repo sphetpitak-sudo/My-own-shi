@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Reading } from "@/lib/types";
+import { ALL_CARDS } from "@/lib/cards";
 import { Search, BookOpen, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import LoadingSkeleton from "./LoadingSkeleton";
 
@@ -11,6 +13,7 @@ interface ReadingWithUser extends Reading {
 }
 
 export default function AdminReadings() {
+  const router = useRouter();
   const [readings, setReadings] = useState<ReadingWithUser[]>([]);
   const [search, setSearch] = useState("");
   const [spreadFilter, setSpreadFilter] = useState<string>("all");
@@ -23,7 +26,7 @@ export default function AdminReadings() {
     if (!user) return;
 
     const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
-    if (!profile?.is_admin) { window.location.href = "/dashboard"; return; }
+    if (!profile?.is_admin) { router.push("/dashboard"); return; }
 
     const { data } = await supabase
       .from("readings")
@@ -33,7 +36,7 @@ export default function AdminReadings() {
 
     setReadings((data as ReadingWithUser[]) || []);
     setLoading(false);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadReadings();
@@ -84,6 +87,7 @@ export default function AdminReadings() {
               <option value="single">ไพ่ใบเดียว</option>
               <option value="three_card">ไพ่สามใบ</option>
               <option value="celtic">กางเขนเคลติก</option>
+              <option value="oracle">ไพ่ออราเคิล</option>
             </select>
           </div>
         </div>
@@ -131,11 +135,16 @@ export default function AdminReadings() {
                           <div>
                             <span className="text-[11px] font-semibold text-muted">ไพ่</span>
                             <div className="flex flex-wrap gap-2 mt-1">
-                              {(r.cards as Array<{ card?: { name?: string }; position?: { label?: string } | string; reversed?: boolean }>).map((c, i) => (
-                                <span key={i} className="badge badge-neutral">
-                                  {c.card?.name || (typeof c.position === "object" ? c.position?.label : c.position) || ""} {c.reversed ? "(R)" : ""}
-                                </span>
-                              ))}
+                              {(r.cards as Array<{ cardId?: number; card?: { name?: string; nameTh?: string }; positionLabel?: string; position?: { label?: string; labelTh?: string } | string; reversed?: boolean }>).map((c, i) => {
+                                const cardObj = typeof c.cardId === "number" ? ALL_CARDS.find((x) => x.id === c.cardId) : null;
+                                const cardName = cardObj ? `${cardObj.nameTh} (${cardObj.name})` : (c.card?.nameTh || c.card?.name || `Card #${c.cardId ?? i + 1}`);
+                                const position = c.positionLabel || (typeof c.position === "object" ? (c.position?.labelTh || c.position?.label) : c.position) || "";
+                                return (
+                                  <span key={i} className="badge badge-neutral">
+                                    {position ? `${position}: ` : ""}{cardName}{c.reversed ? " (กลับหัว)" : ""}
+                                  </span>
+                                );
+                              })}
                             </div>
                           </div>
                         )}

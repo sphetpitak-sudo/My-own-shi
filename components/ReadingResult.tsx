@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import TarotCard from "./TarotCard";
 import { SPREADS, type DrawnCard, type SpreadType } from "@/lib/cards";
 import {
@@ -79,7 +80,7 @@ function parseSections(text: string): ParsedSection[] {
   return sections;
 }
 
-export default function ReadingResult({ cards, spreadType, question, onDone }: Props) {
+export default function ReadingResult({ cards, spreadType, question, onDone, onPointsSpent }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -95,6 +96,8 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
   });
 
   const startReading = async () => {
+    if (startedRef.current && loading) return;
+    startedRef.current = true;
     setText("");
     setLoading(true);
     setError("");
@@ -129,6 +132,9 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
         setLoading(false);
         return;
       }
+
+      // Notify parent about spent points to immediately update UI balances
+      onPointsSpent?.(spread.cost);
 
       const reader = res.body?.getReader();
       if (!reader) {
@@ -395,13 +401,13 @@ export default function ReadingResult({ cards, spreadType, question, onDone }: P
             </button>
           </div>
           <div className="flex items-center justify-center gap-4 mt-1">
-            <a href="/dashboard/history" className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
+            <Link href="/dashboard/history" className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
               ดูประวัติ →
-            </a>
+            </Link>
             <span style={{ color: "var(--border-strong)" }}>·</span>
-            <a href="/dashboard/daily" className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
+            <Link href="/dashboard/daily" className="text-[12px] font-semibold hover:underline" style={{ color: "var(--text-muted)" }}>
               ดูดวงรายวัน
-            </a>
+            </Link>
           </div>
         </div>
       )}

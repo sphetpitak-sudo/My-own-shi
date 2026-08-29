@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import DashboardShell from "@/components/DashboardShell";
 import { createClient } from "@/lib/supabase/client";
 import { Sun, Sparkles, Heart, Briefcase, Wallet, GraduationCap, Activity, RefreshCw } from "lucide-react";
@@ -15,18 +16,19 @@ const ASPECTS = [
 ];
 
 export default function DailyPage() {
+  const router = useRouter();
   const [day, setDay] = useState<DailyFortune | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadDay = async (silent = false) => {
+  const loadDay = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError("");
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        window.location.href = "/";
+        router.push("/");
         return;
       }
       const res = await fetch("/api/daily", { method: "POST" });
@@ -42,11 +44,11 @@ export default function DailyPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     loadDay();
-  }, []);
+  }, [loadDay]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();

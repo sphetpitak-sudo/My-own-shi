@@ -80,6 +80,7 @@ ALTER TABLE readings ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Readings select" ON readings;
 DROP POLICY IF EXISTS "Readings insert" ON readings;
+DROP POLICY IF EXISTS "Readings update" ON readings;
 
 -- Users read their own readings; admins read all
 CREATE POLICY "Readings select" ON readings FOR SELECT
@@ -87,6 +88,11 @@ CREATE POLICY "Readings select" ON readings FOR SELECT
 
 -- Inserted server-side after a completed reading (user session owns the row)
 CREATE POLICY "Readings insert" ON readings FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own readings (e.g. streaming interpretation completion)
+CREATE POLICY "Readings update" ON readings FOR UPDATE
+  USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_readings_user ON readings(user_id);
@@ -369,7 +375,7 @@ ALTER TABLE redeem_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE redeem_claims ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Redeem codes select" ON redeem_codes;
-CREATE POLICY "Redeem codes select" ON redeem_codes FOR SELECT USING (true);
+CREATE POLICY "Redeem codes select" ON redeem_codes FOR SELECT USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Redeem codes admin all" ON redeem_codes;
 CREATE POLICY "Redeem codes admin all" ON redeem_codes FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
@@ -378,7 +384,8 @@ DROP POLICY IF EXISTS "Redeem claims select" ON redeem_claims;
 CREATE POLICY "Redeem claims select" ON redeem_claims FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
 
 DROP POLICY IF EXISTS "Redeem claims insert" ON redeem_claims;
-CREATE POLICY "Redeem claims insert" ON redeem_claims FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- NOTE: No client INSERT policy on redeem_claims. Claims are written exclusively by the
+-- SECURITY DEFINER RPC claim_code.
 
 CREATE INDEX IF NOT EXISTS idx_redeem_codes_code ON redeem_codes(code);
 CREATE INDEX IF NOT EXISTS idx_redeem_claims_user ON redeem_claims(user_id);

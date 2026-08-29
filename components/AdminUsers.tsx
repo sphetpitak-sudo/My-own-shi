@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Profile } from "@/lib/types";
 import { Search, UserPlus, BookOpen, Calendar } from "lucide-react";
@@ -12,6 +13,7 @@ interface UserWithReadings extends Profile {
 }
 
 export default function AdminUsers() {
+  const router = useRouter();
   const [users, setUsers] = useState<UserWithReadings[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ export default function AdminUsers() {
     if (!user) return;
 
     const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
-    if (!profile?.is_admin) { window.location.href = "/dashboard"; return; }
+    if (!profile?.is_admin) { router.push("/dashboard"); return; }
 
     const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
     const { data: readings } = await supabase.from("readings").select("user_id");
@@ -40,7 +42,7 @@ export default function AdminUsers() {
 
     setUsers(enriched);
     setLoading(false);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadUsers();

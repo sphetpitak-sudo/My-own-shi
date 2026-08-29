@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Save, AlertTriangle } from "lucide-react";
 import LoadingSkeleton from "./LoadingSkeleton";
@@ -19,6 +20,7 @@ interface SettingsData {
 }
 
 export default function AdminSettings() {
+  const router = useRouter();
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,7 +33,7 @@ export default function AdminSettings() {
     if (!user) return;
 
     const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
-    if (!profile?.is_admin) { window.location.href = "/dashboard"; return; }
+    if (!profile?.is_admin) { router.push("/dashboard"); return; }
 
     const { data } = await supabase.from("admin_settings").select("key, value");
 
@@ -47,7 +49,7 @@ export default function AdminSettings() {
       maintenance_mode: (map.maintenance_mode as { enabled: boolean }) || { enabled: false },
     });
     setLoading(false);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadSettings();

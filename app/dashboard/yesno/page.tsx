@@ -41,24 +41,16 @@ export default function YesNoPage() {
 
       const { data: costRow } = await supabase
         .from("admin_settings")
-        .select("value")
-        .in("key", ["reading_costs", "yes_no_cost"]);
-      if (costRow) {
-        // We re-use "single" spread cost for yes/no
-        const yn = costRow.find((r: { key: string }) => r.key === "yes_no_cost");
-        if (yn?.value && typeof yn.value === "object" && "amount" in yn.value) {
-          setCosts({ yesno: (yn.value as { amount: number }).amount });
-        } else {
-          const rc = costRow.find((r: { key: string }) => r.key === "reading_costs");
-          if (rc?.value && typeof rc.value === "object") {
-            setCosts(rc.value as Record<string, number>);
-          }
-        }
+        .select("key, value")
+        .eq("key", "reading_costs")
+        .single();
+      if (costRow?.value && typeof costRow.value === "object") {
+        setCosts(costRow.value as Record<string, number>);
       }
     });
   }, [router]);
 
-  const cost = costs["yesno"] ?? costs["single"] ?? 3;
+  const cost = costs["single"] ?? 5;
 
   const performReading = useCallback(async () => {
     setError("");

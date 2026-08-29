@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Users, BookOpen, Coins, Activity, Clock } from "lucide-react";
 import LoadingSkeleton from "./LoadingSkeleton";
@@ -22,6 +23,7 @@ interface RecentReading {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentReadings, setRecentReadings] = useState<RecentReading[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function AdminDashboard() {
       .single();
 
     if (!profile?.is_admin) {
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
       return;
     }
 
@@ -60,7 +62,7 @@ export default function AdminDashboard() {
     });
     setRecentReadings(recentRes.data || []);
     setLoading(false);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadStats();

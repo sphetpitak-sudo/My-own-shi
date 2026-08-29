@@ -1,6 +1,6 @@
 "use client";
-import { cn } from "@/lib/cn";
-import { Sparkles } from "lucide-react";
+
+import { Sparkles, ArrowRight, Heart, Briefcase, Compass, Wallet } from "lucide-react";
 
 interface Props {
   value: string;
@@ -9,10 +9,11 @@ interface Props {
   loading?: boolean;
 }
 
-const SUGGESTIONS = [
-  "อนาคตความรักของฉันจะเป็นอย่างไร?",
-  "งานใหม่ที่กำลังจะเริ่มจะเป็นอย่างไร?",
-  "ฉันควรโฟกัสเรื่องอะไรในเดือนนี้?",
+const CATEGORY_PROMPTS = [
+  { icon: Heart, text: "อนาคตความรักและความสัมพันธ์ของฉันจะเป็นอย่างไร?" },
+  { icon: Briefcase, text: "ทิศทางและการตัดสินใจเรื่องงานในตอนนี้ควรทำอย่างไร?" },
+  { icon: Wallet, text: "แนวโน้มการเงินและโอกาสใหม่ ๆ ในช่วงนี้เป็นอย่างไร?" },
+  { icon: Compass, text: "สิ่งที่ไพ่อยากบอกเพื่อเป็นแนวทางชีวิตในขณะนี้คืออะไร?" },
 ];
 
 export default function QuestionInput({
@@ -29,89 +30,85 @@ export default function QuestionInput({
   };
 
   return (
-    <div className="w-full">
-      <div className="q-card">
-        <label htmlFor="question-input" className="label flex items-center gap-1.5">
-          <Sparkles size={12} style={{ color: "var(--primary)" }} />
-          คำถามของคุณ
-        </label>
+    <div className="w-full max-w-2xl mx-auto space-y-4 px-4">
+      <div className="card p-6 border-[var(--border-strong)] shadow-md space-y-4">
+        <div className="flex items-center justify-between">
+          <label htmlFor="question-input" className="text-[13px] font-extrabold uppercase tracking-wider text-[var(--primary)] flex items-center gap-1.5">
+            <Sparkles size={14} />
+            ตั้งจิตและคำถามของคุณ
+          </label>
+          <span
+            className="text-[11.5px] tabular-nums font-bold"
+            style={{
+              color: value.length > 450 ? (value.length > 480 ? "var(--red)" : "var(--amber)") : "var(--text-muted)",
+            }}
+          >
+            {value.length}/500
+          </span>
+        </div>
+
         <textarea
           id="question-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="ถามไพ่ทาโรต์... เขียนจากหัวใจของคุณ"
-          rows={3}
+          placeholder="เขียนคำถามหรือสิ่งที่อยู่ในใจของคุณ... (หรือเปิดดูภาพรวมโดยไม่ต้องระบุคำถาม)"
+          rows={4}
           maxLength={500}
           disabled={loading}
           aria-label="คำถามของคุณ"
-          className="q-textarea"
+          className="input resize-none text-[15px] leading-relaxed p-4 min-h-[120px] bg-[var(--bg)] border-[var(--border-strong)] focus:border-[var(--primary)] rounded-xl"
         />
 
-        {!value && (
-          <div className="flex flex-wrap gap-1.5">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => onChange(s)}
-                className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-full transition-all hover:shadow-sm hover:-translate-y-[1px] active:scale-[0.98]"
-                style={{
-                  background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {s}
-              </button>
-            ))}
+        {/* Suggestion Chips */}
+        <div className="space-y-2 pt-1">
+          <div className="text-[11.5px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
+            คำถามแนะนำยอดนิยม
           </div>
-        )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {CATEGORY_PROMPTS.map((p, i) => {
+              const Icon = p.icon;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onChange(p.text)}
+                  className="text-left text-[12px] p-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--primary)] hover:bg-[var(--primary-soft)] transition-all flex items-start gap-2 text-[var(--text-secondary)] hover:text-[var(--text)] group"
+                >
+                  <Icon size={14} className="text-[var(--primary)] shrink-0 mt-0.5" />
+                  <span className="leading-snug flex-1">{p.text}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        <div className="q-actions">
-          <span
-            className="q-counter"
-            style={{
-              color: value.length > 450 ? (value.length > 480 ? "var(--red)" : "var(--amber)") : "var(--text-muted)",
-              fontWeight: value.length > 450 ? 700 : 600,
-            }}
-          >
-            {value.length}/500
-          </span>
+        {/* Submit Action */}
+        <div className="pt-3 flex items-center justify-between border-t border-[var(--border-subtle)] gap-3 flex-wrap">
+          <p className="text-[11.5px] text-[var(--text-muted)] flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]" />
+            กด Enter เพื่อไปต่อ (Shift+Enter ขึ้นบรรทัดใหม่)
+          </p>
+
           <button
             onClick={onSubmit}
-            disabled={!value.trim() || loading}
-            aria-label="จั่วไพ่"
-            className={cn(
-              "btn px-6 py-2.5 text-[13px] font-bold rounded-xl",
-              value.trim() && !loading
-                ? "btn-primary"
-                : "bg-[var(--border)] text-[var(--text-muted)] cursor-not-allowed"
-            )}
-            style={
-              value.trim() && !loading
-                ? {
-                    background: "linear-gradient(135deg, var(--primary), var(--primary-hover))",
-                    boxShadow: "0 4px 14px rgba(109, 40, 217, 0.25)",
-                  }
-                : undefined
-            }
+            disabled={loading}
+            aria-label="เริ่มขั้นตอนสับไพ่"
+            className="btn btn-gold px-7 py-3 text-[14px] font-extrabold rounded-xl shrink-0"
           >
             {loading ? (
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                กำลังเตรียมสำรับ...
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full border-2 border-amber-900 border-t-transparent animate-spin" />
+                กำลังเตรียมพิธีกรรม...
               </span>
             ) : (
-              "เริ่มจั่วไพ่ →"
+              <span className="flex items-center gap-2">
+                เริ่มพิธีกรรมสับไพ่ <ArrowRight size={16} />
+              </span>
             )}
           </button>
         </div>
       </div>
-      <p className="q-helper" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span className="w-1 h-1 rounded-full" style={{ background: "var(--text-muted)" }} />
-        กด Enter เพื่อจั่วไพ่ · Shift+Enter เพื่อขึ้นบรรทัดใหม่
-      </p>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles, BookOpen, Compass, Lightbulb, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { SPREADS, ALL_CARDS } from "@/lib/cards";
+import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import type { Reading } from "@/lib/types";
 import TarotCard from "./TarotCard";
 import { stripMarkdownMultiline } from "@/lib/text";
@@ -77,6 +77,28 @@ function parseHistorySections(text: string): { key: string; title: string; conte
   return out.length ? out : [{ key: "single", title: "คำทำนาย", content: stripped }];
 }
 
+function HistoryCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1800);
+        } catch {
+          // ignore
+        }
+      }}
+      className="btn btn-ghost"
+      style={{ alignSelf: "center", fontSize: 12, padding: "8px 14px" }}
+    >
+      {copied ? <Check size={13} /> : <Copy size={13} />}
+      {copied ? "คัดลอกแล้ว" : "คัดลอกคำทำนาย"}
+    </button>
+  );
+}
+
 export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,28 +159,6 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
       minute: "2-digit",
     });
   };
-
-function HistoryCopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1800);
-        } catch {
-          // ignore
-        }
-      }}
-      className="btn btn-ghost"
-      style={{ alignSelf: "center", fontSize: 12, padding: "8px 14px" }}
-    >
-      {copied ? <Check size={13} /> : <Copy size={13} />}
-      {copied ? "คัดลอกแล้ว" : "คัดลอกคำทำนาย"}
-    </button>
-  );
-}
 
   if (loading) {
     return (
@@ -234,7 +234,7 @@ function HistoryCopyButton({ text }: { text: string }) {
       )}
       {filteredReadings.map((r) => {
         const isExpanded = expandedId === r.id;
-        const spread = SPREADS[r.spread_type];
+        const spread = r.spread_type !== "oracle" ? SPREADS[r.spread_type as SpreadType] : undefined;
         const truncatedQ = r.question.length > 60 ? r.question.slice(0, 60) + "..." : r.question;
         const cardCount = r.cards && Array.isArray(r.cards) ? r.cards.length : 0;
 

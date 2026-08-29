@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -17,6 +17,7 @@ import {
   CircleHelp,
   Sun,
   Star,
+  Coins,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -30,86 +31,96 @@ interface SidebarProps {
 
 const PRIMARY = [
   { href: "/dashboard", label: "หน้าหลัก", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/reading", label: "ทำนายใหม่", icon: Sparkles },
+  { href: "/dashboard/reading", label: "เปิดไพ่พยากรณ์", icon: Sparkles },
   { href: "/dashboard/daily", label: "ดูดวงรายวัน", icon: Sun },
   { href: "/dashboard/yesno", label: "ถามใช่หรือไม่", icon: CircleHelp },
-  { href: "/dashboard/history", label: "ประวัติ", icon: Clock },
+  { href: "/dashboard/history", label: "บันทึกคำทำนาย", icon: Clock },
 ];
 
 const TOOLS = [
   { href: "/dashboard/zodiac", label: "ดูดวงตามวันเกิด", icon: Star },
-  { href: "/dashboard/birthchart", label: "แผนที่ดวงดาว", icon: Compass },
+  { href: "/dashboard/birthchart", label: "แผนที่ดวงดาว", icon: Compass, soon: true },
   { href: "/dashboard/oracle", label: "ไพ่ลางสังหรณ์", icon: Eye },
 ];
 
 const PERSONAL = [
   { href: "/dashboard/profile", label: "โปรไฟล์", icon: User },
-  { href: "/dashboard/settings", label: "ตั้งค่า", icon: Settings },
+  { href: "/dashboard/settings", label: "ตั้งค่าบัญชี", icon: Settings },
 ];
 
 export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <>
-      {open && <div className="overlay lg:hidden" onClick={onClose} />}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] lg:hidden animate-fade"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
       <aside className={cn("sidebar", open && "open")}>
         {/* Brand */}
         <div className="sidebar-brand">
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center relative overflow-hidden"
+            className="w-10 h-10 rounded-xl flex items-center justify-center relative overflow-hidden shrink-0"
             style={{
-              background: "linear-gradient(135deg, var(--primary), #a78bfa)",
-              boxShadow: "0 2px 8px rgba(167, 139, 250, 0.3)",
+              background: "linear-gradient(135deg, var(--primary), #c4b5fd)",
+              boxShadow: "0 2px 10px rgba(167, 139, 250, 0.25)",
             }}
           >
-            <Image src="/LOGO.png" alt="Sealo" width={36} height={36} className="w-full h-full object-cover" />
+            <Image src="/LOGO.png" alt="Sealo" width={40} height={40} className="w-full h-full object-cover" />
           </div>
-          <div>
-            <span className="text-[15px] font-bold tracking-tight text-white block leading-none">Sealo</span>
-            <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>
-              ไพ่ทาโรต์ · AI
+          <div className="min-w-0">
+            <span className="text-[16px] font-extrabold tracking-tight text-white block leading-tight">Sealo</span>
+            <span className="text-[10px] font-semibold tracking-wider uppercase text-white/40 block">
+              Thai AI Tarot
             </span>
           </div>
           <button
             onClick={onClose}
-            className="ml-auto lg:hidden text-white/30 hover:text-white/80 transition-colors"
+            className="ml-auto lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white/90 hover:bg-white/5 transition-all"
             aria-label="ปิดเมนู"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Quick stats */}
-        <div
-          className="rounded-xl p-3 mb-3 flex items-center gap-2.5"
+        {/* Quick points widget */}
+        <Link
+          href="/dashboard/profile"
+          onClick={onClose}
+          className="rounded-xl p-3 mb-2 flex items-center gap-3 transition-all duration-200 hover:brightness-110 group"
           style={{
-            background: "rgba(212, 175, 55, 0.08)",
-            border: "1px solid rgba(212, 175, 55, 0.15)",
+            background: "linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(184, 148, 42, 0.04))",
+            border: "1px solid rgba(212, 175, 55, 0.22)",
           }}
         >
           <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-sm"
             style={{
               background: "linear-gradient(135deg, #f6c944, #b8942a)",
+              color: "#281c00",
             }}
           >
-            <Star size={15} style={{ color: "#3a2a00" }} />
+            <Coins size={16} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "rgba(212, 175, 55, 0.7)" }}>
-              คะแนน
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#d4af37]/80">
+              แต้มสะสม
             </div>
-            <div className="text-[15px] font-extrabold" style={{ color: "var(--gold)" }}>
+            <div className="text-[16px] font-extrabold text-[#d4af37] leading-none mt-0.5 tabular-nums">
               {userPoints.toLocaleString()}
             </div>
           </div>
-        </div>
+        </Link>
 
-        {/* Main */}
+        {/* Main Nav */}
         <div className="sidebar-label">เมนูหลัก</div>
-        <nav className="flex flex-col gap-0.5">
+        <nav className="flex flex-col gap-1">
           {PRIMARY.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
@@ -132,9 +143,9 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
           })}
         </nav>
 
-        {/* Tools */}
-        <div className="sidebar-label">เครื่องมือ</div>
-        <nav className="flex flex-col gap-0.5">
+        {/* Tools Nav */}
+        <div className="sidebar-label">เครื่องมือพยากรณ์</div>
+        <nav className="flex flex-col gap-1">
           {TOOLS.map((item) => {
             const isActive = pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -149,12 +160,12 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
                   <Icon size={18} />
                 </span>
                 <span className="flex-1">{item.label}</span>
-                {(item as { soon?: boolean }).soon && (
+                {item.soon && (
                   <span
-                    className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md"
+                    className="text-[9.5px] font-bold px-2 py-0.5 rounded-full"
                     style={{
-                      background: "rgba(255,255,255,0.06)",
-                      color: "rgba(255,255,255,0.4)",
+                      background: "rgba(255, 255, 255, 0.08)",
+                      color: "rgba(255, 255, 255, 0.45)",
                     }}
                   >
                     เร็ว ๆ นี้
@@ -165,9 +176,9 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
           })}
         </nav>
 
-        {/* Personal */}
+        {/* Personal Nav */}
         <div className="sidebar-label">ส่วนตัว</div>
-        <nav className="flex flex-col gap-0.5">
+        <nav className="flex flex-col gap-1">
           {PERSONAL.map((item) => {
             const isActive = pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -189,7 +200,7 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
 
         {isAdmin && (
           <>
-            <div className="sidebar-label">จัดการ</div>
+            <div className="sidebar-label">จัดการระบบ</div>
             <Link
               href="/admin"
               onClick={onClose}
@@ -198,7 +209,7 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
               <span className="nav-icon">
                 <Shield size={18} />
               </span>
-              แอดมิน
+              แผงควบคุมแอดมิน
             </Link>
           </>
         )}
@@ -208,12 +219,12 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
             onClick={async () => {
               const supabase = createClient();
               await supabase.auth.signOut();
-              window.location.href = "/";
+              router.push("/");
             }}
-            className="nav-item"
+            className="nav-item text-white/50 hover:text-red-400 hover:bg-red-500/10"
             aria-label="ออกจากระบบ"
           >
-            <span className="nav-icon">
+            <span className="nav-icon text-inherit">
               <LogOut size={18} />
             </span>
             ออกจากระบบ

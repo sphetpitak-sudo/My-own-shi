@@ -116,7 +116,7 @@ const majorArcana: TarotCard[] = [
     study: { upright: "สภาพแวดล้อมเอื้อต่อการเรียน เรียนดี", reversed: "กดดัน เรียนไม่ไหว" },
     finance: { upright: "การเงินมั่นคง รายได้ดี", reversed: "ไม่มั่นคงทางการเงิน พึ่งพาคนอื่น" },
   },
-  { id: 4, name: "The Emperor", nameTh: "เดอะ  emperor", suit: "major", imageFile: "04_Emperor.jpg", upright: "Authority, establishment, structure", uprightTh: "อำนาจ สถาบัน โครงสร้าง", reversed: "Tyranny, rigidity, coldness", reversedTh: "การกดขี่ ความเข้มงวด ความเย็นชา",
+  { id: 4, name: "The Emperor", nameTh: "เดอะ เอ็มเพอเรอร์", suit: "major", imageFile: "04_Emperor.jpg", upright: "Authority, establishment, structure", uprightTh: "อำนาจ สถาบัน โครงสร้าง", reversed: "Tyranny, rigidity, coldness", reversedTh: "การกดขี่ ความเข้มงวด ความเย็นชา",
     love: { upright: "ความสัมพันธ์มั่นคง มีการผูกมัด", reversed: "ควบคุมมากเกินไป ไม่มีความอบอุ่น" },
     career: { upright: "มีอำนาจ ทำงานเป็นระบบ", reversed: "บริหารแบบกดขี่ ไม่ยืดหยุ่น" },
     study: { upright: "เรียนมีแบบแผน มีวินัย", reversed: "กดดันจากกฎเกณฑ์ ไม่สนุก" },

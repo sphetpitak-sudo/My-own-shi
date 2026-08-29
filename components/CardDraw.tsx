@@ -5,7 +5,7 @@ import TarotCard from "./TarotCard";
 import ShuffleAnimation from "./ShuffleAnimation";
 import { drawCards, type Spread, type DrawnCard } from "@/lib/cards";
 import { cn } from "@/lib/cn";
-import { Sparkles, ChevronRight } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 interface Props {
@@ -28,7 +28,7 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
 
   useEffect(() => {
     if (allFlipped && submitRef.current) {
-      const t = setTimeout(() => submitRef.current?.focus(), 200);
+      const t = setTimeout(() => submitRef.current?.focus(), 250);
       return () => clearTimeout(t);
     }
   }, [allFlipped]);
@@ -56,61 +56,49 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
   const progressPct = (flippedIndices.size / spread.cardCount) * 100;
 
   return (
-    <div className="flex flex-col items-center gap-6 px-4 pb-6">
-      {/* Instruction header */}
-      <div className="text-center">
-        <p
-          className="text-[11px] font-bold uppercase tracking-[0.12em]"
-          style={{ color: "var(--primary)" }}
-        >
+    <div className="flex flex-col items-center gap-6 px-4 pb-8 max-w-4xl mx-auto animate-fade">
+      {/* Instruction Header */}
+      <div className="text-center space-y-1.5">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">
           ขั้นตอนที่ 3 / 4
         </p>
-        <h3 className="text-[19px] font-bold mt-1" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>
-          เลือกไพ่ของคุณ
+        <h3 className="text-[22px] font-extrabold text-[var(--text)] tracking-tight">
+          เลือกและเปิดไพ่ของคุณ
         </h3>
-        <p className="text-[12.5px] mt-1" style={{ color: "var(--text-muted)" }}>
-          แตะไพ่เพื่อเปิด ทีละใบ
+        <p className="text-[13px] text-[var(--text-secondary)]">
+          แตะที่ไพ่เพื่อเปิดเผยความหมายทีละใบ
         </p>
       </div>
 
-      {/* Progress */}
-      <div className="draw-progress w-full max-w-[300px]">
-        <div className="flex-1 max-w-[200px]">
-          <div className="draw-progress-bar">
-            <div style={{ width: `${progressPct}%` }} />
-          </div>
+      {/* Progress Bar */}
+      <div className="w-full max-w-[280px] flex items-center gap-3">
+        <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--gold)] rounded-full transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
-        <div className="draw-progress-text">
+        <div className="text-[12px] font-bold tabular-nums text-[var(--text-muted)] min-w-[38px] text-right">
           {flippedIndices.size}/{spread.cardCount}
         </div>
       </div>
 
-      {/* Cards grid */}
+      {/* Cards Table Spread Area */}
       <div
         className={cn(
-          "card-spread-area",
-          spread.cardCount === 1 && "card-spread-area--single",
-          spread.cardCount > 6 && "card-spread-area--celtic"
+          "flex flex-wrap justify-center items-start gap-4 sm:gap-6 p-4 rounded-2xl w-full",
+          spread.cardCount === 10 ? "max-w-[760px]" : spread.cardCount === 3 ? "max-w-[560px]" : "max-w-[320px]"
         )}
-        style={
-          spread.cardCount === 10
-            ? { maxWidth: 700 }
-            : spread.cardCount === 3
-              ? { maxWidth: 480 }
-              : undefined
-        }
       >
         {drawnCards.map((dc, i) => {
           const isFlipped = flippedIndices.has(i);
           return (
             <div
               key={i}
-              className="card-slot"
+              className="flex flex-col items-center gap-2.5"
               style={{
-                animationDelay: `${i * 0.06}s`,
+                animationDelay: `${i * 0.08}s`,
                 animation: "fadeUp 0.5s var(--ease) both",
-                transform: isFlipped ? "translateY(-6px)" : "translateY(0)",
-                transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
               }}
             >
               <TarotCard
@@ -127,48 +115,34 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
               />
               <span
                 className={cn(
-                  "card-slot-label",
-                  isFlipped && "revealed"
+                  "text-[11.5px] font-bold text-center transition-colors max-w-[110px] leading-tight",
+                  isFlipped ? "text-[var(--text)]" : "text-[var(--text-muted)]"
                 )}
               >
                 {dc.position.labelTh}
               </span>
-              <span
-                className={cn("card-slot-progress", isFlipped && "done")}
-                aria-hidden
-              />
             </div>
           );
         })}
       </div>
 
-      {/* Submit */}
-      <div className="flex flex-col items-center gap-3">
+      {/* Submit / Proceed Action */}
+      <div className="flex flex-col items-center gap-3 pt-2">
         {!allFlipped ? (
-          <p
-            className="text-[12px] font-medium"
-            style={{ color: "var(--text-muted)" }}
-          >
+          <p className="text-[12.5px] font-semibold text-[var(--text-muted)]">
             {flippedIndices.size === 0
-              ? "แตะไพ่ใบแรกเพื่อเริ่ม"
+              ? "แตะไพ่ใบแรกเพื่อเปิดคำทำนาย"
               : `เหลืออีก ${spread.cardCount - flippedIndices.size} ใบ`}
           </p>
         ) : (
           <button
             ref={submitRef}
             onClick={() => onComplete(drawnCards)}
-            className="btn-primary inline-flex items-center gap-2 px-7 py-3.5 text-[14px] font-bold rounded-2xl"
-            style={{
-              background: "linear-gradient(135deg, #d4af37, #b8942a)",
-              color: "#1a0a2e",
-              boxShadow:
-                "0 6px 20px rgba(212, 175, 55, 0.32), inset 0 1px 0 rgba(255,255,255,0.25)",
-              letterSpacing: "0.01em",
-            }}
+            className="btn btn-gold px-8 py-3.5 text-[15px] font-extrabold rounded-2xl shadow-lg transition-all transform hover:-translate-y-1 active:scale-[0.98] animate-in flex items-center gap-2"
           >
-            <Sparkles size={15} />
-            ดูคำทำนาย
-            <ChevronRight size={15} />
+            <Sparkles size={16} />
+            ดูคำทำนายฉบับเต็ม
+            <ArrowRight size={16} />
           </button>
         )}
       </div>
