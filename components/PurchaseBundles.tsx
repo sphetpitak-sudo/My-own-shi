@@ -30,7 +30,7 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
   }, [userId]);
 
   const handleBuy = async (b: typeof BUNDLES[number]) => {
-    if (mockEnabled === false && !isAdmin) {
+    if (mockEnabled !== true && !isAdmin) {
       setError("Mock purchase disabled");
       return;
     }
@@ -51,7 +51,7 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
     }
   };
 
-  const mockBlocked = mockEnabled === false && !isAdmin;
+  const mockBlocked = mockEnabled !== true && !isAdmin;
 
   return (
     <div className="space-y-3">
