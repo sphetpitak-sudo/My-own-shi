@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Coins, Sparkles, Check, Zap } from "lucide-react";
+import { Coins, Check, Zap, ShieldAlert } from "lucide-react";
 
 const BUNDLES = [
   { thb: 19, pts: 25, label: "เลี้ยงชา", bonus: "☕" , popular: false },
@@ -15,14 +15,31 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
   const [loading, setLoading] = useState<number | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mockEnabled, setMockEnabled] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("admin_settings").select("value").eq("key", "enable_mock_purchase").single().then(({ data }: { data: { value: { enabled?: boolean } } | null }) => {
+      const enabled = (data?.value as { enabled?: boolean })?.enabled ?? false;
+      setMockEnabled(enabled);
+    });
+    supabase.from("profiles").select("is_admin").eq("id", userId).single().then(({ data }: { data: { is_admin: boolean } | null }) => {
+      if (data?.is_admin) setIsAdmin(true);
+    });
+  }, [userId]);
 
   const handleBuy = async (b: typeof BUNDLES[number]) => {
+    if (mockEnabled === false && !isAdmin) {
+      setError("Mock purchase disabled");
+      return;
+    }
     setLoading(b.thb);
     setError(null);
     setSuccess(null);
     try {
       const supabase = createClient();
-      const { data, error: rpcErr } = await supabase.rpc("create_mock_purchase", { p_amount_thb: b.thb, p_points: b.pts });
+      const { error: rpcErr } = await supabase.rpc("create_mock_purchase", { p_amount_thb: b.thb, p_points: b.pts });
       if (rpcErr) throw new Error(rpcErr.message);
       setSuccess(`เติมสำเร็จ +${b.pts} แต้ม`);
       onPurchased?.(b.pts);
@@ -34,18 +51,26 @@ export default function PurchaseBundles({ userId, onPurchased }: { userId: strin
     }
   };
 
+  const mockBlocked = mockEnabled === false && !isAdmin;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-[14px] font-extrabold" style={{ color:"var(--text)"}}>เติมแต้ม</h3>
-        <span className="text-[11px] px-2 py-1 rounded-full font-bold" style={{ background:"var(--amber-soft)", color:"var(--amber)"}}>Mock • ไม่ตัดเงินจริง</span>
+        <span className="text-[11px] px-2 py-1 rounded-full font-bold" style={{ background: mockBlocked ? "var(--red-soft)" : "var(--amber-soft)", color: mockBlocked ? "var(--red)" : "var(--amber)"}}>{mockBlocked ? "ปิดในโปรดักชัน" : "Mock • ไม่ตัดเงินจริง"}</span>
       </div>
       <p className="text-[12px]" style={{ color:"var(--text-muted)"}}>ทดสอบระบบเติมแต้ม — กดแล้วได้แต้มทันที (PromptPay/Stripe จริงจะมาในเฟสหน้า)</p>
+      {mockBlocked && (
+        <div className="p-3 rounded-xl text-[12.5px] flex gap-2" style={{ background:"var(--amber-soft)", color:"var(--amber)", border:"1px solid rgba(184,148,42,0.2)"}}>
+          <ShieldAlert size={14} className="shrink-0 mt-0.5" />
+          <span>ระบบทดสอบปิดอยู่ในโปรดักชัน — เฉพาะแอดมินเท่านั้นที่ทดสอบได้ รอระบบชำระเงินจริง</span>
+        </div>
+      )}
       {success && <div className="p-3 rounded-xl text-[13px] font-semibold flex items-center gap-2" style={{ background:"var(--green-soft)", color:"var(--green)"}}><Check size={14}/> {success}</div>}
-      {error && <div className="p-3 rounded-xl text-[13px]" style={{ background:"var(--red-soft)", color:"var(--red)"}}>{error}</div>}
+      {error && <div className="p-3 rounded-xl text-[13px]" style={{ background:"var(--red-soft)", color:"var(--red)"}}>{error === "Mock purchase disabled" ? "ระบบทดสอบปิดอยู่ — เฉพาะแอดมินเท่านั้น" : error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {BUNDLES.map(b=>(
-          <button key={b.thb} onClick={()=>handleBuy(b)} disabled={loading!==null} className="card p-4 text-left relative overflow-hidden hover:border-[var(--primary)] transition-all">
+          <button key={b.thb} onClick={()=>handleBuy(b)} disabled={loading!==null || mockBlocked} className={`card p-4 text-left relative overflow-hidden transition-all ${mockBlocked ? "opacity-50 cursor-not-allowed" : "hover:border-[var(--primary)]"}`}>
             {b.popular && <span className="absolute top-2 right-2 text-[9px] font-extrabold px-2 py-1 rounded-full" style={{ background:"var(--primary)", color:"white"}}>ยอดนิยม</span>}
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl grid place-items-center flex-shrink-0" style={{ background: b.popular? "linear-gradient(135deg,#f6c944,#b8942a)":"var(--primary-soft)", color: b.popular?"#3a2a00":"var(--primary)"}}><Coins size={18}/></div>

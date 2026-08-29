@@ -33,7 +33,6 @@ export default function PushOptIn() {
         if ("serviceWorker" in navigator && "PushManager" in window) {
           const reg = await navigator.serviceWorker.register("/sw.js");
           const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array("BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr_p2FbA5nT7P7X134tx_SB8") as unknown as BufferSource });
-          // @ts-ignore
           endpoint = sub.endpoint;
           p256dh = arrayBufferToBase64(sub.getKey("p256dh")!);
           auth = arrayBufferToBase64(sub.getKey("auth")!);
@@ -53,7 +52,7 @@ export default function PushOptIn() {
   if (granted) {
     return (
       <div className="flex items-center gap-2 text-[12px] px-3 py-2 rounded-xl" style={{ background:"var(--green-soft)", color:"var(--green)", border:"1px solid rgba(45,122,79,0.14)"}}>
-        <Check size={14}/> เปิดแจ้งเตือนแล้ว — จะเตือนดวงรายวัน 20:00
+        <Check size={14}/> บันทึกการสมัครแจ้งเตือนแล้ว — ระบบ push เต็มรูปแบบจะมาเร็ว ๆ นี้ (ขณะนี้เป็น foundation)
       </div>
     );
   }

@@ -114,8 +114,12 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("readings").select("id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).single();
-      if (data?.id) setReadingId(data.id);
+      // Prefer reading matching current spread + recent (5min) to avoid picking unrelated latest
+      const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data } = await supabase.from("readings").select("id, created_at").eq("user_id", user.id).eq("spread_type", spreadType).gte("created_at", since).order("created_at", { ascending: false }).limit(1).single();
+      if (data?.id) { setReadingId(data.id); return; }
+      const { data: fallback } = await supabase.from("readings").select("id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).single();
+      if (fallback?.id) setReadingId(fallback.id);
     } catch {}
   };
 
@@ -193,6 +197,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
 
   const handleFollow = async () => {
     if (!followQ.trim() || followCount >= 2) return;
+    if (followQ.trim().length > 200) { setFollowError("คำถามยาวเกิน 200 อักษร"); return; }
     setFollowLoading(true);
     setFollowError("");
     setFollowAnswer("");
@@ -201,6 +206,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          readingId: readingId || undefined,
           spreadType,
           cards: cards.map(c => ({ cardId: c.card.id, positionLabel: c.position.labelTh || c.position.label, reversed: c.reversed })),
           question,
@@ -238,12 +244,6 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
       }
       setFollowCount(c => c + 1);
       setFollowQ("");
-      // persist to reading if we have id
-      if (readingId) {
-        try {
-          await createClient().from("readings").select("id").eq("id", readingId).single();
-        } catch {}
-      }
     } catch (e: unknown) {
       setFollowError(e instanceof Error ? e.message : "Network error");
     } finally {
@@ -347,7 +347,25 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
 
   useEffect(() => {
     if (done && !readingId) fetchReadingId();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done, readingId]);
+
+  // Fetch existing followup count for this reading (to enforce 2 limit across refreshes)
+  useEffect(() => {
+    if (!readingId) return;
+    const supabase = createClient();
+    supabase.from("reading_followups").select("id, question, answer", { count: "exact" }).eq("reading_id", readingId).then(({ data, count }: { data: { answer: string }[] | null; count: number | null }) => {
+      if (typeof count === "number") setFollowCount(Math.min(count, 2));
+      // If there are existing answers, show the latest as context (optional)
+      if (data && data.length > 0) {
+        const latest = data[data.length - 1] as { answer: string };
+        if (latest?.answer && !followAnswer) {
+          // Do not auto-show, but keep count accurate
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readingId]);
 
   const sections = parseSections(text);
   const hasSections = sections.length > 0;
@@ -567,17 +585,19 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
             <h4 className="text-[13px] font-extrabold" style={{ color: "var(--text)" }}>ถามต่อเกี่ยวกับไพ่นี้</h4>
             <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: followCount >= 2 ? "var(--red-soft)" : "var(--primary-soft)", color: followCount >= 2 ? "var(--red)" : "var(--primary)" }}>เหลือ {Math.max(0, 2 - followCount)} ครั้งฟรี</span>
           </div>
-          {followCount < 2 ? (
+          {!readingId ? (
+            <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>กำลังซิงค์บันทึก... รอสักครู่ก่อนถามต่อ</p>
+          ) : followCount < 2 ? (
             <div className="flex gap-2">
               <input
                 value={followQ}
                 onChange={(e) => setFollowQ(e.target.value.slice(0, 200))}
                 placeholder="เช่น ไพ่ใบนี้เตือนเรื่องอะไรเป็นพิเศษ?"
                 className="input flex-1 text-[13px]"
-                disabled={followLoading}
+                disabled={followLoading || !readingId}
                 onKeyDown={(e) => { if (e.key === "Enter" && followQ.trim() && !followLoading) handleFollow(); }}
               />
-              <button onClick={handleFollow} disabled={!followQ.trim() || followLoading} className="btn btn-primary text-[13px] px-5">{followLoading ? "กำลังถาม..." : "ถาม"}</button>
+              <button onClick={handleFollow} disabled={!followQ.trim() || followLoading || !readingId} className="btn btn-primary text-[13px] px-5">{followLoading ? "กำลังถาม..." : "ถาม"}</button>
             </div>
           ) : (
             <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>ครบ 2 ครั้งแล้ว — เริ่มพิธีกรรมใหม่เพื่อถามเพิ่มเติม</p>

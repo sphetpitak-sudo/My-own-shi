@@ -148,9 +148,16 @@ export default function DashboardHome() {
   }, []);
 
   const filteredFeatures = useMemo(() => {
-    if (activeCategory === "all") return FEATURES;
-    return FEATURES.filter((f) => f.category === activeCategory);
-  }, [activeCategory]);
+    const withDynamicCosts = FEATURES.map(f => {
+      if (f.id === "tarot-single" && costs["single"] !== undefined) return { ...f, cost: costs["single"] };
+      if (f.id === "tarot-three-card" && costs["three_card"] !== undefined) return { ...f, cost: costs["three_card"] };
+      if (f.id === "tarot-celtic" && costs["celtic"] !== undefined) return { ...f, cost: costs["celtic"] };
+      if (f.id === "yes-no" && costs["single"] !== undefined) return { ...f, cost: costs["single"] };
+      return f;
+    });
+    if (activeCategory === "all") return withDynamicCosts;
+    return withDynamicCosts.filter((f) => f.category === activeCategory);
+  }, [activeCategory, costs]);
 
   return (
     <div className="dashboard-premium space-y-7 pb-24">

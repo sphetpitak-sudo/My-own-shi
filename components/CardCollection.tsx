@@ -3,8 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ALL_CARDS } from "@/lib/cards";
-import TarotCard from "./TarotCard";
-import { Sparkles, Crown, Layers, RefreshCw } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 
 interface Props {
   userId: string;
@@ -109,7 +108,6 @@ export default function CardCollection({ userId }: Props) {
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
         {filteredCards.map(card=>{
           const count = stats.counts.get(card.id)||0;
-          const rev = stats.counts.get(card.id) ? (0) : 0; // not needed
           const discovered = count>0;
           return (
             <button key={card.id} onClick={()=> discovered && setSelected(card.id)} className={`card p-2 flex flex-col items-center gap-1.5 ${discovered? "hover:border-[var(--primary)] cursor-pointer":"opacity-40"}`} style={{ background: discovered? "var(--bg-card)":"var(--bg)"}}>

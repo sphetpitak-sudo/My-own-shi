@@ -566,9 +566,15 @@ CREATE OR REPLACE FUNCTION create_mock_purchase(p_amount_thb INTEGER, p_points I
 RETURNS UUID AS $$
 DECLARE new_id UUID;
 DECLARE allowed BOOLEAN := false;
+DECLARE mock_enabled BOOLEAN := false;
 BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
   IF p_amount_thb IS NULL OR p_points IS NULL THEN RAISE EXCEPTION 'Invalid bundle'; END IF;
+  -- Check if mock is enabled (admin setting) or caller is admin — otherwise block in production
+  SELECT COALESCE((value->>'enabled')::boolean, false) INTO mock_enabled FROM admin_settings WHERE key = 'enable_mock_purchase';
+  IF NOT mock_enabled AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Mock purchase disabled';
+  END IF;
   -- Whitelist bundles: 99->120, 199->280, 399->650, 19->25,49->70
   IF (p_amount_thb=99 AND p_points=120) OR (p_amount_thb=199 AND p_points=280) OR (p_amount_thb=399 AND p_points=650) OR (p_amount_thb=19 AND p_points=25) OR (p_amount_thb=49 AND p_points=70) OR (p_amount_thb=9 AND p_points=10) THEN
     allowed := true;
@@ -584,9 +590,49 @@ BEGIN
   RETURN new_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+-- Seed mock toggle (default disabled for production safety)
+INSERT INTO admin_settings (key, value) VALUES ('enable_mock_purchase', '{"enabled": false}'::jsonb) ON CONFLICT (key) DO NOTHING;
 
 -- ============================================
--- 19. STREAK BONUS HELPER (optional)
+-- 19. READING FOLLOWUPS (2 per reading max)
+-- ============================================
+CREATE TABLE IF NOT EXISTS reading_followups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reading_id UUID NOT NULL REFERENCES readings(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  question TEXT NOT NULL CHECK (char_length(question) > 0 AND char_length(question) <= 200),
+  answer TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE reading_followups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Followups select" ON reading_followups;
+CREATE POLICY "Followups select" ON reading_followups FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "Followups insert" ON reading_followups;
+CREATE POLICY "Followups insert" ON reading_followups FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Followups delete" ON reading_followups FOR DELETE USING (auth.uid() = user_id OR public.is_admin());
+CREATE INDEX IF NOT EXISTS idx_followups_reading ON reading_followups(reading_id);
+CREATE INDEX IF NOT EXISTS idx_followups_user ON reading_followups(user_id);
+-- Enforce max 2 per reading via trigger
+CREATE OR REPLACE FUNCTION check_followup_limit()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Verify reading ownership
+  IF NOT EXISTS (SELECT 1 FROM readings WHERE id = NEW.reading_id AND user_id = NEW.user_id) THEN
+    RAISE EXCEPTION 'Reading not found or not owned';
+  END IF;
+  -- Enforce max 2 with row-level lock on reading
+  PERFORM 1 FROM readings WHERE id = NEW.reading_id FOR UPDATE;
+  IF (SELECT COUNT(*) FROM reading_followups WHERE reading_id = NEW.reading_id) >= 2 THEN
+    RAISE EXCEPTION 'Followup limit reached (max 2)';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+DROP TRIGGER IF EXISTS trg_followup_limit ON reading_followups;
+CREATE TRIGGER trg_followup_limit BEFORE INSERT ON reading_followups FOR EACH ROW EXECUTE FUNCTION check_followup_limit();
+
+-- ============================================
+-- 20. STREAK BONUS HELPER (optional)
 -- ============================================
 -- No extra RPC needed — handled in app/api/daily-bonus
 

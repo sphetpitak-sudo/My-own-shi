@@ -13,5 +13,5 @@ self.addEventListener("notificationclick", function(event) {
   event.notification.close();
   event.waitUntil(clients.openWindow(event.notification.data?.url || "/dashboard/daily"));
 });
-self.addEventListener("install", function(e){ self.skipWaiting(); });
-self.addEventListener("activate", function(e){ e.waitUntil(clients.claim()); });
+self.addEventListener("install", function(){ self.skipWaiting(); });
+self.addEventListener("activate", function(event){ event.waitUntil(clients.claim()); });
