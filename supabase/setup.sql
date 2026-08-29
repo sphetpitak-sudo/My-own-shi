@@ -111,11 +111,11 @@ CREATE TABLE IF NOT EXISTS point_transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Ensure the type constraint accepts 'refund' and 'redeem' (idempotent)
+-- Ensure the type constraint accepts all current types (idempotent)
 DO $$ BEGIN
   ALTER TABLE point_transactions DROP CONSTRAINT IF EXISTS point_transactions_type_check;
   ALTER TABLE point_transactions ADD CONSTRAINT point_transactions_type_check
-    CHECK (type IN ('admin_grant', 'reading_purchase', 'daily_bonus', 'referral', 'refund', 'redeem'));
+    CHECK (type IN ('admin_grant', 'reading_purchase', 'daily_bonus', 'referral', 'refund', 'redeem', 'purchase', 'streak_bonus'));
 EXCEPTION WHEN undefined_table THEN NULL; END $$;
 
 ALTER TABLE point_transactions ENABLE ROW LEVEL SECURITY;
