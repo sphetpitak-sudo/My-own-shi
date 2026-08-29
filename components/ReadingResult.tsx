@@ -262,7 +262,8 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     setFollowError("");
 
     const abortController = new AbortController();
-    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 30_000);
+    // Must be > server total timeout (celtic 50s) + buffer
+    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 60_000);
     const clearClientTimeout = () => { if (clientTimeout) { clearTimeout(clientTimeout); clientTimeout = null; } };
     try {
       const res = await fetch("/api/reading", {
@@ -307,6 +308,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
 
       const decoder = new TextDecoder();
       let buffer = "";
+      let hasContent = false;
       while (true) {
         const { done: streamDone, value } = await reader.read();
         if (streamDone) break;
@@ -327,11 +329,18 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
             }
             try {
               const parsed = JSON.parse(data);
+              if (parsed.error && typeof parsed.error === "string") {
+                clearClientTimeout();
+                setError(parsed.error);
+                setLoading(false);
+                return;
+              }
               if (parsed.readingId && typeof parsed.readingId === "string") {
                 setReadingId(parsed.readingId);
                 continue;
               }
               if (parsed.content) {
+                hasContent = true;
                 setText((prev) => prev + parsed.content);
               }
             } catch {
@@ -340,15 +349,20 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
           }
         }
       }
-      // Fallback if stream ended without explicit [DONE]
-      onPointsSpent?.(effectiveCost);
-      setDone(true);
+      // Fallback if stream ended without explicit [DONE] but we have content
+      if (hasContent) {
+        onPointsSpent?.(effectiveCost);
+        setDone(true);
+      } else {
+        // No content received — treat as error, server already refunded
+        setError("AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว");
+      }
       setLoading(false);
       clearClientTimeout();
     } catch (err: unknown) {
       clearClientTimeout();
       if (err instanceof Error && err.name === "AbortError") {
-        setError("AI ไม่ตอบสนองภายใน 30 วินาที กรุณาลองใหม่ — แต้มคืนแล้ว");
+        setError("AI ไม่ตอบสนองภายใน 60 วินาที กรุณาลองใหม่ — แต้มคืนแล้ว");
       } else {
         const message = err instanceof Error ? err.message : "Network error";
         setError(message);
@@ -359,7 +373,6 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
 
   useEffect(() => {
     if (startedRef.current) return;
-    startedRef.current = true;
     startReading();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

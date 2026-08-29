@@ -21,14 +21,14 @@ export function getOpenAI(): OpenAI {
 // ============================================
 export const AI_PARAMS = {
   reading: {
-    single: { temperature: 0.7, max_tokens: 600, timeoutMs: 22_000, firstTokenMs: 12_000 },
-    three_card: { temperature: 0.7, max_tokens: 800, timeoutMs: 25_000, firstTokenMs: 12_000 },
-    celtic: { temperature: 0.7, max_tokens: 1100, timeoutMs: 28_000, firstTokenMs: 14_000 },
+    single: { temperature: 0.7, max_tokens: 600, timeoutMs: 32_000, firstTokenMs: 18_000 },
+    three_card: { temperature: 0.7, max_tokens: 800, timeoutMs: 38_000, firstTokenMs: 18_000 },
+    celtic: { temperature: 0.7, max_tokens: 1100, timeoutMs: 50_000, firstTokenMs: 22_000 },
   },
-  followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 20_000 },
-  oracle: { temperature: 0.7, max_tokens: 400, timeoutMs: 20_000 }, // 120-200 words => ~300 tokens; capped at 400
-  daily: { temperature: 0.7, max_tokens: 400, timeoutMs: 15_000 },
-  zodiac: { temperature: 0.7, max_tokens: 500, timeoutMs: 20_000 },
+  followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 25_000 },
+  oracle: { temperature: 0.7, max_tokens: 400, timeoutMs: 25_000 }, // 120-200 words => ~300 tokens; capped at 400
+  daily: { temperature: 0.7, max_tokens: 400, timeoutMs: 18_000 },
+  zodiac: { temperature: 0.7, max_tokens: 500, timeoutMs: 22_000 },
 } as const;
 
 // ============================================

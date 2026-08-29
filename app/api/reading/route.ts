@@ -6,6 +6,10 @@ import { READING_SYSTEM_PROMPT, buildReadingUserPrompt } from "@/lib/prompts";
 
 type ReadingCardInput = { cardId: number; positionLabel: string; reversed: boolean };
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error("DB_TIMEOUT")), ms))]);
+}
+
 const SPREAD_TO_P_SPEND: Record<SpreadType, string> = {
   single: "single",
   three_card: "three_card",
@@ -86,26 +90,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not enough points", needed: spread.cost, current: profile?.points || 0 }, { status: 400 });
     }
 
-    // Insert generating marker — allows exactly-once persistence + idempotent refund
-    const { data: genRow, error: genErr } = await supabase
-      .from("readings")
-      .insert({
-        user_id: user.id,
-        spread_type: spreadType,
-        cards,
-        question: trimmedQuestion,
-        interpretation: "__generating__",
-        points_spent: cost,
-      })
-      .select("id")
-      .single();
+    // Insert generating marker — allows exactly-once persistence + idempotent refund (guard Supabase hang)
+    let genRow: { id: string } | null = null;
+    let genErr: unknown = null;
+    try {
+      const res = await withTimeout(
+        supabase
+          .from("readings")
+          .insert({
+            user_id: user.id,
+            spread_type: spreadType,
+            cards,
+            question: trimmedQuestion,
+            interpretation: "__generating__",
+            points_spent: cost,
+          })
+          .select("id")
+          .single() as unknown as Promise<{ data: { id: string } | null; error: unknown }>,
+        8000
+      );
+      genRow = res.data as { id: string } | null;
+      genErr = res.error;
+    } catch (e) {
+      genErr = e;
+    }
     if (genErr || !genRow) {
       try {
-        await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
+        await withTimeout(supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost }) as unknown as Promise<unknown>, 5000).catch(() => {});
       } catch {}
-      return NextResponse.json({ error: "Failed to create reading" }, { status: 500 });
+      const isTimeout = genErr instanceof Error && genErr.message === "DB_TIMEOUT";
+      return NextResponse.json({ error: isTimeout ? "Database busy, please retry — points refunded" : "Failed to create reading" }, { status: isTimeout ? 503 : 500 });
     }
-    const readingId = (genRow as { id: string }).id;
+    const readingId = genRow.id;
 
     const cardMap = new Map(ALL_CARDS.map((c) => [c.id, c]));
     const resolved = cards.map((c) => {
@@ -135,7 +151,7 @@ export async function POST(request: Request) {
 
     let stream: Awaited<ReturnType<typeof getOpenAI extends () => infer R ? R extends { chat: { completions: { create: (...a: unknown[]) => Promise<infer S> } } } ? () => Promise<S> : never : never>> | null = null;
     try {
-      const s = await getOpenAI().chat.completions.create(
+      const createPromise = getOpenAI().chat.completions.create(
         {
           model: AI_MODEL,
           messages: [
@@ -146,8 +162,11 @@ export async function POST(request: Request) {
           max_tokens: params.max_tokens,
           stream: true,
         },
-        { maxRetries: 0, signal: abortController.signal } as unknown as Record<string, unknown>
+        { timeout: params.timeoutMs, maxRetries: 0, signal: abortController.signal } as unknown as Record<string, unknown>
       );
+      // Safety net: if SDK ignores AbortSignal, Promise.race forces timeout
+      const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("AI_CREATE_TIMEOUT")), params.timeoutMs + 3000));
+      const s = await Promise.race([createPromise, timeoutPromise]);
       stream = s as unknown as typeof stream;
     } catch (err: unknown) {
       clearTimeout(timeoutId);
@@ -220,40 +239,50 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ readingId })}\n\n`));
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
-        } catch {
+        } catch (err) {
           failed = true;
           if (firstTokenTimeout) clearTimeout(firstTokenTimeout);
           clearTimeout(timeoutId);
           if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+          console.error("Streaming failed", err);
           // Refund + delete generating row (exactly once)
           if (!refundedOrDeleted) {
             refundedOrDeleted = true;
             try {
-              await supabase.rpc("refund_by_reading", { p_reading_id: readingId });
+              await withTimeout(supabase.rpc("refund_by_reading", { p_reading_id: readingId }) as unknown as Promise<unknown>, 5000).catch(() => {});
             } catch {
               try {
-                await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
+                await withTimeout(supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost }) as unknown as Promise<unknown>, 5000).catch(() => {});
               } catch {}
             }
             try {
-              await supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id);
+              await withTimeout(supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>, 5000).catch(() => {});
             } catch {}
           }
+          try {
+            // Send error as SSE before closing so client can show refund message
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว" })}\n\n`));
+          } catch {}
           try {
             controller.error(new Error("Streaming failed"));
           } catch {}
           return;
         }
         if (!failed) {
-          // Persist final interpretation exactly once via update
+          // Persist final interpretation exactly once via update (guard DB hang)
           try {
             const finalText = fullText.trim().slice(0, LIMITS.interpretationMax);
             if (finalText) {
-              await supabase.from("readings").update({ interpretation: finalText }).eq("id", readingId).eq("user_id", user.id);
+              await withTimeout(
+                supabase.from("readings").update({ interpretation: finalText }).eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>,
+                8000
+              ).catch(() => {
+                console.error("Persist timeout, keeping __generating__ for cleanup");
+              });
             } else {
-              await supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id);
+              await withTimeout(supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>, 5000).catch(() => {});
               try {
-                await supabase.rpc("refund_by_reading", { p_reading_id: readingId });
+                await withTimeout(supabase.rpc("refund_by_reading", { p_reading_id: readingId }) as unknown as Promise<unknown>, 5000).catch(() => {});
               } catch {}
             }
           } catch (e) {
@@ -273,14 +302,14 @@ export async function POST(request: Request) {
           refundedOrDeleted = true;
           void (async () => {
             try {
-              await supabase.rpc("refund_by_reading", { p_reading_id: readingId });
+              await withTimeout(supabase.rpc("refund_by_reading", { p_reading_id: readingId }) as unknown as Promise<unknown>, 5000).catch(() => {});
             } catch {
               try {
-                await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
+                await withTimeout(supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost }) as unknown as Promise<unknown>, 5000).catch(() => {});
               } catch {}
             }
             try {
-              await supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id);
+              await withTimeout(supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>, 5000).catch(() => {});
             } catch {}
           })();
         }
