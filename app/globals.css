@@ -362,13 +362,13 @@ body {
 
 /* ============ CARDS & SURFACES ============ */
 .card {
-  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 94%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  backdrop-filter: blur(8px) saturate(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.05);
-  transition: box-shadow 0.25s var(--ease), border-color 0.25s var(--ease), transform 0.25s var(--ease);
+  box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255,255,255,0.04);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+  transition: box-shadow 0.3s var(--ease), border-color 0.3s var(--ease), transform 0.3s var(--ease);
 }
 .card-hover:hover {
   box-shadow: var(--shadow-md);

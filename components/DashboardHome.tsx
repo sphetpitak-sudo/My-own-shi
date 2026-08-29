@@ -31,31 +31,6 @@ const CATEGORY_TONE: Record<FeatureCategory, { bg: string; color: string }> = {
   numerology: { bg: "rgba(20,184,166,0.12)", color: "#14b8a6" },
 };
 
-const SPREAD_VISUAL: Record<SpreadType, { positions: { x: number; y: number }[] }> = {
-  single: { positions: [{ x: 50, y: 50 }] },
-  three_card: {
-    positions: [
-      { x: 20, y: 50 },
-      { x: 50, y: 50 },
-      { x: 80, y: 50 },
-    ],
-  },
-  celtic: {
-    positions: [
-      { x: 35, y: 50 },
-      { x: 50, y: 50 },
-      { x: 35, y: 75 },
-      { x: 35, y: 25 },
-      { x: 35, y: 5 },
-      { x: 65, y: 75 },
-      { x: 65, y: 60 },
-      { x: 65, y: 40 },
-      { x: 65, y: 25 },
-      { x: 80, y: 50 },
-    ],
-  },
-};
-
 const SPREAD_BADGE: Record<SpreadType, string> = {
   single: "ตอบไว",
   three_card: "ยอดนิยม",
@@ -160,28 +135,28 @@ export default function DashboardHome() {
   }, [activeCategory, costs]);
 
   return (
-    <div className="dashboard-premium space-y-7 pb-24">
-      {/* Header Greeting Banner */}
-      <header className="dash-greeting pt-6 pb-2">
+    <div className="dashboard-premium space-y-8 pb-24">
+      {/* Header Greeting Banner — premium cozy */}
+      <header className="dash-greeting pt-7 pb-3">
         <div className="dash-greeting-text">
-          <div className="dash-greeting-hi flex items-center gap-1.5">
-            <span>{greeting.hi}</span>
-            <span>{greeting.emoji}</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase" style={{ background: "var(--primary-soft)", color: "var(--primary)", border: "1px solid rgba(167,139,250,0.18)" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--primary)" }} />
+            Sealo · {greeting.hi} {greeting.emoji}
           </div>
-          <h1 className="dash-greeting-name text-[24px] sm:text-[28px] font-extrabold text-[var(--text)] tracking-tight">
+          <h1 className="dash-greeting-name text-[26px] sm:text-[30px] font-extrabold text-[var(--text)] tracking-tight mt-3">
             {profile?.display_name || "นักเดินทางแห่งดวงดาว"}
           </h1>
-          <p className="dash-greeting-sub text-[13px] text-[var(--text-secondary)] mt-0.5">
+          <p className="dash-greeting-sub text-[13.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed max-w-[520px]">
             {greeting.sub}
           </p>
         </div>
         <div
-          className="dash-points-pill cursor-pointer"
+          className="dash-points-pill cursor-pointer group"
           onClick={() => router.push("/dashboard/profile")}
           aria-label={`แต้มคงเหลือ ${profile?.points ?? 0}`}
         >
-          <Coins size={14} />
-          <span>{(profile?.points ?? 0).toLocaleString()} แต้ม</span>
+          <span className="w-7 h-7 rounded-full grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#f6c944,#d4af37)", color: "#3a2a00" }}><Coins size={13} /></span>
+          <span className="group-hover:translate-x-0.5 transition-transform">{(profile?.points ?? 0).toLocaleString()} แต้ม</span>
         </div>
       </header>
 
@@ -231,95 +206,77 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Hero Spread Showcase Card */}
+      {/* Hero — primary CTA, magical */}
       <div className="dash-section">
-        <FeatureCard
-          feature={{
-            id: "tarot-three-card",
-            category: "tarot",
-            title: "Three Card",
-            titleTh: "เปิดไพ่ทาโรต์ 3 ใบ",
-            subtitle: "Past · Present · Future",
-            subtitleTh: "อดีต · ปัจจุบัน · อนาคต",
-            descriptionTh: "พิธีกรรมเปิดไพ่สามใบเพื่อเชื่อมโยงเส้นเวลา อธิบายสถานการณ์ และรับคำทำนายเชิงลึกจาก AI หมอดูทิพย์",
-            icon: Sparkles,
-            status: "live",
-            cost: costs["three_card"] ?? SPREADS.three_card.cost,
-            route: "/dashboard/reading?spread=three_card",
-            theme: "violet",
-            badge: "แนะนำ",
-            badgeTh: "แนะนำยอดนิยม",
-          }}
-          userPoints={profile?.points ?? 0}
-          variant="hero"
-          onClick={() => handleSpreadSelect("three_card")}
-        />
+        <div className="hero-card group cursor-pointer relative overflow-hidden" onClick={() => handleSpreadSelect("three_card")} role="button" tabIndex={0} aria-label="เริ่มอ่านไพ่ 3 ใบ">
+          <div className="hero-glow" style={{ background: "radial-gradient(ellipse 70% 80% at 20% 20%, rgba(167,139,250,0.22), transparent 60%), radial-gradient(ellipse 60% 60% at 90% 30%, rgba(212,175,55,0.14), transparent 60%), linear-gradient(135deg, rgba(26,16,45,0.96), rgba(18,13,32,0.98))" }} />
+          {/* subtle stars */}
+          <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: "radial-gradient(1px 1px at 20% 30%, white, transparent), radial-gradient(1px 1px at 40% 70%, white, transparent), radial-gradient(1.2px 1.2px at 80% 20%, white, transparent), radial-gradient(1px 1px at 90% 60%, white, transparent)" }} />
+          <div className="hero-content relative z-10 !items-center !gap-5 py-1">
+            <div className="hidden sm:flex w-[96px] h-[140px] rounded-xl shrink-0 relative overflow-hidden" style={{ background: "linear-gradient(160deg,#1e0e3a,#2d1548 35%,#1a0a2e 70%)", border: "1.5px solid rgba(212,175,55,0.45)", boxShadow: "0 12px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(212,175,55,0.15)" }}>
+              <div className="absolute inset-[5px] rounded-[10px] border border-[rgba(201,168,76,0.18)]" />
+              <div className="absolute inset-0 grid place-items-center"><div className="w-8 h-8 rounded-full border border-[rgba(201,168,76,0.18)] grid place-items-center"><div className="w-1.5 h-1.5 rounded-full bg-[rgba(212,175,55,0.9)] shadow-[0_0_8px_rgba(212,175,55,0.7)]" /></div></div>
+              <div className="absolute inset-0 flex -space-x-3 items-center justify-center opacity-90"><div className="w-7 h-10 rounded-[3px] border border-[rgba(212,175,55,0.5)] bg-[rgba(26,16,45,0.9)] rotate-[-8deg]" /><div className="w-7 h-10 rounded-[3px] border border-[rgba(212,175,55,0.7)] bg-[rgba(45,21,72,0.95)] z-10" /><div className="w-7 h-10 rounded-[3px] border border-[rgba(212,175,55,0.5)] bg-[rgba(26,16,45,0.9)] rotate-[8deg]" /></div>
+            </div>
+            <div className="hero-body !gap-0">
+              <div className="inline-flex items-center gap-2 mb-2">
+                <span className="text-[10.5px] font-extrabold tracking-[0.14em] uppercase px-2.5 py-1 rounded-full" style={{ background: "rgba(167,139,250,0.16)", color: "#c4b5fd", border: "1px solid rgba(167,139,250,0.22)" }}>อดีต · ปัจจุบัน · อนาคต</span>
+                <span className="text-[10.5px] font-bold px-2 py-1 rounded-full" style={{ background: "rgba(212,175,55,0.14)", color: "#fde68a", border: "1px solid rgba(212,175,55,0.18)" }}>แนะนำยอดนิยม</span>
+              </div>
+              <h3 className="hero-title !text-[22px] sm:!text-[24px] !leading-[1.15] !text-white">เปิดไพ่ทาโรต์ 3 ใบ</h3>
+              <p className="hero-desc !text-white/70 !text-[13.5px] !leading-relaxed mt-2 max-w-[420px]">พิธีกรรมสามใบเชื่อมเส้นเวลา — เห็นอดีต เข้าใจปัจจุบัน รับคำทำนายเชิงลึกจาก AI หมอดูทิพย์</p>
+              <div className="hero-meta !mt-4">
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.12)" }}><Coins size={13} style={{ color: "#fde68a" }} /> {costs["three_card"] ?? SPREADS.three_card.cost} แต้ม</span>
+                <span className="hero-cta !bg-white !text-[#1a1033] !px-5 !py-2.5 !text-[13.5px] !font-extrabold !shadow-[0_8px_20px_rgba(0,0,0,0.22)] group-hover:!translate-x-1">เริ่มเลย <ArrowRight size={14} /></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Spreads Showcase Carousel */}
+      {/* Spreads — tarot as hero */}
       <div className="dash-section space-y-3">
         <SectionHeader
           title="เลือกรูปแบบสำรับไพ่"
-          subtitle="สำรับ Rider-Waite-Smith 78 ใบ พร้อมภาพความหมายสมบูรณ์"
-          trailing={
-            <span className="text-[12px] font-semibold text-[var(--text-muted)]">
-              3 รูปแบบ
-            </span>
-          }
+          subtitle="Rider-Waite 78 ใบ · เลือกไพ่ที่เรียกหาคุณ"
         />
-        <div className="dash-spreads">
+        <div className="dash-spreads !gap-3">
           {(Object.keys(SPREADS) as SpreadType[]).map((key) => {
             const spread = SPREADS[key];
             const cost = costs[key] ?? spread.cost;
             const insufficient = (profile?.points ?? 0) < cost;
-            const positions = SPREAD_VISUAL[key].positions;
+            const isPopular = key === "three_card";
             return (
               <button
                 key={key}
                 onClick={() => insufficient ? router.push("/dashboard/daily") : handleSpreadSelect(key)}
                 className={cn(
-                  "dash-spread group text-left",
+                  "dash-spread group text-left !p-0 overflow-hidden !gap-0",
+                  isPopular && "ring-2 ring-[rgba(167,139,250,0.28)] shadow-[0_8px_28px_rgba(167,139,250,0.18)]",
                   insufficient && "opacity-75"
                 )}
                 aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ, ${cost} แต้ม${insufficient ? " (แต้มไม่พอ)" : ""}`}
               >
-                <div className="dash-spread-thumb relative">
-                  {positions.map((p, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: "absolute",
-                        left: `${p.x}%`,
-                        top: `${p.y}%`,
-                        width: 10,
-                        height: 15,
-                        borderRadius: 2.5,
-                        background: "rgba(212, 175, 55, 0.45)",
-                        border: "1px solid rgba(212, 175, 55, 0.7)",
-                        transform: "translate(-50%, -50%)",
-                        boxShadow: "0 0 6px rgba(212, 175, 55, 0.25)",
-                      }}
-                    />
-                  ))}
+                {/* card back visual */}
+                <div className="relative h-[112px] flex items-center justify-center overflow-hidden" style={{ background: isPopular ? "linear-gradient(135deg,#1e1035,#2a1650 45%,#1a102e)" : "linear-gradient(135deg,#1a1033,#1e1740)", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 20%, rgba(167,139,250,0.22), transparent 60%)" }} />
+                  <div className="flex items-center justify-center -space-x-2">
+                    {Array.from({ length: spread.cardCount > 3 ? 3 : spread.cardCount }).map((_, i) => (
+                      <div key={i} className="w-[38px] h-[58px] rounded-[4px] border flex items-center justify-center shrink-0 group-hover:-translate-y-1 transition-transform" style={{ background: "linear-gradient(160deg,#1e0e3a,#2d1548)", borderColor: "rgba(212,175,55,0.45)", boxShadow: "0 4px 12px rgba(0,0,0,0.35)", transform: `rotate(${(i-1)*4}deg)`, transitionDelay: `${i*40}ms` }}>
+                        <div className="w-[18px] h-[18px] rounded-full border border-[rgba(212,175,55,0.18)] grid place-items-center"><div className="w-1 h-1 rounded-full bg-[rgba(212,175,55,0.9)]" /></div>
+                      </div>
+                    ))}
+                    {spread.cardCount > 3 && <span className="ml-3 text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.12)" }}>+{spread.cardCount - 3}</span>}
+                  </div>
+                  <span className="absolute top-2 right-2 text-[9.5px] font-extrabold tracking-widest uppercase px-2 py-1 rounded-full" style={{ background: insufficient ? "rgba(239,68,68,0.14)" : isPopular ? "rgba(167,139,250,0.18)" : "rgba(255,255,255,0.07)", color: insufficient ? "#fca5a5" : isPopular ? "#ddd6fe" : "rgba(255,255,255,0.72)", border: `1px solid ${insufficient ? "rgba(239,68,68,0.18)" : isPopular ? "rgba(167,139,250,0.22)" : "rgba(255,255,255,0.12)"}` }}>{insufficient ? "แต้มไม่พอ" : SPREAD_BADGE[key]}</span>
                 </div>
-                <div className="dash-spread-name text-[14px] font-bold text-[var(--text)] group-hover:text-[var(--primary)] transition-colors">
-                  {spread.nameTh}
-                </div>
-                <div className="dash-spread-meta flex items-center justify-between text-[11.5px] text-[var(--text-muted)]">
-                  <span>{spread.cardCount} ใบ</span>
-                  {insufficient ? (
-                    <span className="font-bold text-[var(--red)] flex items-center gap-1">ขาด {cost - (profile?.points ?? 0)} แต้ม</span>
-                  ) : (
-                    <span className="dash-spread-cost font-extrabold text-[var(--gold)] flex items-center gap-1">
-                      <Coins size={11} /> {cost} แต้ม
-                    </span>
-                  )}
-                </div>
-                <div
-                  className="absolute top-2.5 right-3 text-[9.5px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  style={{ background: insufficient ? "var(--red-soft)" : "var(--primary-soft)", color: insufficient ? "var(--red)" : "var(--primary)" }}
-                >
-                  {insufficient ? "แต้มไม่พอ" : SPREAD_BADGE[key]}
+                <div className="p-3.5">
+                  <div className="text-[14px] font-extrabold leading-none" style={{ color: "var(--text)" }}>{spread.nameTh}</div>
+                  <div className="text-[12px] mt-1 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{spread.descriptionTh}</div>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-[11.5px] font-semibold px-2 py-1 rounded-full" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>{spread.cardCount} ใบ</span>
+                    {insufficient ? <span className="text-[12px] font-bold" style={{ color: "var(--red)" }}>ขาด {cost - (profile?.points ?? 0)}</span> : <span className="inline-flex items-center gap-1 text-[13px] font-extrabold" style={{ color: "var(--gold)" }}><Coins size={12} /> {cost}</span>}
+                  </div>
                 </div>
               </button>
             );
@@ -327,7 +284,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Daily Ritual & Bonus Section */}
+      {/* Daily Ritual — streak as reward */}
       <div className="dash-section">
         <DailyBonusWrapper
           userId={userId}
@@ -548,25 +505,27 @@ function DailyBonusWrapper({
 }) {
   return (
     <div
-      className="card p-6 relative overflow-hidden text-center"
+      className="card p-5 sm:p-6 relative overflow-hidden"
       style={{
-        background: "radial-gradient(ellipse at 50% 20%, rgba(167, 139, 250, 0.12) 0%, var(--bg-card) 70%)",
-        borderColor: "var(--border-gold)",
+        background: "linear-gradient(135deg, rgba(26,16,45,0.96), rgba(18,13,32,0.98))",
+        borderColor: "rgba(212,175,55,0.22)",
+        boxShadow: "0 12px 32px rgba(0,0,0,0.22), 0 0 0 1px rgba(212,175,55,0.08)",
       }}
     >
-      <div className="relative z-10 max-w-sm mx-auto space-y-3">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-widest text-[var(--gold)] bg-[var(--gold-soft)] border border-[var(--border-gold)]">
-          <Star size={11} /> พิธีกรรมประจำวัน
+      <div className="absolute inset-0 pointer-events-none opacity-40" style={{ background: "radial-gradient(ellipse 60% 50% at 20% 20%, rgba(167,139,250,0.16), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 30%, rgba(212,175,55,0.12), transparent 60%)" }} />
+      <div className="relative z-10 flex gap-4 items-center">
+        <div className="hidden sm:grid w-14 h-14 rounded-2xl place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#f6c944,#d4af37)", color: "#3a2a00", boxShadow: "0 8px 20px rgba(212,175,55,0.28)" }}><Gift size={20} /></div>
+        <div className="flex-1 min-w-0 text-left">
+          <div className="inline-flex items-center gap-1.5 text-[10.5px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-full" style={{ background: "rgba(212,175,55,0.14)", color: "#fde68a", border: "1px solid rgba(212,175,55,0.18)" }}><Star size={11} /> พิธีกรรมประจำวัน</div>
+          <h3 className="text-[16px] sm:text-[17px] font-extrabold text-white tracking-tight mt-1.5">รับแต้มสะสมฟรีทุกวัน</h3>
+          <p className="text-[12.5px] leading-relaxed mt-1" style={{ color: "rgba(255,255,255,0.62)" }}>กลับมาเติมพลังทุกวัน สะสมต่อเนื่องยิ่งได้โบนัส</p>
         </div>
-        <h3 className="text-[17px] font-extrabold text-[var(--text)] tracking-tight">
-          รับแต้มสะสมฟรีทุกวัน
-        </h3>
-        <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
-          สะสมแต้มเพื่อใช้ในการเปิดไพ่ทาโรต์และเครื่องมือพยากรณ์ต่าง ๆ
-        </p>
-        <div className="pt-1">
+        <div className="hidden sm:block w-[220px] shrink-0">
           <DailyBonus userId={userId || ""} onClaim={onClaim} />
         </div>
+      </div>
+      <div className="sm:hidden mt-4">
+        <DailyBonus userId={userId || ""} onClaim={onClaim} />
       </div>
     </div>
   );
