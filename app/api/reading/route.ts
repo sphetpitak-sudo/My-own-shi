@@ -322,7 +322,7 @@ export async function POST(request: Request) {
     // Validate question length server-side
     const trimmedQuestion = (question || "").trim().slice(0, 500);
 
-    // Validate card IDs exist
+    // Validate card IDs exist and positionLabel
     const cardIdSet = new Set(ALL_CARDS.map(c => c.id));
     for (const c of cards) {
       if (typeof c.cardId !== "number" || !cardIdSet.has(c.cardId)) {
@@ -330,6 +330,9 @@ export async function POST(request: Request) {
       }
       if (typeof c.reversed !== "boolean") {
         return NextResponse.json({ error: "Invalid card data" }, { status: 400 });
+      }
+      if (typeof c.positionLabel !== "string" || c.positionLabel.length === 0 || c.positionLabel.length > 50) {
+        return NextResponse.json({ error: "Invalid position" }, { status: 400 });
       }
     }
 
@@ -349,35 +352,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Rate limit: cap AI readings per user within a rolling window
-    const { count: recentCount } = await supabase
-      .from("point_transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("type", "reading_purchase")
-      .gte("created_at", new Date(Date.now() - 60_000).toISOString());
-
-    if ((recentCount ?? 0) >= 5) {
-      return NextResponse.json(
-        { error: "Too many readings. Please try again shortly." },
-        { status: 429 }
-      );
+    // Atomic rate limit (serverless-safe) — 5 readings / 60s
+    const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "reading", p_limit: 5, p_window_seconds: 60 });
+    if (rateOk === false) {
+      return NextResponse.json({ error: "Too many readings. Please try again shortly." }, { status: 429 });
     }
 
-    // Fetch reading cost from admin_settings
+    // Fetch reading cost for error message (authoritative cost is inside spend_for_spread)
     const { data: costRow } = await supabase
       .from("admin_settings")
       .select("value")
       .eq("key", "reading_costs")
       .single();
-
     const costs = (costRow?.value as Record<string, number>) || { single: 5, three_card: 15, celtic: 50 };
-    const cost = costs[spreadType as SpreadType] || spread.cost;
+    const expectedCost = costs[spreadType as SpreadType] || spread.cost;
 
-    // Atomic point spend + ledger entry via RPC (self-only, race-safe)
-    const { data: spent, error: spendError } = await supabase.rpc("spend_points", {
-      p_user_id: user.id,
-      p_amount: cost,
+    // Atomic point spend via authoritative RPC (no client-controlled amount)
+    const { data: charged, error: spendError } = await supabase.rpc("spend_for_spread", {
+      p_spread: spreadType,
       p_description: `${spreadType} reading`,
     });
 
@@ -385,18 +377,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
     }
 
-    if (!spent) {
+    if (!charged || charged === 0) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("points")
         .eq("id", user.id)
         .single();
-
       return NextResponse.json(
-        { error: "Not enough points", needed: cost, current: profile?.points || 0 },
+        { error: "Not enough points", needed: expectedCost, current: profile?.points || 0 },
         { status: 400 }
       );
     }
+    const cost = charged as number;
 
     // Resolve cards from server-side data
     const cardMap = new Map(ALL_CARDS.map(c => [c.id, c]));
@@ -443,6 +435,26 @@ export async function POST(request: Request) {
       memoryBlock,
     });
 
+    // Create pending reading before AI (ensures history exists even if insert after would fail)
+    let pendingReadingId: string | null = null;
+    try {
+      const { data: pending, error: pendingErr } = await supabase.from("readings").insert({
+        user_id: user.id,
+        spread_type: spreadType,
+        cards: cards,
+        question: trimmedQuestion,
+        interpretation: "__generating__",
+        points_spent: cost,
+      }).select("id").single();
+      if (pendingErr) throw pendingErr;
+      pendingReadingId = (pending as { id: string }).id;
+    } catch (e) {
+      // If pending insert fails, refund and abort
+      try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost }); } catch {}
+      console.error("Failed to create pending reading:", e);
+      return NextResponse.json({ error: "Failed to create reading" }, { status: 500 });
+    }
+
     const stream = await getOpenAI()
       .chat.completions.create(
         {
@@ -458,15 +470,17 @@ export async function POST(request: Request) {
         { timeout: 60_000, maxRetries: 0 }
       )
       .catch(async () => {
-        // AI request failed before streaming — refund the spent points
+        // AI request failed before streaming — refund and delete pending
         try {
-          await supabase.rpc("refund_points", {
-            p_user_id: user.id,
-            p_amount: cost,
-          });
-        } catch {
-          // refund failed — ignore
-        }
+          if (pendingReadingId) {
+            try { await supabase.from("readings").delete().eq("id", pendingReadingId).eq("user_id", user.id); } catch {}
+            try { await supabase.rpc("refund_by_reading", { p_reading_id: pendingReadingId }); } catch {
+              await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
+            }
+          } else {
+            await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
+          }
+        } catch {}
         return null;
       });
 
@@ -495,37 +509,29 @@ export async function POST(request: Request) {
           controller.close();
         } catch {
           streamFailed = true;
-          // Refund points if the stream failed mid-way (atomic credit + ledger)
+          // Refund and delete pending on mid-stream failure
           try {
-            await supabase.rpc("refund_points", {
-              p_user_id: user.id,
-              p_amount: cost,
-            });
-          } catch {
-            // Refund failed — logged via Supabase
-          }
+            if (pendingReadingId) {
+              try { await supabase.from("readings").delete().eq("id", pendingReadingId).eq("user_id", user.id); } catch {}
+              try { await supabase.rpc("refund_by_reading", { p_reading_id: pendingReadingId }); } catch {
+                await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
+              }
+            } else {
+              await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: cost });
+            }
+          } catch {}
           try {
             controller.error(new Error("Streaming failed"));
-          } catch {
-            // controller may already be closed
-          }
+          } catch {}
         }
 
-        // Persist the reading only if the stream completed successfully
-        if (!streamFailed) {
+        // Update pending reading with final interpretation (only on success)
+        if (!streamFailed && pendingReadingId) {
           try {
-            await supabase.from("readings").insert({
-              user_id: user.id,
-              spread_type: spreadType,
-              cards: cards,
-              question: trimmedQuestion,
-              interpretation: fullText,
-              points_spent: cost,
-            });
+            await supabase.from("readings").update({ interpretation: fullText }).eq("id", pendingReadingId).eq("user_id", user.id);
           } catch (e) {
-            // Saving failed after a successful stream — user already received
-            // the reading, so no refund. Log for diagnosis.
-            console.error("Failed to save reading:", e);
+            console.error("Failed to update reading:", e);
+            // If update fails, try to keep original pending — not critical, user already got stream
           }
         }
       },

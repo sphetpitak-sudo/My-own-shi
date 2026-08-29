@@ -152,10 +152,9 @@ export default function YesNoPage() {
         }
         setSubmitting(false);
       } else {
-        // Non-AI path: single atomic spend (RPC also writes the ledger)
-        const { data: spent, error: spendErr } = await supabase.rpc("spend_points", {
-          p_user_id: user.id,
-          p_amount: cost,
+        // Non-AI path: authoritative spend via spend_for_spread
+        const { data: charged, error: spendErr } = await supabase.rpc("spend_for_spread", {
+          p_spread: "single",
           p_description: "single reading (yes/no)",
         });
         if (spendErr) {
@@ -163,11 +162,12 @@ export default function YesNoPage() {
           setSubmitting(false);
           return;
         }
-        if (!spent) {
+        if (!charged || charged === 0) {
           setError(`คะแนนไม่พอ (ต้องการ ${cost})`);
           setSubmitting(false);
           return;
         }
+        const actualCost = charged as number;
 
         // Save to history so the yes/no reading appears in the history page
         await supabase.from("readings").insert({
@@ -178,11 +178,11 @@ export default function YesNoPage() {
           ],
           question,
           interpretation: "",
-          points_spent: cost,
+          points_spent: actualCost,
         }).catch(() => {});
 
         setAnswer(next);
-        setPoints((p) => Math.max(0, p - cost));
+        setPoints((p) => Math.max(0, p - actualCost));
         setPhase("result");
         setSubmitting(false);
       }

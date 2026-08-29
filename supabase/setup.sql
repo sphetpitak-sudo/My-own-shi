@@ -59,13 +59,13 @@ GRANT UPDATE (display_name, avatar_url) ON public.profiles TO authenticated;
 -- 2. READINGS
 -- ============================================
 CREATE TABLE IF NOT EXISTS readings (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   spread_type TEXT NOT NULL CHECK (spread_type IN ('single', 'three_card', 'celtic', 'oracle')),
-  cards JSONB NOT NULL DEFAULT '[]'::jsonb,
-  question TEXT NOT NULL DEFAULT '',
-  interpretation TEXT NOT NULL DEFAULT '',
-  points_spent INTEGER NOT NULL DEFAULT 0,
+  cards JSONB NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_array_length(cards) BETWEEN 0 AND 10),
+  question TEXT NOT NULL DEFAULT '' CHECK (char_length(question) <= 500),
+  interpretation TEXT NOT NULL DEFAULT '' CHECK (char_length(interpretation) <= 10000),
+  points_spent INTEGER NOT NULL DEFAULT 0 CHECK (points_spent >= 0 AND points_spent <= 1000),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -94,6 +94,8 @@ CREATE POLICY "Readings insert" ON readings FOR INSERT
 CREATE POLICY "Readings update" ON readings FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Readings delete" ON readings;
+CREATE POLICY "Readings delete" ON readings FOR DELETE USING (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_readings_user ON readings(user_id);
 CREATE INDEX IF NOT EXISTS idx_readings_created ON readings(created_at DESC);
@@ -200,12 +202,26 @@ CREATE OR REPLACE FUNCTION spend_points(p_user_id UUID, p_amount INTEGER, p_desc
 RETURNS boolean AS $$
 DECLARE
   current_points INTEGER;
+  v_costs JSONB;
+  v_allowed BOOLEAN := false;
 BEGIN
   -- Only the calling user may spend their own points
   IF p_user_id IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
-  IF p_amount < 0 THEN
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'Invalid amount';
+  END IF;
+  -- Dynamic whitelist from admin_settings (prevents arbitrary 1-point spends but allows admin-configured costs)
+  SELECT value INTO v_costs FROM admin_settings WHERE key='reading_costs';
+  IF v_costs IS NOT NULL THEN
+    IF p_amount = COALESCE((v_costs->>'single')::int, 5) OR p_amount = COALESCE((v_costs->>'three_card')::int, 15) OR p_amount = COALESCE((v_costs->>'celtic')::int, 50) THEN
+      v_allowed := true;
+    END IF;
+  ELSE
+    IF p_amount IN (5,15,50) THEN v_allowed := true; END IF;
+  END IF;
+  IF NOT v_allowed THEN
     RAISE EXCEPTION 'Invalid amount';
   END IF;
 
@@ -228,27 +244,105 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Trusted spend for spread (authoritative cost from admin_settings)
+CREATE OR REPLACE FUNCTION spend_for_spread(p_spread TEXT, p_description TEXT DEFAULT 'Reading')
+RETURNS INTEGER AS $$
+DECLARE
+  v_cost INTEGER;
+  v_user_id UUID;
+  current_points INTEGER;
+  costs JSONB;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+  IF p_spread NOT IN ('single','three_card','celtic','single_yesno','oracle_single','oracle_three') THEN
+    RAISE EXCEPTION 'Invalid spread';
+  END IF;
+  SELECT value INTO costs FROM admin_settings WHERE key='reading_costs';
+  IF p_spread = 'single' OR p_spread = 'single_yesno' OR p_spread = 'oracle_single' THEN
+    v_cost := COALESCE((costs->>'single')::int, 5);
+  ELSIF p_spread = 'three_card' OR p_spread = 'oracle_three' THEN
+    v_cost := COALESCE((costs->>'three_card')::int, 15);
+  ELSIF p_spread = 'celtic' THEN
+    v_cost := COALESCE((costs->>'celtic')::int, 50);
+  END IF;
+  IF v_cost <=0 THEN RAISE EXCEPTION 'Invalid cost'; END IF;
+  SELECT points INTO current_points FROM profiles WHERE id = v_user_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'User not found'; END IF;
+  IF current_points < v_cost THEN RETURN 0; END IF;
+  UPDATE profiles SET points = points - v_cost WHERE id = v_user_id;
+  INSERT INTO point_transactions (user_id, amount, type, description) VALUES (v_user_id, -v_cost, 'reading_purchase', COALESCE(p_description, p_spread||' reading'));
+  RETURN v_cost;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- ============================================
--- 7. RPC: refund points atomically (self-only, credits + writes ledger)
+-- 7. RPC: refund points atomically (self-only, tied to recent purchase, single-use)
 -- ============================================
 CREATE OR REPLACE FUNCTION refund_points(p_user_id UUID, p_amount INTEGER)
 RETURNS void AS $$
+DECLARE
+  v_recent RECORD;
+  v_refund_count INTEGER;
+  v_costs JSONB;
+  v_allowed BOOLEAN := false;
 BEGIN
   IF p_user_id IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
-  IF p_amount < 0 THEN
+  IF p_amount <= 0 THEN
     RAISE EXCEPTION 'Invalid amount';
   END IF;
-
-  UPDATE profiles SET points = points + p_amount WHERE id = p_user_id;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'User not found';
+  SELECT value INTO v_costs FROM admin_settings WHERE key='reading_costs';
+  IF v_costs IS NOT NULL THEN
+    IF p_amount = COALESCE((v_costs->>'single')::int, 5) OR p_amount = COALESCE((v_costs->>'three_card')::int, 15) OR p_amount = COALESCE((v_costs->>'celtic')::int, 50) THEN
+      v_allowed := true;
+    END IF;
+  ELSE
+    IF p_amount IN (5,15,50) THEN v_allowed := true; END IF;
   END IF;
-
+  IF NOT v_allowed THEN RAISE EXCEPTION 'Invalid amount'; END IF;
+  -- Must have a recent reading_purchase with exact amount in last 10 minutes
+  SELECT * INTO v_recent FROM point_transactions
+   WHERE user_id = p_user_id AND type='reading_purchase' AND amount = -p_amount
+     AND created_at >= now() - interval '10 minutes'
+   ORDER BY created_at DESC LIMIT 1;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No recent purchase to refund';
+  END IF;
+  -- Prevent double refund of same purchase (one refund per purchase window)
+  SELECT COUNT(*) INTO v_refund_count FROM point_transactions
+   WHERE user_id = p_user_id AND type='refund' AND created_at > v_recent.created_at
+     AND created_at < v_recent.created_at + interval '1 minute' AND amount = p_amount;
+  IF v_refund_count > 0 THEN
+    RAISE EXCEPTION 'Already refunded';
+  END IF;
+  PERFORM 1 FROM profiles WHERE id = p_user_id FOR UPDATE;
+  UPDATE profiles SET points = LEAST(1000000, points + p_amount) WHERE id = p_user_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'User not found'; END IF;
   INSERT INTO point_transactions (user_id, amount, type, description)
   VALUES (p_user_id, p_amount, 'refund', 'Refund: reading failed');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Secure refund by reading_id (preferred, idempotent)
+CREATE OR REPLACE FUNCTION refund_by_reading(p_reading_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  v_reading RECORD;
+  v_refund_count INTEGER;
+BEGIN
+  SELECT * INTO v_reading FROM readings WHERE id = p_reading_id AND user_id = auth.uid();
+  IF NOT FOUND THEN RAISE EXCEPTION 'Reading not found'; END IF;
+  IF v_reading.points_spent <=0 THEN RAISE EXCEPTION 'Invalid reading cost'; END IF;
+  SELECT COUNT(*) INTO v_refund_count FROM point_transactions
+    WHERE user_id = auth.uid() AND type='refund' AND description = 'Refund: reading '||p_reading_id::text;
+  IF v_refund_count >0 THEN RAISE EXCEPTION 'Already refunded'; END IF;
+  PERFORM 1 FROM profiles WHERE id = auth.uid() FOR UPDATE;
+  UPDATE profiles SET points = LEAST(1000000, points + v_reading.points_spent) WHERE id = auth.uid();
+  INSERT INTO point_transactions (user_id, amount, type, description)
+  VALUES (auth.uid(), v_reading.points_spent, 'refund', 'Refund: reading '||p_reading_id::text);
+  RETURN v_reading.points_spent;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -276,44 +370,82 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ============================================
--- 9. RPC: claim daily bonus atomically (self-only, race-safe)
+-- 9. RPC: claim daily bonus atomically (self-only, race-safe, server-authoritative amount)
 -- ============================================
 CREATE OR REPLACE FUNCTION claim_daily_bonus(p_user_id UUID, p_amount INTEGER)
 RETURNS boolean AS $$
 DECLARE
   today_start TIMESTAMPTZ;
   existing_tx RECORD;
+  v_base INTEGER;
+  v_streak INTEGER;
+  v_amount INTEGER;
+  v_settings JSONB;
+  v_days TEXT[];
 BEGIN
   IF p_user_id IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
-  IF p_amount <= 0 THEN
-    RAISE EXCEPTION 'Invalid amount';
-  END IF;
-
-  -- Serialize concurrent claims for this user (prevents double-claim race)
+  -- p_amount is ignored for security; computed server-side
   PERFORM 1 FROM profiles WHERE id = p_user_id FOR UPDATE;
-
-  -- "Today" boundary in Bangkok (UTC+7) so the daily bonus resets at local midnight
   today_start := date_trunc('day', now() AT TIME ZONE 'Asia/Bangkok') AT TIME ZONE 'Asia/Bangkok';
-
-  SELECT id INTO existing_tx
-  FROM point_transactions
-  WHERE user_id = p_user_id
-    AND type = 'daily_bonus'
-    AND created_at >= today_start
-  LIMIT 1;
-
-  IF FOUND THEN
-    RETURN false;
+  SELECT id INTO existing_tx FROM point_transactions WHERE user_id = p_user_id AND type='daily_bonus' AND created_at >= today_start LIMIT 1;
+  IF FOUND THEN RETURN false; END IF;
+  SELECT value INTO v_settings FROM admin_settings WHERE key='daily_bonus';
+  v_base := COALESCE((v_settings->>'amount')::int, 10);
+  -- Compute streak: consecutive daily_bonus days before today
+  SELECT array_agg(to_char(created_at AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD') ORDER BY created_at DESC) INTO v_days
+    FROM point_transactions WHERE user_id=p_user_id AND type='daily_bonus' AND created_at >= today_start - interval '35 days';
+  v_streak := 0;
+  FOR i IN 1..35 LOOP
+    IF v_days IS NOT NULL AND (today_start - (i * interval '1 day'))::date::text = ANY(v_days) THEN
+      -- This checks previous days; we need to count consecutive from yesterday
+      NULL;
+    END IF;
+  END LOOP;
+  -- Simpler streak calc: count consecutive days ending yesterday
+  WITH consecutive AS (
+    SELECT to_char(d::date,'YYYY-MM-DD') as dstr FROM generate_series(today_start - interval '34 days', today_start - interval '1 day', interval '1 day') d
+  ), claimed AS (
+    SELECT to_char(created_at AT TIME ZONE 'Asia/Bangkok','YYYY-MM-DD') as dstr FROM point_transactions WHERE user_id=p_user_id AND type='daily_bonus' AND created_at >= today_start - interval '35 days'
+  )
+  SELECT COUNT(*) INTO v_streak FROM consecutive c
+   WHERE c.dstr IN (SELECT dstr FROM claimed)
+   AND NOT EXISTS (
+     SELECT 1 FROM consecutive c2 WHERE c2.dstr > c.dstr AND c2.dstr < to_char(today_start,'YYYY-MM-DD') AND c2.dstr NOT IN (SELECT dstr FROM claimed)
+   );
+  -- Actually compute properly: streak is consecutive days ending yesterday
+  v_streak := 0;
+  FOR i IN 1..35 LOOP
+    IF EXISTS (SELECT 1 FROM point_transactions WHERE user_id=p_user_id AND type='daily_bonus' AND to_char(created_at AT TIME ZONE 'Asia/Bangkok','YYYY-MM-DD') = to_char(today_start - (i * interval '1 day'),'YYYY-MM-DD')) THEN
+      v_streak := v_streak + 1;
+    ELSE EXIT;
+    END IF;
+  END LOOP;
+  v_amount := v_base;
+  IF v_streak + 1 >= 30 THEN v_amount := v_base + 30;
+  ELSIF v_streak + 1 >= 14 THEN v_amount := v_base + 20;
+  ELSIF v_streak + 1 >= 7 THEN v_amount := v_base + 15;
+  ELSIF v_streak + 1 >= 3 THEN v_amount := v_base + 5;
   END IF;
-
-  UPDATE profiles SET points = points + p_amount WHERE id = p_user_id;
-
-  INSERT INTO point_transactions (user_id, amount, type, description)
-  VALUES (p_user_id, p_amount, 'daily_bonus', 'Daily bonus');
-
+  IF p_amount IS NOT NULL AND p_amount != v_amount AND p_amount != v_base THEN
+    -- If caller supplied different amount, ignore and use authoritative
+    NULL;
+  END IF;
+  UPDATE profiles SET points = LEAST(1000000, points + v_amount) WHERE id = p_user_id;
+  INSERT INTO point_transactions (user_id, amount, type, description) VALUES (p_user_id, v_amount, 'daily_bonus', 'Daily bonus');
   RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Zero-arg wrapper (preferred, no amount control)
+CREATE OR REPLACE FUNCTION claim_daily_bonus()
+RETURNS boolean AS $$
+DECLARE
+  v_ok BOOLEAN;
+BEGIN
+  SELECT claim_daily_bonus(auth.uid(), 10) INTO v_ok;
+  RETURN v_ok;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -609,7 +741,12 @@ DROP POLICY IF EXISTS "Followups select" ON reading_followups;
 CREATE POLICY "Followups select" ON reading_followups FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
 DROP POLICY IF EXISTS "Followups insert" ON reading_followups;
 CREATE POLICY "Followups insert" ON reading_followups FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Followups update" ON reading_followups;
+CREATE POLICY "Followups update" ON reading_followups FOR UPDATE USING (auth.uid() = user_id OR public.is_admin()) WITH CHECK (auth.uid() = user_id OR public.is_admin());
 CREATE POLICY "Followups delete" ON reading_followups FOR DELETE USING (auth.uid() = user_id OR public.is_admin());
+DO $$ BEGIN
+  GRANT UPDATE (answer, question) ON public.reading_followups TO authenticated;
+EXCEPTION WHEN undefined_column THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_followups_reading ON reading_followups(reading_id);
 CREATE INDEX IF NOT EXISTS idx_followups_user ON reading_followups(user_id);
 -- Enforce max 2 per reading via trigger
@@ -635,6 +772,63 @@ CREATE TRIGGER trg_followup_limit BEFORE INSERT ON reading_followups FOR EACH RO
 -- 20. STREAK BONUS HELPER (optional)
 -- ============================================
 -- No extra RPC needed — handled in app/api/daily-bonus
+
+-- ============================================
+-- 21. ATOMIC RATE LIMIT (serverless-safe)
+-- ============================================
+CREATE OR REPLACE FUNCTION check_rate_limit(p_endpoint TEXT, p_limit INTEGER, p_window_seconds INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_count INTEGER;
+  v_user_id UUID;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    -- For anon, use 0 limit (block) — API should have already checked auth
+    RETURN false;
+  END IF;
+  -- Serialize per user+endpoint with advisory lock (prevents TOCTOU across concurrent Lambdas)
+  PERFORM pg_advisory_xact_lock(hashtext(v_user_id::text || ':' || p_endpoint));
+  SELECT COUNT(*) INTO v_count FROM api_rate_limits
+   WHERE user_id = v_user_id AND endpoint = p_endpoint
+     AND created_at >= now() - (p_window_seconds || ' seconds')::interval;
+  IF v_count >= p_limit THEN
+    RETURN false;
+  END IF;
+  INSERT INTO api_rate_limits (user_id, endpoint) VALUES (v_user_id, p_endpoint);
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Explicit EXECUTE privileges (defense in depth)
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION spend_points(UUID,INTEGER,TEXT) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION spend_points(UUID,INTEGER,TEXT) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION spend_for_spread(TEXT,TEXT) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION spend_for_spread(TEXT,TEXT) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION refund_points(UUID,INTEGER) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION refund_points(UUID,INTEGER) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION refund_by_reading(UUID) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION refund_by_reading(UUID) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION claim_daily_bonus(UUID,INTEGER) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION claim_daily_bonus(UUID,INTEGER) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION claim_daily_bonus() FROM public, anon;
+  GRANT EXECUTE ON FUNCTION claim_daily_bonus() TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION check_rate_limit(TEXT,INTEGER,INTEGER) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION check_rate_limit(TEXT,INTEGER,INTEGER) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
 
 -- ============================================
 -- DONE

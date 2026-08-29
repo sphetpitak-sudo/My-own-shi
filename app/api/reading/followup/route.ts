@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Spread mismatch" }, { status: 400 });
       }
     }
-    // Enforce 2 followup limit server-side
+    // Enforce 2 followup limit server-side (with reservation before AI to prevent cost amplification)
     const { count: followCount } = await supabase.from("reading_followups").select("id", { count: "exact", head: true }).eq("reading_id", readingId);
     if ((followCount ?? 0) >= 2) {
       return NextResponse.json({ error: "Followup limit reached (max 2)" }, { status: 429 });
@@ -83,20 +83,37 @@ export async function POST(request: Request) {
       const spread = SPREADS[spreadType as SpreadType] || SPREADS[reading.spread_type as SpreadType];
       if (spread && cards.length !== spread.cardCount) return NextResponse.json({ error: "Card count mismatch" }, { status: 400 });
       const cardSet = new Set(ALL_CARDS.map((c) => c.id));
-      for (const c of cards) if (!cardSet.has(c.cardId) || typeof c.reversed !== "boolean" || typeof c.positionLabel !== "string") return NextResponse.json({ error: "Invalid card" }, { status: 400 });
+      for (const c of cards) {
+        if (!cardSet.has(c.cardId) || typeof c.reversed !== "boolean" || typeof c.positionLabel !== "string" || c.positionLabel.length > 50 || c.positionLabel.length === 0) {
+          return NextResponse.json({ error: "Invalid card" }, { status: 400 });
+        }
+        if (typeof c.positionLabel === "string" && c.positionLabel.length > 50) return NextResponse.json({ error: "Invalid position" }, { status: 400 });
+      }
       effectiveCards = cards;
     } else {
       effectiveCards = reading.cards as unknown as FollowCard[];
       if (!Array.isArray(effectiveCards) || effectiveCards.length === 0) return NextResponse.json({ error: "Invalid reading cards" }, { status: 400 });
+      for (const c of effectiveCards as FollowCard[]) {
+        if (typeof (c as FollowCard).positionLabel === "string" && (c as FollowCard).positionLabel.length > 50) {
+          return NextResponse.json({ error: "Invalid position" }, { status: 400 });
+        }
+      }
     }
 
-    // Rate limit: 5 followups per 60s per user (DB-backed)
-    try {
-      const since = new Date(Date.now() - 60_000).toISOString();
-      const { count } = await supabase.from("api_rate_limits").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("endpoint", "followup").gte("created_at", since);
-      if ((count ?? 0) >= 5) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-      await supabase.from("api_rate_limits").insert({ user_id: user.id, endpoint: "followup" });
-    } catch {}
+    // Atomic rate limit (serverless-safe) — 5 followups / 60s
+    const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "followup", p_limit: 5, p_window_seconds: 60 });
+    if (rateOk === false) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
+    // Reserve slot before AI (prevents 10 parallel AI for 2 slots)
+    const { data: pending, error: pendingErr } = await supabase.from("reading_followups").insert({ reading_id: effectiveReadingId, user_id: user.id, question: trimmedQ, answer: "__generating__" }).select("id").single();
+    if (pendingErr) {
+      // Check if due to limit trigger
+      if (pendingErr.message && pendingErr.message.includes("Followup limit")) {
+        return NextResponse.json({ error: "Followup limit reached (max 2)" }, { status: 429 });
+      }
+      return NextResponse.json({ error: "Failed to reserve followup" }, { status: 429 });
+    }
+    const pendingId = (pending as { id: string }).id;
     const cardMap = new Map(ALL_CARDS.map((c) => [c.id, c]));
     const cardLines = effectiveCards.map((c, i) => {
       const card = cardMap.get(c.cardId)!;
@@ -151,24 +168,16 @@ ${(parentInterpretation || "").slice(0, 1200)}
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
 
-          // Persist followup after successful stream (only if readingId provided)
-          if (effectiveReadingId) {
-            try {
-              // Double-check count before insert to handle race (trigger also enforces)
-              const { count: cnt } = await supabase.from("reading_followups").select("id", { count: "exact", head: true }).eq("reading_id", effectiveReadingId);
-              if ((cnt ?? 0) < 2) {
-                await supabase.from("reading_followups").insert({
-                  reading_id: effectiveReadingId,
-                  user_id: user.id,
-                  question: trimmedQ,
-                  answer: fullAnswer.slice(0, 2000),
-                });
-              }
-            } catch (e) {
-              console.error("Failed to persist followup", e);
-            }
+          // Update pending reservation with final answer
+          try {
+            await supabase.from("reading_followups").update({ answer: fullAnswer.slice(0, 2000) }).eq("id", pendingId).eq("user_id", user.id);
+          } catch (e) {
+            console.error("Failed to persist followup", e);
+            try { await supabase.from("reading_followups").delete().eq("id", pendingId); } catch {}
           }
         } catch {
+          // AI/stream failed — release reservation
+          try { await supabase.from("reading_followups").delete().eq("id", pendingId).eq("user_id", user.id); } catch {}
           try {
             controller.error(new Error("stream failed"));
           } catch {}

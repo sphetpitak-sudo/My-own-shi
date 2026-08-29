@@ -109,13 +109,9 @@ export async function POST() {
     if (!checkRateLimit(`daily:${user.id}`, 10, 3600_000)) {
       return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
     }
-    // DB-backed rate limit durability (10/h)
-    try {
-      const since = new Date(Date.now() - 3600_000).toISOString();
-      const { count } = await supabase.from("api_rate_limits").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("endpoint", "daily").gte("created_at", since);
-      if ((count ?? 0) >= 10) return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
-      await supabase.from("api_rate_limits").insert({ user_id: user.id, endpoint: "daily" });
-    } catch {}
+    // Atomic DB rate limit (serverless-safe)
+    const { data: dailyOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "daily", p_limit: 10, p_window_seconds: 3600 });
+    if (dailyOk === false) return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
 
     const card = pickDailyCard(user.id, today);
     const fallback = buildDailyFallback(user.id, today);

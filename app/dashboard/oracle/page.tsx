@@ -66,10 +66,10 @@ export default function OraclePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Atomic spend — writes ledger, self-only, race-safe
-    const { data: spentOk, error: spendErr } = await supabase.rpc("spend_points", {
-      p_user_id: user.id,
-      p_amount: spread.cost,
+    // Atomic spend — authoritative cost via spend_for_spread
+    const oracleSpreadKey = spreadId === "single" ? "oracle_single" : "oracle_three";
+    const { data: charged, error: spendErr } = await supabase.rpc("spend_for_spread", {
+      p_spread: oracleSpreadKey,
       p_description: `oracle:${spreadId}`,
     });
 
@@ -77,12 +77,13 @@ export default function OraclePage() {
       setError("ไม่สามารถดำเนินการได้ กรุณาลองใหม่");
       return;
     }
-    if (!spentOk) {
+    if (!charged || charged === 0) {
       setError(`คะแนนไม่พอ (ต้องการ ${spread.cost})`);
       return;
     }
+    const actualCost = charged as number;
 
-    setPoints((p) => Math.max(0, p - spread.cost));
+    setPoints((p) => Math.max(0, p - actualCost));
     // Oracle now uses the Tarot deck (78 Rider-Waite) - draw real tarot cards
     const tarotSpread = spread.count === 1 ? SPREADS.single : SPREADS.three_card;
     const drawnCards = drawCards(tarotSpread);
@@ -104,7 +105,7 @@ export default function OraclePage() {
         })),
         question,
         interpretation: "",
-        points_spent: spread.cost,
+        points_spent: actualCost,
       })
       .select("id")
       .single();
