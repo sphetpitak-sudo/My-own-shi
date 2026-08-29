@@ -31,3 +31,14 @@ export interface PointTransaction {
   admin_id: string | null;
   created_at: string;
 }
+
+export interface RedeemCode {
+  id: string;
+  code: string;
+  points: number;
+  max_uses: number | null;
+  uses_count: number;
+  expires_at: string | null;
+  created_by: string | null;
+  created_at: string;
+}

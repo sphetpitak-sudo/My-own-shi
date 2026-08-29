@@ -345,5 +345,113 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 -- ============================================
+-- 12. REDEEM CODES
+-- ============================================
+CREATE TABLE IF NOT EXISTS redeem_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,
+  points INTEGER NOT NULL CHECK (points > 0 AND points <= 1000),
+  max_uses INTEGER CHECK (max_uses IS NULL OR max_uses > 0),
+  uses_count INTEGER NOT NULL DEFAULT 0,
+  expires_at TIMESTAMPTZ,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS redeem_claims (
+  code_id UUID NOT NULL REFERENCES redeem_codes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (code_id, user_id)
+);
+
+ALTER TABLE redeem_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE redeem_claims ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Redeem codes select" ON redeem_codes;
+CREATE POLICY "Redeem codes select" ON redeem_codes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Redeem codes admin all" ON redeem_codes;
+CREATE POLICY "Redeem codes admin all" ON redeem_codes FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Redeem claims select" ON redeem_claims;
+CREATE POLICY "Redeem claims select" ON redeem_claims FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+
+DROP POLICY IF EXISTS "Redeem claims insert" ON redeem_claims;
+CREATE POLICY "Redeem claims insert" ON redeem_claims FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_redeem_codes_code ON redeem_codes(code);
+CREATE INDEX IF NOT EXISTS idx_redeem_claims_user ON redeem_claims(user_id);
+
+-- RPC: create code (admin only)
+CREATE OR REPLACE FUNCTION create_redeem_code(p_code TEXT, p_points INTEGER, p_max_uses INTEGER DEFAULT NULL, p_expires_at TIMESTAMPTZ DEFAULT NULL)
+RETURNS UUID AS $$
+DECLARE new_id UUID;
+BEGIN
+  IF NOT public.is_admin() THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+  IF p_code IS NULL OR LENGTH(TRIM(p_code)) < 3 OR LENGTH(TRIM(p_code)) > 20 THEN RAISE EXCEPTION 'Invalid code length'; END IF;
+  IF UPPER(TRIM(p_code)) !~ '^[A-Z0-9_-]+$' THEN RAISE EXCEPTION 'Invalid code format'; END IF;
+  IF p_points < 1 OR p_points > 1000 THEN RAISE EXCEPTION 'Invalid points'; END IF;
+  IF p_max_uses IS NOT NULL AND p_max_uses < 1 THEN RAISE EXCEPTION 'Invalid max_uses'; END IF;
+  INSERT INTO redeem_codes (code, points, max_uses, expires_at, created_by)
+  VALUES (UPPER(TRIM(p_code)), p_points, p_max_uses, p_expires_at, auth.uid())
+  RETURNING id INTO new_id;
+  RETURN new_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- RPC: delete code (admin only)
+CREATE OR REPLACE FUNCTION delete_redeem_code(p_id UUID)
+RETURNS void AS $$
+BEGIN
+  IF NOT public.is_admin() THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+  DELETE FROM redeem_codes WHERE id = p_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Code not found'; END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- RPC: claim code (1 person / 1 code, checks expiry & max_uses atomically)
+CREATE OR REPLACE FUNCTION claim_code(p_code TEXT)
+RETURNS INTEGER AS $$
+DECLARE
+  v_code redeem_codes%ROWTYPE;
+  v_points INTEGER;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+  IF p_code IS NULL OR TRIM(p_code) = '' THEN RAISE EXCEPTION 'Invalid code'; END IF;
+
+  SELECT * INTO v_code FROM redeem_codes WHERE code = UPPER(TRIM(p_code)) FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Invalid code'; END IF;
+
+  IF v_code.expires_at IS NOT NULL AND v_code.expires_at < now() THEN
+    RAISE EXCEPTION 'Code expired';
+  END IF;
+
+  IF v_code.max_uses IS NOT NULL AND v_code.uses_count >= v_code.max_uses THEN
+    RAISE EXCEPTION 'Code fully redeemed';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM redeem_claims WHERE code_id = v_code.id AND user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'Already claimed';
+  END IF;
+
+  -- grant points
+  UPDATE profiles SET points = points + v_code.points WHERE id = auth.uid();
+  IF NOT FOUND THEN RAISE EXCEPTION 'User not found'; END IF;
+
+  v_points := v_code.points;
+
+  UPDATE redeem_codes SET uses_count = uses_count + 1 WHERE id = v_code.id;
+
+  INSERT INTO redeem_claims (code_id, user_id) VALUES (v_code.id, auth.uid());
+
+  INSERT INTO point_transactions (user_id, amount, type, description, admin_id)
+  VALUES (auth.uid(), v_points, 'admin_grant', 'Redeem: ' || v_code.code, v_code.created_by);
+
+  RETURN v_points;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- ============================================
 -- DONE
 -- ============================================

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import DashboardShell from "@/components/DashboardShell";
 import AccountSettings from "@/components/AccountSettings";
+import RedeemCode from "@/components/RedeemCode";
 
 export default function SettingsPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -51,6 +52,9 @@ export default function SettingsPage() {
             <p className="page-sub">จัดการข้อมูลส่วนตัวและความปลอดภัย</p>
           </div>
           <AccountSettings userId={userId} />
+          <div className="mt-6">
+            <RedeemCode />
+          </div>
         </div>
       </div>
     </DashboardShell>

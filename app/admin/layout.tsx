@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { LayoutDashboard, Users, BookOpen, Settings, ArrowLeft, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, BookOpen, Settings, ArrowLeft, LogOut, Ticket } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/admin", label: "แดชบอร์ด", icon: LayoutDashboard },
   { href: "/admin/users", label: "ผู้ใช้", icon: Users },
   { href: "/admin/readings", label: "ประวัติ", icon: BookOpen },
+  { href: "/admin/codes", label: "โค้ด", icon: Ticket },
   { href: "/admin/settings", label: "ตั้งค่า", icon: Settings },
 ];
 
