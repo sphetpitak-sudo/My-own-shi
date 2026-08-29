@@ -122,6 +122,7 @@ export default function OraclePage() {
   const fetchInterpretation = async () => {
     setAiLoading(true);
     setError("");
+    let fullText = "";
     const abortController = new AbortController();
     const clientTimeout = setTimeout(() => {
       try {
@@ -210,7 +211,6 @@ export default function OraclePage() {
 
       const decoder = new TextDecoder();
       let buffer = "";
-      let fullText = "";
       let hasErrorChunk = false;
       while (true) {
         const { done, value } = await reader.read();
@@ -267,11 +267,27 @@ export default function OraclePage() {
       }
     } catch (e: unknown) {
       clearTimeout(clientTimeout);
-      const isAbort = e instanceof Error && e.name === "AbortError";
-      console.error("oracle fetchInterpretation failed", e);
-      if (isAbort) setError("AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว");
-      else setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
-      await attemptRefund();
+      // If we already have content, treat as success — don't overwrite with generic error
+      if (fullText && fullText.trim().length > 20) {
+        console.warn("oracle stream threw after content, ignoring generic error", e);
+        // Persist partial/full content if not yet persisted
+        if (readingIdRef.current) {
+          const supabase = createClient();
+          await supabase
+            .from("readings")
+            .update({ interpretation: fullText })
+            .eq("id", readingIdRef.current)
+            .catch(() => {});
+          lastCostRef.current = null;
+        }
+        setError("");
+      } else {
+        const isAbort = e instanceof Error && e.name === "AbortError";
+        console.error("oracle fetchInterpretation failed", e);
+        if (isAbort) setError("AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว");
+        else setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+        await attemptRefund();
+      }
     }
     setAiLoading(false);
   };
