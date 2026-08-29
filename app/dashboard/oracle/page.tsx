@@ -31,6 +31,7 @@ export default function OraclePage() {
   const startedRef = useRef(false);
   const textRef = useRef<HTMLDivElement | null>(null);
   const readingIdRef = useRef<string | null>(null);
+  const lastCostRef = useRef<number | null>(null);
 
   const spread = ORACLE_SPREADS.find((s) => s.id === spreadId)!;
 
@@ -82,6 +83,7 @@ export default function OraclePage() {
       return;
     }
     const actualCost = charged as number;
+    lastCostRef.current = actualCost;
 
     setPoints((p) => Math.max(0, p - actualCost));
     // Oracle now uses the Tarot deck (78 Rider-Waite) - draw real tarot cards
@@ -120,6 +122,51 @@ export default function OraclePage() {
   const fetchInterpretation = async () => {
     setAiLoading(true);
     setError("");
+    const abortController = new AbortController();
+    const clientTimeout = setTimeout(() => {
+      try {
+        abortController.abort();
+      } catch {}
+    }, 40000);
+    const attemptRefund = async () => {
+      const supabase = createClient();
+      const rid = readingIdRef.current;
+      const cost = lastCostRef.current ?? (cards.length === 1 ? 5 : 15);
+      try {
+        if (rid) {
+          const { error } = await supabase.rpc("refund_by_reading", { p_reading_id: rid });
+          if (!error) {
+            setPoints((p) => p + cost);
+            lastCostRef.current = null;
+            try {
+              await supabase.from("readings").delete().eq("id", rid);
+            } catch {}
+            readingIdRef.current = null;
+            return true;
+          }
+        }
+      } catch {}
+      // Fallback: amount-based refund (requires recent purchase)
+      try {
+        const { data: userRes } = await supabase.auth.getUser();
+        const uid = userRes.user?.id;
+        if (uid && cost) {
+          const { error } = await supabase.rpc("refund_points", { p_user_id: uid, p_amount: cost });
+          if (!error) {
+            setPoints((p) => p + cost);
+            lastCostRef.current = null;
+            if (rid) {
+              try {
+                await supabase.from("readings").delete().eq("id", rid);
+              } catch {}
+              readingIdRef.current = null;
+            }
+            return true;
+          }
+        }
+      } catch {}
+      return false;
+    };
     try {
       const res = await fetch("/api/oracle", {
         method: "POST",
@@ -128,16 +175,25 @@ export default function OraclePage() {
           question,
           cards: cards.map((c) => ({ cardId: c.card.id, reversed: c.reversed })),
         }),
+        signal: abortController.signal,
       });
 
       if (!res.ok) {
+        clearTimeout(clientTimeout);
         const data = await res.json().catch(() => ({}));
         if (res.status === 403) {
           setError("กรุณาเปิดไพ่ออราเคิลก่อน");
         } else if (res.status === 429) {
           setError("ทำนายถี่เกินไป กรุณารอสักครู่");
+        } else if (res.status === 504 || data.error?.includes("ไม่ตอบสนอง")) {
+          setError(data.error || "AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว");
+          await attemptRefund();
         } else {
           setError(data.error || "ไม่สามารถอ่านคำอธิบายได้");
+          // For 502/503, refund as points were spent before AI
+          if (res.status === 502 || res.status === 503 || res.status === 500) {
+            await attemptRefund();
+          }
         }
         setAiLoading(false);
         return;
@@ -145,6 +201,9 @@ export default function OraclePage() {
 
       const reader = res.body?.getReader();
       if (!reader) {
+        clearTimeout(clientTimeout);
+        setError("ไม่สามารถอ่านคำตอบได้");
+        await attemptRefund();
         setAiLoading(false);
         return;
       }
@@ -152,6 +211,7 @@ export default function OraclePage() {
       const decoder = new TextDecoder();
       let buffer = "";
       let fullText = "";
+      let hasErrorChunk = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -165,6 +225,11 @@ export default function OraclePage() {
             if (data === "[DONE]") break;
             try {
               const parsed = JSON.parse(data);
+              if (parsed.error) {
+                hasErrorChunk = true;
+                setError(parsed.error);
+                break;
+              }
               if (parsed.readingId) continue;
               if (parsed.content) {
                 fullText += parsed.content;
@@ -175,6 +240,14 @@ export default function OraclePage() {
             }
           }
         }
+        if (hasErrorChunk) break;
+      }
+      clearTimeout(clientTimeout);
+
+      if (hasErrorChunk) {
+        await attemptRefund();
+        setAiLoading(false);
+        return;
       }
 
       // Persist the AI text into the reading history row
@@ -185,9 +258,20 @@ export default function OraclePage() {
           .update({ interpretation: fullText })
           .eq("id", readingIdRef.current)
           .catch(() => {});
+        lastCostRef.current = null; // success, do not refund
+      } else if (!fullText) {
+        setError("AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว");
+        await attemptRefund();
+      } else {
+        lastCostRef.current = null;
       }
-    } catch {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+    } catch (e: unknown) {
+      clearTimeout(clientTimeout);
+      const isAbort = e instanceof Error && e.name === "AbortError";
+      console.error("oracle fetchInterpretation failed", e);
+      if (isAbort) setError("AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว");
+      else setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      await attemptRefund();
     }
     setAiLoading(false);
   };
@@ -214,6 +298,7 @@ export default function OraclePage() {
     setError("");
     startedRef.current = false;
     readingIdRef.current = null;
+    lastCostRef.current = null;
   };
 
   if (loading) {
