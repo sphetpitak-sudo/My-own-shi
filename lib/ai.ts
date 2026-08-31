@@ -23,7 +23,7 @@ export const AI_PARAMS = {
   reading: {
     single: { temperature: 0.7, max_tokens: 600, timeoutMs: 32_000, firstTokenMs: 18_000 },
     three_card: { temperature: 0.7, max_tokens: 800, timeoutMs: 38_000, firstTokenMs: 18_000 },
-    celtic: { temperature: 0.7, max_tokens: 2000, timeoutMs: 65_000, firstTokenMs: 25_000 },
+    celtic: { temperature: 0.7, max_tokens: 3000, timeoutMs: 75_000, firstTokenMs: 25_000 },
   },
   followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 25_000, firstTokenMs: 15_000 },
   oracle: {
