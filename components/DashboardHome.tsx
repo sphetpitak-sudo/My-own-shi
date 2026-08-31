@@ -10,7 +10,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import AnnouncementCard from "@/components/ui/AnnouncementCard";
 import { SPREADS, type SpreadType } from "@/lib/cards";
 import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/catalog";
-import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, ArrowRight, type LucideIcon } from "lucide-react";
+import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, ArrowRight, Heart, Briefcase, GraduationCap, Wallet, Activity, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
 import { useShell } from "./DashboardShell";
@@ -29,6 +29,15 @@ const CATEGORY_TONE: Record<FeatureCategory, { bg: string; color: string }> = {
   quick: { bg: "rgba(251,191,36,0.12)", color: "#fbbf24" },
   daily: { bg: "rgba(212,175,55,0.12)", color: "var(--gold)" },
   numerology: { bg: "rgba(20,184,166,0.12)", color: "#14b8a6" },
+};
+
+const TOPIC_ICONS: Record<string, LucideIcon> = {
+  love: Heart,
+  career: Briefcase,
+  study: GraduationCap,
+  finance: Wallet,
+  health: Activity,
+  general: Sparkles,
 };
 
 const SPREAD_BADGE: Record<SpreadType, string> = {
@@ -231,6 +240,43 @@ export default function DashboardHome() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Topics — quick access to topic-specific readings */}
+      <div className="dash-section space-y-3">
+        <SectionHeader
+          title="เลือกหัวข้อที่สนใจ"
+          subtitle="ไพ่ 3 ใบ เน้นเรื่องที่คุณสนใจ 10 แต้ม · ใช้ได้ทุก Spread"
+        />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {(["love", "career", "study", "finance", "health"] as const).map((topic) => {
+            const Icon = TOPIC_ICONS[topic];
+            const topicData = {
+              love: { label: "ความรัก", color: "var(--topic-love)", bg: "var(--topic-love-soft)" },
+              career: { label: "การงาน", color: "var(--topic-career)", bg: "var(--topic-career-soft)" },
+              study: { label: "การเรียน", color: "var(--topic-study)", bg: "var(--topic-study-soft)" },
+              finance: { label: "การเงิน", color: "var(--topic-finance)", bg: "var(--topic-finance-soft)" },
+              health: { label: "สุขภาพ", color: "var(--topic-health)", bg: "var(--topic-health-soft)" },
+            }[topic];
+            return (
+              <a
+                key={topic}
+                href={`/dashboard/reading?spread=three_card&topic=${topic}`}
+                className="fc-root p-4 text-center transition-all duration-200 hover:-translate-y-0.5"
+                style={{ borderColor: topicData.color } as React.CSSProperties}
+              >
+                <span
+                  className="w-12 h-12 rounded-xl grid place-items-center mx-auto mb-3"
+                  style={{ background: topicData.bg, color: topicData.color } as React.CSSProperties}
+                >
+                  <Icon size={20} />
+                </span>
+                <span className="text-[13.5px] font-bold text-[var(--text)] block">{topicData.label}</span>
+                <span className="text-[11px] mt-1 block" style={{ color: "var(--text-muted)" }}>10 แต้ม · 3 ใบ</span>
+              </a>
+            );
+          })}
         </div>
       </div>
 

@@ -44,7 +44,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: LayoutProps<"/">) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="th" suppressHydrationWarning className="h-full antialiased">
       <head>
