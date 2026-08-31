@@ -39,7 +39,7 @@ export default function QuestionInput({
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4 px-4">
-      <div className="card p-6 border-[var(--border-strong)] shadow-md space-y-4">
+      <div className="card p-4 border-[var(--border)] shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <label htmlFor="question-input" className="text-[13px] font-extrabold uppercase tracking-wider text-[var(--primary)] flex items-center gap-1.5">
             <Sparkles size={14} />
@@ -70,7 +70,8 @@ export default function QuestionInput({
             maxLength={500}
             disabled={loading}
             aria-label="คำถามของคุณ"
-            className="input resize-none text-[14.5px] leading-[1.7] p-4 min-h-[100px] sm:min-h-[120px] bg-[var(--bg)] border-[var(--border-strong)] focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_var(--primary-soft)] rounded-xl placeholder:text-[13.5px] placeholder:leading-relaxed"
+            className="input resize-none text-[14.5px] leading-[1.7] p-4 min-h-[100px] sm:min-h-[120px] bg-[var(--bg-card)] border-[var(--border-strong)] focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_var(--primary-soft)] rounded-xl placeholder:text-[13.5px] placeholder:leading-relaxed shadow-inner"
+            style={{ background: "color-mix(in srgb, var(--bg) 88%, white)" }}
           />
           <div className="absolute bottom-2 right-2 h-1 w-24 rounded-full overflow-hidden pointer-events-none" style={{ background: "var(--border-subtle)" }} aria-hidden>
             <div className="h-full transition-all duration-200" style={{ width: `${Math.min(100, (value.length / 500) * 100)}%`, background: value.length > 480 ? "var(--red)" : value.length > 350 ? "var(--amber)" : "var(--primary)", opacity: 0.7 }} />
