@@ -108,6 +108,11 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   const [hasMore, setHasMore] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem("sealo_favorites") || "[]")); } catch { return new Set(); }
+  });
 
   const fetchReadings = useCallback(
     async (offset = 0, append = false) => {
@@ -160,6 +165,15 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
     fetchReadings(readings.length, true);
   };
 
+  const toggleFavorite = (id: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem("sealo_favorites", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString("th-TH", {
@@ -202,30 +216,49 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
     );
   }
 
-  const filteredReadings = filter === "all" ? readings : readings.filter((r) => r.spread_type === filter);
+  const filteredReadings = readings.filter(r => {
+    const matchFilter = filter === "all" ? true : filter === "favorites" ? favorites.has(r.id) : r.spread_type === filter;
+    const q = searchQuery.trim().toLowerCase();
+    const matchSearch = !q || r.question.toLowerCase().includes(q) || (r.interpretation && r.interpretation.toLowerCase().includes(q));
+    return matchFilter && matchSearch;
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {readings.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {["all", "single", "three_card", "celtic", "oracle"].map((k) => (
-            <button
-              key={k}
-              onClick={() => setFilter(k)}
-              className="chip"
-              style={{
-                flexShrink: 0,
-                padding: "6px 12px",
-                fontSize: 12,
-                background: filter === k ? "var(--primary)" : "var(--bg-card)",
-                color: filter === k ? "white" : "var(--text-secondary)",
-                borderColor: filter === k ? "var(--primary)" : "var(--border)",
-              }}
-            >
-              {k === "all" ? "ทั้งหมด" : SPREAD_LABELS[k] || k}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="relative">
+            <input
+              type="search"
+              placeholder="ค้นหาคำถามหรือคำทำนาย..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="input pr-9"
+              style={{ fontSize: 13 }}
+              aria-label="ค้นหาประวัติ"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>⌕</span>
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            {["all", "favorites", "single", "three_card", "celtic", "oracle"].map((k) => (
+              <button
+                key={k}
+                onClick={() => setFilter(k)}
+                className="chip"
+                style={{
+                  flexShrink: 0,
+                  padding: "6px 12px",
+                  fontSize: 12,
+                  background: filter === k ? "var(--primary)" : "var(--bg-card)",
+                  color: filter === k ? "white" : "var(--text-secondary)",
+                  borderColor: filter === k ? "var(--primary)" : "var(--border)",
+                }}
+              >
+                {k === "all" ? "ทั้งหมด" : k === "favorites" ? `⭐ โปรด (${favorites.size})` : SPREAD_LABELS[k] || k}
+              </button>
+            ))}
+          </div>
+        </>
       )}
       {readings.length >= 2 && (
         <div className="card p-3 grid grid-cols-3 gap-2 text-center" style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.04), rgba(212,175,55,0.04))" }}>
@@ -311,7 +344,15 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                 </div>
               </div>
 
-              <div style={{ flexShrink: 0, marginTop: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginTop: 4 }}>
+                <button
+                  onClick={e => { e.stopPropagation(); toggleFavorite(r.id); }}
+                  aria-label={favorites.has(r.id) ? "ลบออกจากโปรด" : "เพิ่มโปรด"}
+                  className="w-7 h-7 grid place-items-center rounded-full"
+                  style={{ background: favorites.has(r.id) ? "var(--gold-soft)" : "var(--bg)", border: `1px solid ${favorites.has(r.id) ? "var(--gold)" : "var(--border)"}`, color: favorites.has(r.id) ? "var(--gold)" : "var(--text-muted)" }}
+                >
+                  <span style={{ fontSize: 12 }}>{favorites.has(r.id) ? "★" : "☆"}</span>
+                </button>
                 {isExpanded ? (
                   <ChevronUp size={16} style={{ color: "var(--text-muted)" }} />
                 ) : (
