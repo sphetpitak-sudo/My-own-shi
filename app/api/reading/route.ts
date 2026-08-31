@@ -4,7 +4,7 @@ import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel } from "@/lib/ai";
 import { READING_SYSTEM_PROMPT_SINGLE, READING_SYSTEM_PROMPT_THREE, READING_SYSTEM_PROMPT_CELTIC, buildReadingUserPrompt } from "@/lib/prompts";
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 export const dynamic = "force-dynamic";
 
 type ReadingCardInput = { cardId: number; positionLabel: string; reversed: boolean };

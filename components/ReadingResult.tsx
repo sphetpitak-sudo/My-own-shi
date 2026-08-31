@@ -284,8 +284,8 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
     setFollowError("");
 
     const abortController = new AbortController();
-    // Must be > server total timeout (celtic 75s) + buffer
-    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 85_000);
+    // Must be > server total timeout (celtic 90s) + buffer — generous
+    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 100_000);
     const clearClientTimeout = () => { if (clientTimeout) { clearTimeout(clientTimeout); clientTimeout = null; } };
     try {
       const res = await fetch("/api/reading", {
@@ -385,7 +385,7 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
     } catch (err: unknown) {
       clearClientTimeout();
       if (err instanceof Error && err.name === "AbortError") {
-        setError("AI ไม่ตอบสนองภายใน 60 วินาที กรุณาลองใหม่ — แต้มคืนแล้ว");
+        setError("AI ไม่ตอบสนองภายใน 90 วินาที กรุณาลองใหม่ — แต้มคืนแล้ว");
       } else {
         const message = err instanceof Error ? err.message : "Network error";
         setError(message);

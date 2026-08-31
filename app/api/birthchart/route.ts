@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOpenAI, AI_MODEL } from "@/lib/ai";
+import { getOpenAI, AI_MODEL, AI_PARAMS } from "@/lib/ai";
 import { BIRTH_CHART_SYSTEM_PROMPT, buildBirthChartUserPrompt } from "@/lib/prompts";
 import { astrologyProvider } from "@/lib/astrology/calculator";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
@@ -48,9 +48,9 @@ export async function POST(request: Request) {
           { role: "system", content: BIRTH_CHART_SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 700,
-      }, { timeout: 20000 } as unknown as Record<string, unknown>);
+        temperature: AI_PARAMS.birthchart.temperature,
+        max_tokens: AI_PARAMS.birthchart.max_tokens,
+      }, { timeout: AI_PARAMS.birthchart.timeoutMs } as unknown as Record<string, unknown>);
 
       const raw = (completion as unknown as { choices: Array<{ message?: { content?: string } }> }).choices[0]?.message?.content || "";
       if (raw.trim()) {

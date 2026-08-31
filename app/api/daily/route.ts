@@ -4,7 +4,7 @@ import { getOpenAI, AI_MODEL, AI_PARAMS, extractJSON, asString, asNumber, colorT
 import { DAILY_SYSTEM_PROMPT, buildDailyUserPrompt } from "@/lib/prompts";
 import { pickDailyCard, buildDailyFallback, type DailyFortune } from "@/lib/daily";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function normalize(parsed: Record<string, unknown>, fallback: DailyFortune): DailyFortune {

@@ -4,7 +4,7 @@ import { ALL_CARDS } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS } from "@/lib/ai";
 import { ORACLE_SYSTEM_PROMPT, buildOracleUserPrompt } from "@/lib/prompts";
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 export const dynamic = "force-dynamic";
 
 interface OracleCardInput {

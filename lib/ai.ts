@@ -21,17 +21,18 @@ export function getOpenAI(): OpenAI {
 // ============================================
 export const AI_PARAMS = {
   reading: {
-    single: { temperature: 0.7, max_tokens: 600, timeoutMs: 32_000, firstTokenMs: 18_000 },
-    three_card: { temperature: 0.7, max_tokens: 800, timeoutMs: 38_000, firstTokenMs: 18_000 },
-    celtic: { temperature: 0.7, max_tokens: 3000, timeoutMs: 75_000, firstTokenMs: 25_000 },
+    single: { temperature: 0.7, max_tokens: 1500, timeoutMs: 45_000, firstTokenMs: 18_000 },
+    three_card: { temperature: 0.7, max_tokens: 2200, timeoutMs: 60_000, firstTokenMs: 20_000 },
+    celtic: { temperature: 0.7, max_tokens: 4000, timeoutMs: 90_000, firstTokenMs: 25_000 },
   },
-  followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 25_000, firstTokenMs: 15_000 },
+  followup: { temperature: 0.7, max_tokens: 800, timeoutMs: 30_000, firstTokenMs: 18_000 },
   oracle: {
-    single: { temperature: 0.7, max_tokens: 700, timeoutMs: 35_000, firstTokenMs: 18_000 },
-    three: { temperature: 0.7, max_tokens: 1200, timeoutMs: 45_000, firstTokenMs: 18_000 },
+    single: { temperature: 0.7, max_tokens: 1200, timeoutMs: 45_000, firstTokenMs: 18_000 },
+    three: { temperature: 0.7, max_tokens: 1800, timeoutMs: 60_000, firstTokenMs: 20_000 },
   },
-  daily: { temperature: 0.7, max_tokens: 400, timeoutMs: 18_000 },
-  zodiac: { temperature: 0.7, max_tokens: 500, timeoutMs: 22_000 },
+  daily: { temperature: 0.7, max_tokens: 800, timeoutMs: 25_000 },
+  zodiac: { temperature: 0.7, max_tokens: 1000, timeoutMs: 30_000 },
+  birthchart: { temperature: 0.7, max_tokens: 1200, timeoutMs: 30_000 },
 } as const;
 
 // ============================================
