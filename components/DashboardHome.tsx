@@ -16,6 +16,7 @@ import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
 import { useShell } from "./DashboardShell";
 import dynamic from "next/dynamic";
 const PushOptInWrapper = dynamic(() => import("./PushOptIn"), { ssr: false });
+import OnboardingModal from "./OnboardingModal";
 
 interface ProfileLite {
   display_name: string | null;
@@ -145,6 +146,7 @@ export default function DashboardHome() {
 
   return (
     <div className="dashboard-premium space-y-8 pb-24">
+      <OnboardingModal />
       {/* Header Greeting Banner — premium cozy */}
       <header className="dash-greeting pt-7 pb-3">
         <div className="dash-greeting-text">

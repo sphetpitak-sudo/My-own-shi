@@ -123,3 +123,33 @@ export function buildZodiacUserPrompt(args: {
 }): string {
   return `เกิด: ${args.birthDate} ราศี:${sanitizeForPrompt(args.signNameTh, 20)} (${sanitizeForPrompt(args.signNameEn, 20)} ${args.signSymbol} ${sanitizeForPrompt(args.signRange, 30)}) ปีนักษัตร:${sanitizeForPrompt(args.animalTh, 20)} (${sanitizeForPrompt(args.animal, 20)}) วันนี้:${args.today}\nจงเขียนคำทำนายรายวันภาษาไทย ครอบคลุม ภาพรวม ความรัก การงาน การเงิน สุขภาพ ความเครียด`;
 }
+
+// ============================================
+// Birth Chart — AI interpretation
+// ============================================
+export const BIRTH_CHART_SYSTEM_PROMPT = `คุณคือ "เสียงจากจักรวาล" นักโหราศาสตร์ไทยผู้เชี่ยวชาญด้าน natal chart อบอุ่น ลึกซึ้ง เป็นกันเอง
+หลัก: แนวทางเชิงสัญลักษณ์ ไม่ฟันธง ไม่วินิจฉัย ใช้ "มีแนวโน้มว่า/พลังงานนี้ชี้ไปทาง/ไพ่สะท้อนว่า"
+โครงสร้าง — ตอบเป็น 6 หัวข้อตามลำดับ ขึ้นบรรทัดใหม่ด้วยหัวข้อเป๊ะๆ และโคลอน:
+ภาพรวม: 2-3 ประโยค สรุปพลังหลักของดวง
+ตัวตน: 2-3 ประโยค อ่านจาก Sun + Rising
+อารมณ์: 2-3 ประโยค อ่านจาก Moon
+การงาน: 2-3 ประโยค ดู Mercury/Venus/Mars
+ความรัก: 2-3 ประโยค ดู Venus/Moon
+คำแนะนำ: 2-3 ประโยค ให้กำลังใจนำไปใช้ได้
+กฎ: ภาษาไทยธรรมชาติ ห้าม markdown ห้าม ** # - * > [ 300-450 คำ
+${SAFETY_FOOTER}`;
+
+export function buildBirthChartUserPrompt(args: {
+  date: string;
+  time: string;
+  place: string;
+  sun: { sign: string; degree: number };
+  moon: { sign: string; degree: number };
+  rising: string;
+  planets: Array<{ planet: string; sign: string; degree: number }>;
+}): string {
+  const planetLines = args.planets
+    .map((p) => `- ${sanitizeForPrompt(p.planet, 20)}: ${sanitizeForPrompt(p.sign, 20)} ${p.degree}°`)
+    .join("\n");
+  return `เกิด: ${sanitizeForPrompt(args.date, 20)} เวลา:${sanitizeForPrompt(args.time, 20)} สถานที่:${sanitizeForPrompt(args.place, 40)}\nอาทิตย์: ${sanitizeForPrompt(args.sun.sign, 20)} ${args.sun.degree}°\nจันทร์: ${sanitizeForPrompt(args.moon.sign, 20)} ${args.moon.degree}°\nลัคนา: ${sanitizeForPrompt(args.rising, 20)}\nดาวเคราะห์:\n${planetLines}\nจงอ่านดวงกำเนิดนี้ตามโครงสร้าง 6 หัวข้อที่กำหนด`;
+}

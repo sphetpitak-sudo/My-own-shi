@@ -832,5 +832,31 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_function THEN NULL; END $$;
 
 -- ============================================
+-- 22. BIRTH CHARTS (real calculation + AI interpretation)
+-- ============================================
+CREATE TABLE IF NOT EXISTS birth_charts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  birth_date TEXT NOT NULL CHECK (char_length(birth_date) <= 20),
+  birth_time TEXT NOT NULL CHECK (char_length(birth_time) <= 20),
+  birth_place TEXT NOT NULL CHECK (char_length(birth_place) <= 80),
+  chart JSONB NOT NULL DEFAULT '{}'::jsonb,
+  interpretation TEXT NOT NULL DEFAULT '' CHECK (char_length(interpretation) <= 5000),
+  source TEXT NOT NULL DEFAULT 'fallback' CHECK (source IN ('ai','fallback')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE birth_charts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "BirthCharts select" ON birth_charts;
+CREATE POLICY "BirthCharts select" ON birth_charts FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "BirthCharts insert" ON birth_charts;
+CREATE POLICY "BirthCharts insert" ON birth_charts FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "BirthCharts update" ON birth_charts;
+CREATE POLICY "BirthCharts update" ON birth_charts FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "BirthCharts delete" ON birth_charts;
+CREATE POLICY "BirthCharts delete" ON birth_charts FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_birth_charts_user ON birth_charts(user_id);
+CREATE INDEX IF NOT EXISTS idx_birth_charts_created ON birth_charts(created_at DESC);
+
+-- ============================================
 -- DONE
 -- ============================================

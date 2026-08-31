@@ -2,15 +2,36 @@
 
 import { useState } from "react";
 import DashboardShell from "@/components/DashboardShell";
-import { Compass, Calendar, Clock, MapPin, Sparkles, Lock } from "lucide-react";
-import { astrologyProvider, ZODIAC_SIGNS, type BirthChart } from "@/lib/astrology";
+import { Compass, Calendar, Clock, MapPin, Sparkles, Lock, Heart, Briefcase, Lightbulb, Activity } from "lucide-react";
+import { ZODIAC_SIGNS, type BirthChart } from "@/lib/astrology";
+import { stripMarkdownMultiline } from "@/lib/text";
+
+const STAGES = ["กำลังคำนวณตำแหน่งดาว...", "กำลังแมปแผนที่ดวงดาว...", "กำลังเตรียมคำทำนาย..."];
+
+function parseBCSections(raw: string) {
+  const text = stripMarkdownMultiline(raw);
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const headings = ["ภาพรวม", "ตัวตน", "อารมณ์", "การงาน", "ความรัก", "คำแนะนำ"] as const;
+  const buckets: Record<string, string[]> = {};
+  let cur: string | null = null;
+  const re = new RegExp(`^(${headings.join("|")})\\s*[:：]`);
+  for (const line of lines) {
+    const m = line.replace(/^[-•\d.\s]+/, "").match(re);
+    if (m) { cur = m[1]!; buckets[cur] = []; const rest = line.replace(re, "").trim().replace(/^[:：\s]+/, ""); if (rest) buckets[cur].push(rest); continue; }
+    if (!cur) { cur = "ภาพรวม"; buckets[cur] = buckets[cur] || []; }
+    buckets[cur]!.push(line);
+  }
+  return headings.map(h => buckets[h]?.join(" ").trim() ? { title: h, content: buckets[h].join(" ") } : null).filter(Boolean) as { title: string; content: string }[];
+}
 
 export default function BirthChartPage() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [place, setPlace] = useState("");
   const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
   const [chart, setChart] = useState<BirthChart | null>(null);
+  const [interpretation, setInterpretation] = useState("");
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,12 +42,18 @@ export default function BirthChartPage() {
       return;
     }
     setLoading(true);
+    setStage(0);
+    const t1 = setInterval(() => setStage(s => Math.min(s + 1, 2)), 900);
     try {
-      const result = await astrologyProvider.calculate({ date, time, place: place.trim() });
-      setChart(result);
-    } catch {
-      setError("ไม่สามารถคำนวณได้");
+      const res = await fetch("/api/birthchart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date, time, place: place.trim() }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "คำนวณไม่สำเร็จ");
+      setChart(data.chart);
+      setInterpretation(data.interpretation || "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "ไม่สามารถคำนวณได้");
     } finally {
+      clearInterval(t1);
       setLoading(false);
     }
   }
@@ -37,10 +64,10 @@ export default function BirthChartPage() {
     <DashboardShell>
       <div className="reading-page">
         <div className="step-header">
-          <p className="step-eyebrow">ดาราศาสตร์ · เร็ว ๆ นี้</p>
+          <p className="step-eyebrow">ดาราศาสตร์ · AI + Astronomy</p>
           <h1 className="step-title">แผนที่ดวงดาวส่วนบุคคล</h1>
           <p className="step-sub">
-            กรอกวัน เวลา และสถานที่เกิด เพื่อสร้างแผนที่ตำแหน่งดาวเคราะห์ ณ ขณะที่คุณลืมตาดูโลก
+            กรอกวัน เวลา และสถานที่เกิด — เราคำนวณตำแหน่งดาวจริง + AI ตีความ 6 หัวข้อ
           </p>
         </div>
 
@@ -129,11 +156,11 @@ export default function BirthChartPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  กำลังคำนวณ...
+                  {STAGES[stage]}
                 </span>
               ) : (
                 <>
-                  <Sparkles size={15} /> สร้างแผนที่ดวงดาว
+                  <Sparkles size={15} /> สร้างแผนที่ดวงดาว + คำทำนาย AI
                 </>
               )}
             </button>
@@ -264,16 +291,30 @@ export default function BirthChartPage() {
               </div>
             </div>
 
-            <div
-              className="p-3 rounded-xl text-[11px] text-center"
-              style={{ background: "var(--bg)", color: "var(--text-muted)" }}
-            >
-              ข้อมูลนี้ใช้ตัวอย่างจาก mock provider — เวอร์ชันจริงจะใช้ astronomy calculation engine
-              เพื่อความแม่นยำของตำแหน่งดาวเคราะห์
-            </div>
+            {interpretation && (
+              <div className="space-y-3">
+                {parseBCSections(interpretation).map((sec, i) => {
+                  const iconMap: Record<string, typeof Sparkles> = { "ภาพรวม": Sparkles, "ตัวตน": Compass, "อารมณ์": Heart, "การงาน": Briefcase, "ความรัก": Heart, "คำแนะนำ": Lightbulb };
+                  const Icon = iconMap[sec.title] || Activity;
+                  return (
+                    <div key={sec.title} className="reading-journal-section" style={{ animation: `fadeUp 0.45s var(--ease) ${i * 0.06}s both` }}>
+                      <div className="reading-journal-section-header">
+                        <span className="reading-journal-section-icon"><Icon size={13} /></span>
+                        <h3 className="reading-journal-section-title">{sec.title}</h3>
+                        <span className="reading-journal-section-line" />
+                      </div>
+                      <p className="reading-journal-paragraph">{sec.content}</p>
+                    </div>
+                  );
+                })}
+                {!parseBCSections(interpretation).length && (
+                  <div className="reading-journal-section"><p className="reading-journal-paragraph whitespace-pre-wrap">{interpretation}</p></div>
+                )}
+              </div>
+            )}
 
             <button
-              onClick={() => setChart(null)}
+              onClick={() => { setChart(null); setInterpretation(""); }}
               className="btn btn-ghost w-full rounded-2xl"
             >
               เริ่มใหม่
