@@ -8,20 +8,34 @@ import SpreadSelector from "@/components/SpreadSelector";
 import QuestionInput from "@/components/QuestionInput";
 import CardDraw from "@/components/CardDraw";
 import ReadingResult from "@/components/ReadingResult";
-import { ArrowLeft, Check, Sparkles, Wand2, HelpCircle, BookOpen } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, Wand2, HelpCircle, BookOpen, Heart, Briefcase, GraduationCap, Wallet, Activity, Compass } from "lucide-react";
 import { SPREADS, type SpreadType, type DrawnCard } from "@/lib/cards";
 import { useBeforeUnload } from "@/lib/useBeforeUnload";
 import { cn } from "@/lib/cn";
 import { saveDraft, loadDraft, clearDraft } from "@/lib/useReadingDraft";
 
+type LucideIcon = React.ComponentType<{ size?: number; className?: string }>;
+
 const STEPS = [
   { key: "spread", label: "เลือก Spread", icon: Sparkles },
+  { key: "topic", label: "เลือกหัวข้อ", icon: Compass },
   { key: "question", label: "ถามคำถาม", icon: HelpCircle },
   { key: "draw", label: "จั่วไพ่", icon: Wand2 },
   { key: "result", label: "คำทำนาย", icon: BookOpen },
 ] as const;
 
-type StepKey = typeof STEPS[number]["key"];
+type StepKey = "spread" | "topic" | "question" | "draw" | "result";
+
+type TopicKey = "love" | "career" | "study" | "finance" | "health" | "general";
+
+const TOPICS: Record<TopicKey, { label: string; icon: LucideIcon; desc: string; color: string }> = {
+  love: { label: "ความรัก", icon: Heart, desc: "ความสัมพันธ์ ความรัก โสด มารดา", color: "var(--topic-love)" },
+  career: { label: "การงาน", icon: Briefcase, desc: "อาชีพ การตัดสินใจ เส้นทาง", color: "var(--topic-career)" },
+  study: { label: "การเรียน", icon: GraduationCap, desc: "การศึกษา สอบ การพัฒนาตนเอง", color: "var(--topic-study)" },
+  finance: { label: "การเงิน", icon: Wallet, desc: "เงิน ลงทุน โอกาส การใช้จ่าย", color: "var(--topic-finance)" },
+  health: { label: "สุขภาพ", icon: Activity, desc: "กาย ใจ โยคะ วิถีชีวิต", color: "var(--topic-health)" },
+  general: { label: "ภาพรวม", icon: Sparkles, desc: "คำถามทั่วไป ไม่ระบุหัวข้อ", color: "var(--primary)" },
+};
 
 export default function ReadingPage() {
   return (
@@ -57,9 +71,15 @@ function ReadingPageInner() {
   const rawInitialSpread = searchParams.get("spread") as SpreadType | null;
   const hasInitialSpread = !!rawInitialSpread && (["single", "three_card", "celtic"] as string[]).includes(rawInitialSpread);
   const initialSpread: SpreadType | null = hasInitialSpread ? (rawInitialSpread as SpreadType) : null;
+  const rawInitialTopic = searchParams.get("topic") as TopicKey | null;
+  const hasInitialTopic = !!rawInitialTopic && (Object.keys(TOPICS) as string[]).includes(rawInitialTopic);
+  const initialTopic: TopicKey | null = hasInitialTopic ? (rawInitialTopic as TopicKey) : null;
   const [step, setStep] = useState<StepKey>("spread");
   const [spreadType, setSpreadType] = useState<SpreadType>(
     hasInitialSpread ? (rawInitialSpread as SpreadType) : "three_card"
+  );
+  const [topic, setTopic] = useState<TopicKey>(
+    hasInitialTopic ? (rawInitialTopic as TopicKey) : "general"
   );
   const [question, setQuestion] = useState("");
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
@@ -91,7 +111,12 @@ function ReadingPageInner() {
 
       if (hasInitialSpread && initialSpread) {
         setSpreadType(initialSpread);
-        setStep("question");
+        if (hasInitialTopic && initialTopic) {
+          setTopic(initialTopic);
+          setStep("question");
+        } else {
+          setStep("topic");
+        }
       } else {
         setStep("spread");
       }
@@ -157,6 +182,11 @@ function ReadingPageInner() {
 
   const handleSpreadSelect = (type: SpreadType) => {
     setSpreadType(type);
+    setStep("topic");
+  };
+
+  const handleTopicSelect = (t: TopicKey) => {
+    setTopic(t);
     setStep("question");
   };
 
@@ -231,7 +261,7 @@ function ReadingPageInner() {
         {/* Step content */}
         {step === "spread" && (
           <div className="step-header">
-            <p className="step-eyebrow">ขั้นตอนที่ 1 / 4</p>
+            <p className="step-eyebrow">ขั้นตอนที่ 1 / 5</p>
             <h1 className="step-title">เลือกรูปแบบการอ่านไพ่</h1>
             <p className="step-sub">
               แต่ละแบบจะเปิดมุมมองที่ลึกและกว้างต่างกัน
@@ -240,9 +270,20 @@ function ReadingPageInner() {
           </div>
         )}
 
+        {step === "topic" && (
+          <div className="step-header">
+            <p className="step-eyebrow">ขั้นตอนที่ 2 / 5</p>
+            <h1 className="step-title">เลือกหัวข้อที่อยากให้ไพ่เน้น</h1>
+            <p className="step-sub">
+              เลือกหัวข้อที่ตรงกับสิ่งที่อยู่ในใจมากที่สุด
+              จะได้คำตอบที่ตรงประเด็นและลึกที่สุด
+            </p>
+          </div>
+        )}
+
         {step === "question" && (
           <div className="step-header">
-            <p className="step-eyebrow">ขั้นตอนที่ 2 / 4</p>
+            <p className="step-eyebrow">ขั้นตอนที่ 3 / 5</p>
             <h1 className="step-title">ตั้งคำถามกับจักรวาล</h1>
             <p className="step-sub">
               ยิ่งคำถามชัดเจน ยิ่งได้คำตอบที่ตรงใจ
@@ -253,7 +294,7 @@ function ReadingPageInner() {
 
         {step === "draw" && (
           <div className="step-header">
-            <p className="step-eyebrow">ขั้นตอนที่ 3 / 4</p>
+            <p className="step-eyebrow">ขั้นตอนที่ 4 / 5</p>
             <h1 className="step-title">สับไพ่และเลือกไพ่ของคุณ</h1>
             <p className="step-sub">
               ปล่อยใจให้สงบ แล้วเลือกไพ่ที่ดึงดูดคุณที่สุด
@@ -274,6 +315,85 @@ function ReadingPageInner() {
             userPoints={points}
             costs={costs}
           />
+        )}
+
+        {step === "topic" && (
+          <div className="animate-in">
+            <div className="flex items-center gap-3 px-4 mb-4">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{
+                  background: "var(--primary-soft)",
+                  color: "var(--primary)",
+                }}
+              >
+                <Compass size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14.5px] font-bold" style={{ color: "var(--text)" }}>
+                  {spread.nameTh}
+                </div>
+                <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+                  {spread.cardCount} ใบ · ใช้{" "}
+                  <span style={{ color: "var(--gold)", fontWeight: 700 }}>
+                    {costs[spreadType] ?? spread.cost}
+                  </span>{" "}
+                  แต้ม · คงเหลือ {points.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 px-4 mb-4">
+              {(Object.keys(TOPICS) as TopicKey[]).map((t) => {
+                const topicData = TOPICS[t];
+                const active = topic === t;
+                const Icon = topicData.icon;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => handleTopicSelect(t)}
+                    className={cn(
+                      "card p-4 text-left transition-all duration-200",
+                      active && "ring-2 ring-[var(--primary)] shadow-md bg-[var(--primary-soft)]",
+                      "hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md cursor-pointer"
+                    )}
+                    style={{
+                      borderColor: active ? "var(--primary)" : topicData.color,
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className="w-8 h-8 rounded-lg grid place-items-center flex-shrink-0"
+                        style={{
+                          background: `${topicData.color}18`,
+                          color: topicData.color,
+                          border: `1px solid ${topicData.color}30`,
+                        }}
+                      >
+                        <Icon size={16} />
+                      </span>
+                      <span className="text-[11px] font-bold tracking-widest uppercase text-[var(--text-muted)]">{topicData.label}</span>
+                    </div>
+                    <h3 className="text-[15px] font-bold text-[var(--text)]">{topicData.label}</h3>
+                    <p className="text-[12px] mt-1 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{topicData.desc}</p>
+                    {active && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ background: "var(--primary)" }}>
+                        <Check size={10} />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setStep("spread")}
+              className="btn btn-ghost mt-2 mx-4 text-[13px]"
+            >
+              <ArrowLeft size={14} />
+              เลือก Spread ใหม่
+            </button>
+          </div>
         )}
 
         {step === "question" && (() => {
@@ -340,6 +460,7 @@ function ReadingPageInner() {
           <ReadingResult
             cards={drawnCards}
             spreadType={spreadType}
+            topic={topic}
             question={question}
             onDone={handleResultDone}
             actualCost={costs[spreadType] ?? SPREADS[spreadType].cost}

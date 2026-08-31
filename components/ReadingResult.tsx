@@ -15,13 +15,32 @@ import {
   CalendarDays,
   Layers,
   Check,
+  Heart,
+  Briefcase,
+  GraduationCap,
+  Wallet,
+  Activity,
 } from "lucide-react";
 import { stripMarkdownMultiline } from "@/lib/text";
 import { createClient } from "@/lib/supabase/client";
 
+type LucideIcon = React.ComponentType<{ size?: number; className?: string }>;
+
+type TopicKey = "love" | "career" | "study" | "finance" | "health" | "general";
+
+const TOPICS: Record<TopicKey, { label: string; icon: LucideIcon; desc: string; color: string }> = {
+  love: { label: "ความรัก", icon: Heart, desc: "ความสัมพันธ์ ความรัก โสด มารดา", color: "var(--topic-love)" },
+  career: { label: "การงาน", icon: Briefcase, desc: "อาชีพ การตัดสินใจ เส้นทาง", color: "var(--topic-career)" },
+  study: { label: "การเรียน", icon: GraduationCap, desc: "การศึกษา สอบ การพัฒนาตนเอง", color: "var(--topic-study)" },
+  finance: { label: "การเงิน", icon: Wallet, desc: "เงิน ลงทุน โอกาส การใช้จ่าย", color: "var(--topic-finance)" },
+  health: { label: "สุขภาพ", icon: Activity, desc: "กาย ใจ โยคะ วิถีชีวิต", color: "var(--topic-health)" },
+  general: { label: "ภาพรวม", icon: Sparkles, desc: "คำถามทั่วไป ไม่ระบุหัวข้อ", color: "var(--primary)" },
+};
+
 interface Props {
   cards: DrawnCard[];
   spreadType: SpreadType;
+  topic?: TopicKey;
   question: string;
   onDone: () => void;
   onPointsSpent?: (cost: number) => void;
@@ -84,7 +103,7 @@ function parseSections(text: string): ParsedSection[] {
   return sections;
 }
 
-export default function ReadingResult({ cards, spreadType, question, onDone, onPointsSpent, actualCost }: Props) {
+export default function ReadingResult({ cards, spreadType, topic, question, onDone, onPointsSpent, actualCost }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -107,6 +126,9 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     month: "long",
     year: "numeric",
   });
+
+  const topicKey = topic ?? "general";
+  const topicData = TOPICS[topicKey];
 
   const fetchReadingId = async () => {
     try {
@@ -277,6 +299,7 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
           })),
           question,
           spreadType,
+          topic: topicKey,
         }),
         signal: abortController.signal,
       });
@@ -448,6 +471,11 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
             <CalendarDays size={12} />
             {readingDate}
           </span>
+          {topicData && (
+            <span className="reading-journal-pill badge-{topicKey}">
+              <topicData.icon size={11} /> {topicData.label}
+            </span>
+          )}
           {done && !error && (
             <span className="reading-journal-pill" style={{ background: "var(--green-soft)", color: "var(--green)", borderColor: "rgba(45,122,79,0.14)" }}>
               <span className="w-2 h-2 rounded-full" style={{ background: "var(--green)" }} aria-hidden />

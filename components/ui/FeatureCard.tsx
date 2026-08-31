@@ -25,19 +25,19 @@ const THEME_GRADIENT: Record<FeatureMeta["theme"], string> = {
 const THEME_ACCENT: Record<FeatureMeta["theme"], string> = {
   violet: "var(--primary)",
   gold: "var(--gold)",
-  rose: "#f472b6",
-  teal: "#14b8a6",
-  indigo: "#818cf8",
-  amber: "#fbbf24",
+  rose: "var(--topic-love)",
+  teal: "var(--topic-career)",
+  indigo: "var(--topic-study)",
+  amber: "var(--topic-finance)",
 };
 
 const THEME_SOFT: Record<FeatureMeta["theme"], string> = {
   violet: "var(--primary-soft)",
   gold: "var(--gold-soft)",
-  rose: "rgba(244, 114, 182, 0.10)",
-  teal: "rgba(20, 184, 166, 0.10)",
-  indigo: "rgba(129, 140, 248, 0.10)",
-  amber: "rgba(251, 191, 36, 0.10)",
+  rose: "var(--topic-love-soft)",
+  teal: "var(--topic-career-soft)",
+  indigo: "var(--topic-study-soft)",
+  amber: "var(--topic-finance-soft)",
 };
 
 export default function FeatureCard({
@@ -168,59 +168,62 @@ export default function FeatureCard({
     );
   }
 
-  return (
-    <FeatureCardLink
-      feature={feature}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn("feature-card", className)}
-    >
-      <div
-        className="fc-icon-lg"
-        style={{
-          background: THEME_SOFT[feature.theme],
-          color: THEME_ACCENT[feature.theme],
-        }}
+  if (variant === "default") {
+    const topicClass = feature.id.startsWith("tarot-") && feature.id !== "tarot-three-card" && feature.id !== "tarot-single" && feature.id !== "tarot-celtic" ? `topic-${feature.id.replace("tarot-", "")}` : "";
+    return (
+      <FeatureCardLink
+        feature={feature}
+        disabled={disabled}
+        onClick={onClick}
+        className={cn("feature-card", topicClass, className)}
       >
-        <Icon size={22} />
-      </div>
-      <div className="fc-content">
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="fc-title">{feature.titleTh}</span>
-          {feature.badgeTh && (
+        <div
+          className="fc-icon-lg"
+          style={{
+            background: THEME_SOFT[feature.theme],
+            color: THEME_ACCENT[feature.theme],
+          }}
+        >
+          <Icon size={22} />
+        </div>
+        <div className="fc-content">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="fc-title">{feature.titleTh}</span>
+            {feature.badgeTh && (
+              <span
+                className="fc-tag"
+                style={{ color: THEME_ACCENT[feature.theme] }}
+              >
+                {feature.badgeTh}
+              </span>
+            )}
+          </div>
+          <div className="fc-sub">{feature.subtitleTh}</div>
+          {feature.descriptionTh && (
+            <p className="fc-desc">{feature.descriptionTh}</p>
+          )}
+        </div>
+        <div className="fc-bottom">
+          {isLocked ? (
+            <span className="fc-status-soon">
+              <Lock size={11} /> เร็ว ๆ นี้
+            </span>
+          ) : feature.cost === 0 ? (
+            <span className="fc-status-free" style={{ color: THEME_ACCENT[feature.theme] }}>
+              <Sparkles size={11} /> ฟรี
+            </span>
+          ) : (
             <span
-              className="fc-tag"
-              style={{ color: THEME_ACCENT[feature.theme] }}
+              className="fc-status-cost"
+              style={{ color: insufficient ? "var(--red)" : THEME_ACCENT[feature.theme] }}
             >
-              {feature.badgeTh}
+              <Coins size={11} /> {feature.cost} แต้ม
             </span>
           )}
         </div>
-        <div className="fc-sub">{feature.subtitleTh}</div>
-        {feature.descriptionTh && (
-          <p className="fc-desc">{feature.descriptionTh}</p>
-        )}
-      </div>
-      <div className="fc-bottom">
-        {isLocked ? (
-          <span className="fc-status-soon">
-            <Lock size={11} /> เร็ว ๆ นี้
-          </span>
-        ) : feature.cost === 0 ? (
-          <span className="fc-status-free" style={{ color: THEME_ACCENT[feature.theme] }}>
-            <Sparkles size={11} /> ฟรี
-          </span>
-        ) : (
-          <span
-            className="fc-status-cost"
-            style={{ color: insufficient ? "var(--red)" : THEME_ACCENT[feature.theme] }}
-          >
-            <Coins size={11} /> {feature.cost} แต้ม
-          </span>
-        )}
-      </div>
-    </FeatureCardLink>
-  );
+      </FeatureCardLink>
+    );
+  }
 }
 
 function FeatureCardLink({

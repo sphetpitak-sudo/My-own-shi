@@ -7,7 +7,7 @@ export interface ReadingDraft {
   spreadType: SpreadType;
   question: string;
   drawnCards: DrawnCard[] | null;
-  step: "spread" | "question" | "draw" | "result";
+  step: "spread" | "topic" | "question" | "draw" | "result";
   updatedAt: number;
 }
 
@@ -31,7 +31,7 @@ export function loadDraft(): ReadingDraft | null {
 
     // Validate fields
     const validSpreads = ["single", "three_card", "celtic"];
-    const validSteps = ["spread", "question", "draw", "result"];
+    const validSteps = ["spread", "topic", "question", "draw", "result"];
 
     if (!validSpreads.includes(parsed.spreadType)) {
       localStorage.removeItem(KEY);
