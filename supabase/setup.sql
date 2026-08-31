@@ -659,25 +659,27 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_column THEN NULL; END $$;
 
 -- ============================================
--- 17. POINTS UPPER BOUND
+-- 17. POINTS — NO LIMIT FOR ADMIN (per user request: unlimited grant/deduct)
 -- ============================================
 DO $$ BEGIN
   ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_points_upper;
-  ALTER TABLE profiles ADD CONSTRAINT profiles_points_upper CHECK (points >= 0 AND points <= 1000000);
+  -- Keep lower bound 0 only; no upper bound for admin flexibility
+  ALTER TABLE profiles ADD CONSTRAINT profiles_points_upper CHECK (points >= 0);
 EXCEPTION WHEN undefined_table THEN NULL; END $$;
--- Cap admin_adjust_points: add check inside function (recreate)
+-- Admin can grant/deduct ANY amount, no per-call cap, no 1M ceiling
 CREATE OR REPLACE FUNCTION admin_adjust_points(p_user_id UUID, p_amount INTEGER, p_reason TEXT DEFAULT '')
 RETURNS void AS $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin) THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
-  IF ABS(p_amount) > 10000 THEN RAISE EXCEPTION 'Amount too large (max 10000)'; END IF;
+  IF p_amount = 0 THEN RAISE EXCEPTION 'Amount must not be 0'; END IF;
+  -- No ABS limit; allow any positive/negative; clamp to 0 floor, no ceiling
   UPDATE profiles
-  SET points = LEAST(1000000, GREATEST(0, points + p_amount))
-  WHERE id = p_user_id AND (points + p_amount) >= 0 AND (points + p_amount) <= 1000000;
+  SET points = GREATEST(0, points + p_amount)
+  WHERE id = p_user_id;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Insufficient points or user not found';
+    RAISE EXCEPTION 'User not found';
   END IF;
   INSERT INTO point_transactions (user_id, amount, type, description, admin_id)
   VALUES (p_user_id, p_amount, 'admin_grant', COALESCE(NULLIF(p_reason, ''), 'Admin adjustment'), auth.uid());
