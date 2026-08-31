@@ -109,7 +109,7 @@ html {
 body {
   background: transparent;
   color: var(--text);
-  font-family: "K2D", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-k2d), "K2D", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -1717,13 +1717,14 @@ button:hover .announce-card {
   margin-bottom: 8px;
 }
 .reading-journal-question-text {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   font-style: italic;
   color: var(--text);
-  margin: 0;
-  line-height: 1.55;
+  margin: 0 auto;
+  line-height: 1.6;
   letter-spacing: -0.01em;
+  max-width: 36em;
 }
 .reading-journal-question-empty {
   font-size: 13px;
@@ -1816,17 +1817,19 @@ button:hover .announce-card {
   background: var(--border);
 }
 .reading-journal-section-body {
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--text-secondary);
   line-height: 1.85;
   letter-spacing: 0.005em;
+  max-width: 68ch;
 }
 .reading-journal-paragraph {
-  font-size: 14px;
-  line-height: 1.9;
+  font-size: 14.5px;
+  line-height: 1.85;
   color: var(--text-secondary);
   margin: 0;
   letter-spacing: 0.005em;
+  max-width: 68ch;
 }
 
 /* === Loading state === */

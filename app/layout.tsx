@@ -1,8 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { K2D } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 import { LangProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/Toast";
+
+const k2d = K2D({
+  subsets: ["latin", "thai"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-k2d",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://catarot.love"),
@@ -48,14 +56,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" suppressHydrationWarning className="h-full antialiased">
+    <html lang="th" suppressHydrationWarning className={`h-full antialiased ${k2d.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=K2D:wght@300;400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
         <script dangerouslySetInnerHTML={{ __html: `
           const theme = localStorage.getItem('theme');
           if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -63,7 +65,7 @@ export default function RootLayout({
           }
         ` }} />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" style={{ fontFamily: "var(--font-k2d), system-ui, sans-serif" }}>
         <div aria-hidden className="global-bg" />
         <div aria-hidden className="global-bg-overlay" />
         <noscript>

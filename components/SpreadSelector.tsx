@@ -68,10 +68,11 @@ export default function SpreadSelector({
             onClick={() => handleSelect(key)}
             aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ ${cost} แต้ม${disabled ? " (แต้มไม่พอ)" : ""}`}
             className={cn(
-              "card p-5 text-left relative overflow-hidden transition-all duration-300 flex flex-col group",
+              "card p-4 text-left relative overflow-hidden flex flex-col group",
               active && "ring-2 ring-[var(--primary)] shadow-md bg-[var(--primary-soft)]",
-              disabled ? "opacity-60 cursor-not-allowed" : "hover:-translate-y-1 hover:border-[var(--primary)] hover:shadow-md cursor-pointer"
+              disabled ? "opacity-60 cursor-not-allowed" : "hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-sm cursor-pointer"
             )}
+            style={{ transition: "transform 200ms var(--ease), border-color 200ms var(--ease), box-shadow 200ms var(--ease)" }}
           >
             {/* Premium Position Layout Diagram — like homepage hero */}
             <div
@@ -131,16 +132,16 @@ export default function SpreadSelector({
               </span>
             </div>
 
-            <h3 className="text-[17px] font-bold text-[var(--text)] group-hover:text-[var(--primary)] transition-colors">
+            <h3 className="text-[14.5px] font-bold text-[var(--text)] group-hover:text-[var(--primary)] transition-colors leading-tight">
               {spread.nameTh}
             </h3>
 
-            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed flex-1">
+            <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed flex-1">
               {spread.descriptionTh}
             </p>
 
             {/* Bottom Meta */}
-            <div className="flex items-center justify-between pt-4 mt-3 border-t border-[var(--border-subtle)] text-[12px]">
+            <div className="flex items-center justify-between pt-3 mt-3 border-t border-[var(--border-subtle)] text-[12px]">
               <span className="font-semibold text-[var(--text-muted)]">{spread.cardCount} ใบ</span>
               <span className={cn("font-extrabold flex items-center gap-1", disabled ? "text-[var(--red)]" : "text-[var(--gold)]")}>
                 <Coins size={12} /> {cost} แต้ม
@@ -191,7 +192,7 @@ export default function SpreadSelector({
       {preview === "celtic" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal>
           <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPreview(null)} aria-label="ปิด" />
-          <div className="relative card p-6 max-w-[520px] w-full max-h-[86vh] overflow-auto" style={{ background: "var(--bg-elevated)" }}>
+          <div className="relative card p-6 max-w-[520px] w-full max-h-[85dvh] overflow-auto" style={{ background: "var(--bg-elevated)" }}>
             <button onClick={() => setPreview(null)} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" style={{ color: "var(--text-muted)" }}><X size={16} /></button>
             <div className="flex items-center gap-2 mb-2">
               <div className="w-9 h-9 rounded-xl grid place-items-center" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}><Sparkles size={16} /></div>

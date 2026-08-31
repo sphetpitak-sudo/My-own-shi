@@ -28,13 +28,13 @@ type LucideIcon = React.ComponentType<{ size?: number; className?: string }>;
 
 type TopicKey = "love" | "career" | "study" | "finance" | "health" | "general";
 
-const TOPICS: Record<TopicKey, { label: string; icon: LucideIcon; desc: string; color: string }> = {
-  love: { label: "ความรัก", icon: Heart, desc: "ความสัมพันธ์ ความรัก โสด มารดา", color: "var(--topic-love)" },
-  career: { label: "การงาน", icon: Briefcase, desc: "อาชีพ การตัดสินใจ เส้นทาง", color: "var(--topic-career)" },
-  study: { label: "การเรียน", icon: GraduationCap, desc: "การศึกษา สอบ การพัฒนาตนเอง", color: "var(--topic-study)" },
-  finance: { label: "การเงิน", icon: Wallet, desc: "เงิน ลงทุน โอกาส การใช้จ่าย", color: "var(--topic-finance)" },
-  health: { label: "สุขภาพ", icon: Activity, desc: "กาย ใจ โยคะ วิถีชีวิต", color: "var(--topic-health)" },
-  general: { label: "ภาพรวม", icon: Sparkles, desc: "คำถามทั่วไป ไม่ระบุหัวข้อ", color: "var(--primary)" },
+const TOPICS: Record<TopicKey, { label: string; icon: LucideIcon; desc: string; color: string; bg: string }> = {
+  love: { label: "ความรัก", icon: Heart, desc: "ความสัมพันธ์ ความรัก โสด มารดา", color: "var(--topic-love)", bg: "var(--topic-love-soft)" },
+  career: { label: "การงาน", icon: Briefcase, desc: "อาชีพ การตัดสินใจ เส้นทาง", color: "var(--topic-career)", bg: "var(--topic-career-soft)" },
+  study: { label: "การเรียน", icon: GraduationCap, desc: "การศึกษา สอบ การพัฒนาตนเอง", color: "var(--topic-study)", bg: "var(--topic-study-soft)" },
+  finance: { label: "การเงิน", icon: Wallet, desc: "เงิน ลงทุน โอกาส การใช้จ่าย", color: "var(--topic-finance)", bg: "var(--topic-finance-soft)" },
+  health: { label: "สุขภาพ", icon: Activity, desc: "กาย ใจ โยคะ วิถีชีวิต", color: "var(--topic-health)", bg: "var(--topic-health-soft)" },
+  general: { label: "ภาพรวม", icon: Sparkles, desc: "คำถามทั่วไป ไม่ระบุหัวข้อ", color: "var(--primary)", bg: "var(--primary-soft)" },
 };
 
 interface Props {
@@ -471,8 +471,8 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
             <CalendarDays size={12} />
             {readingDate}
           </span>
-          {topicData && (
-            <span className="reading-journal-pill badge-{topicKey}">
+          {topicData && topicKey !== "general" && (
+            <span className={`reading-journal-pill badge-${topicKey}`} style={{ background: topicData.bg, color: topicData.color, borderColor: `${topicData.color}30` }}>
               <topicData.icon size={11} /> {topicData.label}
             </span>
           )}

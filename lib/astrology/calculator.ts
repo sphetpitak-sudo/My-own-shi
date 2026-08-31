@@ -5,7 +5,6 @@ import {
   Equator,
   Ecliptic,
   SiderealTime,
-  EclipticCoordinates,
 } from "astronomy-engine";
 import type { BirthChart, BirthInput, ZodiacSign, Planet, PlanetPosition } from "./types";
 import { ZODIAC_SIGNS } from "./types";

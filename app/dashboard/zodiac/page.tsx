@@ -175,7 +175,7 @@ export default function ZodiacPage() {
 
         {submitted && identity && (
           <div className="mt-5">
-            {/* Identity */}
+            {/* Identity — unified with Daily hero */}
             <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
               <div
                 className="rounded-2xl p-4 text-center"
@@ -184,16 +184,16 @@ export default function ZodiacPage() {
                   border: "1px solid rgba(129,140,248,0.18)",
                 }}
               >
-                <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "#818cf8" }}>
+                <div className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: "#818cf8" }}>
                   ราศี
                 </div>
-                <div className="text-[34px] leading-none my-1.5" style={{ color: "#818cf8" }}>
+                <div className="w-12 h-12 mx-auto my-2 rounded-xl grid place-items-center text-[22px]" style={{ background: "rgba(129,140,248,0.12)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.18)" }}>
                   {identity.sign.symbol}
                 </div>
-                <div className="text-[16px] font-extrabold" style={{ color: "var(--text)" }}>
+                <div className="text-[14.5px] font-extrabold" style={{ color: "var(--text)" }}>
                   {identity.sign.nameTh}
                 </div>
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                <div className="text-[11.5px] mt-0.5" style={{ color: "var(--text-muted)" }}>
                   {identity.sign.range}
                 </div>
               </div>
@@ -204,14 +204,16 @@ export default function ZodiacPage() {
                   border: "1px solid rgba(212,175,55,0.18)",
                 }}
               >
-                <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--gold)" }}>
+                <div className="text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--gold)" }}>
                   ปีนักษัตร
                 </div>
-                <div className="text-[34px] leading-none my-1.5">{identity.animal.symbol}</div>
-                <div className="text-[16px] font-extrabold" style={{ color: "var(--text)" }}>
+                <div className="w-12 h-12 mx-auto my-2 rounded-xl grid place-items-center text-[22px]" style={{ background: "rgba(212,175,55,0.12)", color: "var(--gold)", border: "1px solid rgba(212,175,55,0.18)" }}>
+                  {identity.animal.symbol}
+                </div>
+                <div className="text-[14.5px] font-extrabold" style={{ color: "var(--text)" }}>
                   {identity.animal.yearTh}
                 </div>
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                <div className="text-[11.5px] mt-0.5" style={{ color: "var(--text-muted)" }}>
                   ปี {identity.animal.animal}
                 </div>
               </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles, BookOpen, Compass, Lightbulb, Copy, Check } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, CreditCard, Sparkles, BookOpen, Compass, Lightbulb, Copy, Check, Star, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import type { Reading } from "@/lib/types";
@@ -233,30 +233,36 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
               placeholder="ค้นหาคำถามหรือคำทำนาย..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="input pr-9"
+              className="input pr-10"
               style={{ fontSize: 13 }}
               aria-label="ค้นหาประวัติ"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>⌕</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-muted)" }} aria-hidden>
+              <Search size={14} />
+            </span>
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            {["all", "favorites", "single", "three_card", "celtic", "oracle"].map((k) => (
-              <button
-                key={k}
-                onClick={() => setFilter(k)}
-                className="chip"
-                style={{
-                  flexShrink: 0,
-                  padding: "6px 12px",
-                  fontSize: 12,
-                  background: filter === k ? "var(--primary)" : "var(--bg-card)",
-                  color: filter === k ? "white" : "var(--text-secondary)",
-                  borderColor: filter === k ? "var(--primary)" : "var(--border)",
-                }}
-              >
-                {k === "all" ? "ทั้งหมด" : k === "favorites" ? `⭐ โปรด (${favorites.size})` : SPREAD_LABELS[k] || k}
-              </button>
-            ))}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+            {["all", "favorites", "single", "three_card", "celtic", "oracle"].map((k) => {
+              const isFav = k === "favorites";
+              return (
+                <button
+                  key={k}
+                  onClick={() => setFilter(k)}
+                  className="chip"
+                  style={{
+                    flexShrink: 0,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    background: filter === k ? "var(--primary)" : "var(--bg-card)",
+                    color: filter === k ? "white" : "var(--text-secondary)",
+                    borderColor: filter === k ? "var(--primary)" : "var(--border)",
+                  }}
+                >
+                  {isFav && <Star size={11} fill={filter === k ? "white" : "none"} style={{ display: "inline", verticalAlign: "middle" }} />}
+                  {k === "all" ? "ทั้งหมด" : isFav ? ` โปรด (${favorites.size})` : SPREAD_LABELS[k] || k}
+                </button>
+              );
+            })}
           </div>
         </>
       )}
@@ -284,8 +290,11 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
 
         return (
           <div key={r.id} id={`reading-${r.id}`} className="card" style={{ overflow: "hidden" }}>
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setExpandedId(isExpanded ? null : r.id)}
+              onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedId(isExpanded ? null : r.id); } }}
               style={{
                 width: "100%",
                 textAlign: "left",
@@ -351,7 +360,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                   className="w-7 h-7 grid place-items-center rounded-full"
                   style={{ background: favorites.has(r.id) ? "var(--gold-soft)" : "var(--bg)", border: `1px solid ${favorites.has(r.id) ? "var(--gold)" : "var(--border)"}`, color: favorites.has(r.id) ? "var(--gold)" : "var(--text-muted)" }}
                 >
-                  <span style={{ fontSize: 12 }}>{favorites.has(r.id) ? "★" : "☆"}</span>
+                  <Star size={12} fill={favorites.has(r.id) ? "currentColor" : "none"} />
                 </button>
                 {isExpanded ? (
                   <ChevronUp size={16} style={{ color: "var(--text-muted)" }} />
@@ -359,7 +368,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                   <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />
                 )}
               </div>
-            </button>
+            </div>
 
             {isExpanded && (() => {
               const sections = r.interpretation ? parseHistorySections(r.interpretation) : [];

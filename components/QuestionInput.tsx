@@ -55,19 +55,27 @@ export default function QuestionInput({
           </span>
         </div>
 
-        <p className="text-[11.5px] font-semibold" style={{ color: hint.color }}>{hint.label}</p>
-        <textarea
-          id="question-input"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="เขียนคำถามหรือสิ่งที่อยู่ในใจของคุณ... (เว้นว่างได้ — จะอ่านภาพรวมทั่วไป)"
-          rows={4}
-          maxLength={500}
-          disabled={loading}
-          aria-label="คำถามของคุณ"
-          className="input resize-none text-[15px] leading-relaxed p-4 min-h-[120px] bg-[var(--bg)] border-[var(--border-strong)] focus:border-[var(--primary)] rounded-xl"
-        />
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: hint.color }} aria-hidden />
+          <p className="text-[11.5px] font-semibold" style={{ color: hint.color }}>{hint.label}</p>
+        </div>
+        <div className="relative">
+          <textarea
+            id="question-input"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="เช่น เรื่องงานที่ลังเลตอนนี้ ควรตัดสินใจอย่างไรดี?"
+            rows={3}
+            maxLength={500}
+            disabled={loading}
+            aria-label="คำถามของคุณ"
+            className="input resize-none text-[14.5px] leading-[1.7] p-4 min-h-[100px] sm:min-h-[120px] bg-[var(--bg)] border-[var(--border-strong)] focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_var(--primary-soft)] rounded-xl placeholder:text-[13.5px] placeholder:leading-relaxed"
+          />
+          <div className="absolute bottom-2 right-2 h-1 w-24 rounded-full overflow-hidden pointer-events-none" style={{ background: "var(--border-subtle)" }} aria-hidden>
+            <div className="h-full transition-all duration-200" style={{ width: `${Math.min(100, (value.length / 500) * 100)}%`, background: value.length > 480 ? "var(--red)" : value.length > 350 ? "var(--amber)" : "var(--primary)", opacity: 0.7 }} />
+          </div>
+        </div>
 
         {/* Suggestion Chips */}
         <div className="space-y-2 pt-1">
