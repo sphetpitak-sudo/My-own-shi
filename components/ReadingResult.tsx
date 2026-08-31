@@ -262,8 +262,8 @@ export default function ReadingResult({ cards, spreadType, question, onDone, onP
     setFollowError("");
 
     const abortController = new AbortController();
-    // Must be > server total timeout (celtic 55s) + buffer
-    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 65_000);
+    // Must be > server total timeout (celtic 65s) + buffer
+    let clientTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => abortController.abort(), 75_000);
     const clearClientTimeout = () => { if (clientTimeout) { clearTimeout(clientTimeout); clientTimeout = null; } };
     try {
       const res = await fetch("/api/reading", {

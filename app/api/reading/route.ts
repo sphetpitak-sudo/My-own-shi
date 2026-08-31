@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel } from "@/lib/ai";
-import { READING_SYSTEM_PROMPT, buildReadingUserPrompt } from "@/lib/prompts";
+import { READING_SYSTEM_PROMPT_SINGLE, READING_SYSTEM_PROMPT_THREE, READING_SYSTEM_PROMPT_CELTIC, buildReadingUserPrompt } from "@/lib/prompts";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -152,13 +152,17 @@ export async function POST(request: Request) {
       } catch {}
     }, params.timeoutMs);
 
+    const readingPrompt = spreadType === "celtic" ? READING_SYSTEM_PROMPT_CELTIC :
+                          spreadType === "single" ? READING_SYSTEM_PROMPT_SINGLE :
+                          READING_SYSTEM_PROMPT_THREE;
+
     let stream: Awaited<ReturnType<typeof getOpenAI extends () => infer R ? R extends { chat: { completions: { create: (...a: unknown[]) => Promise<infer S> } } } ? () => Promise<S> : never : never>> | null = null;
     try {
       const createPromise = getOpenAI().chat.completions.create(
         {
           model: AI_MODEL,
           messages: [
-            { role: "system", content: READING_SYSTEM_PROMPT },
+            { role: "system", content: readingPrompt },
             { role: "user", content: userPrompt },
           ],
           temperature: params.temperature,
