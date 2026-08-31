@@ -74,7 +74,7 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
               boxShadow: "0 2px 10px rgba(167, 139, 250, 0.25)",
             }}
           >
-            <Image src="/LOGO.png" alt="Sealo" width={40} height={40} className="w-full h-full object-cover" />
+            <Image src="/logo-192.webp" alt="Sealo" width={40} height={40} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0">
             <span className="text-[16px] font-extrabold tracking-tight text-white block leading-tight">Sealo</span>

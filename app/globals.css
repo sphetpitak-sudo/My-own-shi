@@ -122,7 +122,7 @@ body {
   inset: 0;
   height: 68vh;
   z-index: -2;
-  background-image: url('/Background.png');
+  background-image: image-set(url('/Background.webp') type('image/webp'), url('/Background.png') type('image/png'));
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;

@@ -47,7 +47,7 @@ export default function Topbar({
             }}
           >
             <Image
-              src="/LOGO.png"
+              src="/logo-512.webp"
               alt="Sealo"
               width={32}
               height={32}

@@ -113,7 +113,10 @@ export default function CardCollection({ userId }: Props) {
             <button key={card.id} onClick={()=> discovered && setSelected(card.id)} className={`card p-2 flex flex-col items-center gap-1.5 ${discovered? "hover:border-[var(--primary)] cursor-pointer":"opacity-40"}`} style={{ background: discovered? "var(--bg-card)":"var(--bg)"}}>
               <div className="relative">
                 {discovered ? (
-                  <img src={`/Taro/${card.imageFile}`} alt={card.nameTh} className="w-[72px] h-[108px] object-contain rounded-md" loading="lazy" />
+                  <picture className="block">
+                    <source srcSet={`/Taro/${card.imageFile.replace(/\.jpg$/i, ".webp")}`} type="image/webp" />
+                    <img src={`/Taro/${card.imageFile}`} alt={card.nameTh} className="w-[72px] h-[108px] object-contain rounded-md" loading="lazy" decoding="async" />
+                  </picture>
                 ) : (
                   <div className="w-[72px] h-[108px] rounded-md grid place-items-center" style={{ background:"linear-gradient(160deg,#1d0e38,#0a0614)", border:"1px solid var(--border)"}}><Sparkles size={18} style={{ color:"var(--text-muted)"}} /></div>
                 )}
@@ -132,7 +135,10 @@ export default function CardCollection({ userId }: Props) {
           <div className="relative card max-w-[420px] w-full p-5 max-h-[86vh] overflow-auto">
             <button onClick={()=>setSelected(null)} className="absolute top-2 right-2 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]"><RefreshCw size={14} style={{ transform:"rotate(45deg)"}} /></button>
             <div className="flex gap-4">
-              <img src={`/Taro/${card.imageFile}`} alt={card.nameTh} className="w-[120px] h-[180px] object-contain rounded-lg flex-shrink-0" />
+              <picture className="block flex-shrink-0">
+                <source srcSet={`/Taro/${card.imageFile.replace(/\.jpg$/i, ".webp")}`} type="image/webp" />
+                <img src={`/Taro/${card.imageFile}`} alt={card.nameTh} className="w-[120px] h-[180px] object-contain rounded-lg" loading="lazy" decoding="async" />
+              </picture>
               <div>
                 <h3 className="text-[17px] font-extrabold" style={{ color:"var(--text)"}}>{card.nameTh}</h3>
                 <p className="text-[12px]" style={{ color:"var(--text-muted)"}}>{card.name} · {card.suit}</p>

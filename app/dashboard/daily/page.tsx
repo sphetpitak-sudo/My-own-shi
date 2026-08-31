@@ -161,16 +161,20 @@ export default function DailyPage() {
               className="w-[68px] aspect-[2/3] rounded-lg overflow-hidden flex items-center justify-center"
               style={{ background: "linear-gradient(160deg, #1e0e3a, #14082a)" }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/Taro/${day.card.imageFile}`}
-                alt={day.card.nameTh}
-                className="w-full h-full"
-                style={{
-                  objectFit: "contain",
-                  transform: day.card.reversed ? "rotate(180deg)" : undefined,
-                }}
-              />
+              <picture className="w-full h-full block">
+                <source srcSet={`/Taro/${day.card.imageFile.replace(/\.jpg$/i, ".webp")}`} type="image/webp" />
+                <img
+                  src={`/Taro/${day.card.imageFile}`}
+                  alt={day.card.nameTh}
+                  className="w-full h-full"
+                  loading="lazy"
+                  decoding="async"
+                  style={{
+                    objectFit: "contain",
+                    transform: day.card.reversed ? "rotate(180deg)" : undefined,
+                  }}
+                />
+              </picture>
             </div>
           </div>
           <div className="flex-1 min-w-0">

@@ -206,19 +206,22 @@ export default function TarotCard({
           }}
           aria-hidden={!flipped}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/Taro/${card.imageFile}`}
-            alt={card.name}
-            className="w-full h-full"
-            decoding="async"
-            style={{
-              objectFit: "contain",
-              transform: reversed ? "rotate(180deg)" : undefined,
-              borderRadius: Math.max(2, dim.radius - 2),
-              background: "#0e0e14",
-            }}
-          />
+          <picture className="w-full h-full block">
+            <source srcSet={`/Taro/${card.imageFile.replace(/\.jpg$/i, ".webp")}`} type="image/webp" />
+            <img
+              src={`/Taro/${card.imageFile}`}
+              alt={card.name}
+              className="w-full h-full"
+              loading="lazy"
+              decoding="async"
+              style={{
+                objectFit: "contain",
+                transform: reversed ? "rotate(180deg)" : undefined,
+                borderRadius: Math.max(2, dim.radius - 2),
+                background: "#0e0e14",
+              }}
+            />
+          </picture>
 
           {reversed && flipped && (
             <div

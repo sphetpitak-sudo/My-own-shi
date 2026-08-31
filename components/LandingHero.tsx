@@ -31,7 +31,7 @@ export default function LandingHero() {
   };
 
   return (
-    <div className="starfield relative overflow-hidden min-h-[90vh] sm:min-h-[92vh] flex items-center justify-center">
+    <div className="starfield relative overflow-hidden min-h-[70vh] sm:min-h-[72vh] flex items-center justify-center">
       {/* Ambient mystical radial light */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -42,12 +42,12 @@ export default function LandingHero() {
       />
 
       {/* Hero content - centered */}
-      <div className="relative z-10 flex flex-col items-center text-center px-6 pt-20 sm:pt-28 pb-20 max-w-4xl mx-auto">
+      <div className="relative z-10 flex flex-col items-center text-center px-6 pt-16 sm:pt-20 pb-12 max-w-4xl mx-auto">
         {/* Logo with cosmic glow */}
         <div className="mb-6 animate-in">
           <div className="relative inline-block">
             <Image
-              src="/LOGO.png"
+              src="/logo-512.webp"
               alt="Sealo"
               width={80}
               height={80}
