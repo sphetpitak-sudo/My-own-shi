@@ -23,7 +23,7 @@ export const AI_PARAMS = {
   reading: {
     single: { temperature: 0.7, max_tokens: 600, timeoutMs: 32_000, firstTokenMs: 18_000 },
     three_card: { temperature: 0.7, max_tokens: 800, timeoutMs: 38_000, firstTokenMs: 18_000 },
-    celtic: { temperature: 0.7, max_tokens: 1100, timeoutMs: 50_000, firstTokenMs: 22_000 },
+    celtic: { temperature: 0.7, max_tokens: 1300, timeoutMs: 55_000, firstTokenMs: 22_000 },
   },
   followup: { temperature: 0.7, max_tokens: 400, timeoutMs: 25_000, firstTokenMs: 15_000 },
   oracle: {
@@ -62,8 +62,8 @@ export function sanitizeForPrompt(input: string, maxLen: number): string {
 export function isValidPositionLabel(s: string): boolean {
   if (typeof s !== "string") return false;
   if (s.length === 0 || s.length > LIMITS.positionLabelMax) return false;
-  // Allow Thai range ก-๛, basic Latin, digits, space, -_.(),/
-  return /^[\u0E00-\u0E7FA-Za-z0-9 \-_.(),\/]+$/.test(s);
+  // Allow Thai range ก-๛, basic Latin, digits, space, -_.(),/ and & (for "Hopes & Fears")
+  return /^[\u0E00-\u0E7FA-Za-z0-9 \-_.(),\/&]+$/.test(s);
 }
 
 // Extract a JSON object from an AI response (handles markdown fences / stray text)

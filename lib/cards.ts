@@ -85,7 +85,7 @@ export const SPREADS: Record<SpreadType, Spread> = {
       { label: "Near Future", labelTh: "อนาคตใกล้", x: 65, y: 80 },
       { label: "Your Attitude", labelTh: "ทัศนคติ", x: 65, y: 60 },
       { label: "External Influence", labelTh: "อิทธิพลรอบข้าง", x: 65, y: 40 },
-      { label: "Hopes & Fears", labelTh: "ความหวัง & ความกลัว", x: 65, y: 20 },
+      { label: "Hopes and Fears", labelTh: "ความหวังและความกลัว", x: 65, y: 20 },
       { label: "Final Outcome", labelTh: "ผลลัพธ์สุดท้าย", x: 80, y: 50 },
     ],
   },
