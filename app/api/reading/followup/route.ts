@@ -192,8 +192,8 @@ export async function POST(request: Request) {
           }
           clearTimeout(timeoutId);
           if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
-          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-          controller.close();
+
+          // Persist BEFORE sending [DONE]
           try {
             await supabase.from("reading_followups").update({ answer: fullAnswer.slice(0, 2000) }).eq("id", pendingId).eq("user_id", user.id);
           } catch (e) {
@@ -202,7 +202,10 @@ export async function POST(request: Request) {
               await supabase.from("reading_followups").delete().eq("id", pendingId);
             } catch {}
           }
-        } catch {
+
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+          controller.close();
+        } catch (err) {
           clearTimeout(timeoutId);
           if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
           if (!deleted) {

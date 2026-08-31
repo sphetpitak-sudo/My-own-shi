@@ -243,6 +243,28 @@ export async function POST(request: Request) {
           }
           clearTimeout(timeoutId);
           if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+
+          // Persist final interpretation BEFORE sending [DONE] so it survives serverless termination
+          if (!failed) {
+            try {
+              const finalText = fullText.trim().slice(0, LIMITS.interpretationMax);
+              if (finalText) {
+                await withTimeout(
+                  supabase.from("readings").update({ interpretation: finalText }).eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>,
+                  15000 // increased timeout for larger Celtic readings
+                );
+              } else {
+                await withTimeout(supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>, 5000);
+                try {
+                  await withTimeout(supabase.rpc("refund_by_reading", { p_reading_id: readingId }) as unknown as Promise<unknown>, 5000);
+                } catch {}
+              }
+            } catch (e) {
+              console.error("Failed to persist reading", e);
+              // Don't fail the stream if persist fails — client already has content
+            }
+          }
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ readingId })}\n\n`));
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
@@ -274,27 +296,6 @@ export async function POST(request: Request) {
             controller.error(new Error("Streaming failed"));
           } catch {}
           return;
-        }
-        if (!failed) {
-          // Persist final interpretation exactly once via update (guard DB hang)
-          try {
-            const finalText = fullText.trim().slice(0, LIMITS.interpretationMax);
-            if (finalText) {
-              await withTimeout(
-                supabase.from("readings").update({ interpretation: finalText }).eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>,
-                8000
-              ).catch(() => {
-                console.error("Persist timeout, keeping __generating__ for cleanup");
-              });
-            } else {
-              await withTimeout(supabase.from("readings").delete().eq("id", readingId).eq("user_id", user.id) as unknown as Promise<unknown>, 5000).catch(() => {});
-              try {
-                await withTimeout(supabase.rpc("refund_by_reading", { p_reading_id: readingId }) as unknown as Promise<unknown>, 5000).catch(() => {});
-              } catch {}
-            }
-          } catch (e) {
-            console.error("Failed to persist reading", e);
-          }
         }
       },
       cancel() {
