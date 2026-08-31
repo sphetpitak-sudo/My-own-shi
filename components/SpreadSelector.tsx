@@ -73,37 +73,55 @@ export default function SpreadSelector({
               disabled ? "opacity-60 cursor-not-allowed" : "hover:-translate-y-1 hover:border-[var(--primary)] hover:shadow-md cursor-pointer"
             )}
           >
-            {/* Position Layout Diagram Preview */}
+            {/* Premium Position Layout Diagram — like homepage hero */}
             <div
-              className="h-24 rounded-xl relative overflow-hidden mb-4 flex items-center justify-center border border-[var(--border-subtle)]"
+              className="h-36 rounded-xl relative overflow-hidden mb-4 flex items-center justify-center border"
               style={{
-                background: "linear-gradient(160deg, #180d28 0%, #0a0614 100%)",
+                background: "radial-gradient(ellipse 90% 70% at 50% 0%, rgba(167,139,250,0.18) 0%, #0f0a1e 55%, #0a0614 100%)",
+                borderColor: active ? "rgba(212,175,55,0.45)" : "var(--border-subtle)",
+                boxShadow: active ? "0 8px 24px rgba(212,175,55,0.18), inset 0 1px 0 rgba(255,255,255,0.06)" : "inset 0 1px 0 rgba(255,255,255,0.04)",
               }}
             >
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: "radial-gradient(circle at 50% 30%, rgba(167, 139, 250, 0.15), transparent 65%)",
-                }}
-              />
-              {meta.dots.map((pos, i) => (
-                <div
-                  key={i}
-                  className="absolute"
-                  style={{
-                    width: 10,
-                    height: 15,
-                    left: `${pos[0]}%`,
-                    top: `${pos[1]}%`,
-                    transform: "translate(-50%, -50%)",
-                    background: active ? "rgba(212, 175, 55, 0.6)" : "rgba(212, 175, 55, 0.35)",
-                    border: "1px solid rgba(212, 175, 55, 0.7)",
-                    borderRadius: 2,
-                    zIndex: 1,
-                    boxShadow: active ? "0 0 8px rgba(212, 175, 55, 0.4)" : "none",
-                  }}
-                />
-              ))}
+              {/* starfield dots like hero */}
+              <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: "radial-gradient(1px 1px at 20% 30%, white, transparent), radial-gradient(1px 1px at 70% 20%, white, transparent), radial-gradient(1px 1px at 85% 70%, white, transparent), radial-gradient(1px 1px at 30% 75%, white, transparent)" }} />
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 35%, rgba(167,139,250,0.16), transparent 60%)" }} />
+              {/* centered glow */}
+              <div className="absolute w-24 h-24 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(212,175,55,0.10), transparent 70%)", filter: "blur(6px)" }} />
+              {/* Cards layout */}
+              <div className="relative flex items-center justify-center w-full h-full p-2">
+                {key === "single" && (
+                  <div className="relative w-[54px] h-[84px] rounded-[6px] border flex items-center justify-center shadow-lg group-hover:-translate-y-1 transition-transform duration-300" style={{ background: "linear-gradient(160deg,#1e0e3a,#2d1548 35%,#1a0a2e 70%)", borderColor: "rgba(212,175,55,0.55)", boxShadow: "0 6px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(212,175,55,0.12)" }}>
+                    <div className="absolute inset-[4px] rounded-[4px] border border-[rgba(201,168,76,0.18)]" />
+                    <div className="w-5 h-5 rounded-full border border-[rgba(201,168,76,0.20)] grid place-items-center"><div className="w-1.5 h-1.5 rounded-full bg-[rgba(212,175,55,0.9)] shadow-[0_0_6px_rgba(212,175,55,0.7)]" /></div>
+                    <div className="absolute w-5 h-5" style={{ background: "rgba(201,168,76,0.14)", clipPath: "polygon(50% 0%, 61% 35%, 100% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 0% 35%, 39% 35%)", top: "50%", left: "50%", transform: "translate(-50%,-50%) scale(0.6)", opacity: 0.9 }} />
+                  </div>
+                )}
+                {key === "three_card" && (
+                  <div className="flex items-center justify-center -space-x-2">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="w-[42px] h-[64px] rounded-[5px] border flex items-center justify-center shrink-0 shadow-md group-hover:-translate-y-1 transition-transform" style={{ background: "linear-gradient(160deg,#1e0e3a,#2d1548)", borderColor: "rgba(212,175,55,0.50)", transform: `rotate(${(i-1)*6}deg)`, transitionDelay: `${i*50}ms`, zIndex: i===1?2:1 }}>
+                        <div className="absolute inset-[3px] rounded-[3px] border border-[rgba(201,168,76,0.14)] pointer-events-none" />
+                        <div className="w-3.5 h-3.5 rounded-full border border-[rgba(201,168,76,0.18)] grid place-items-center"><div className="w-1 h-1 rounded-full bg-[rgba(212,175,55,0.85)]" /></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {key === "celtic" && (
+                  <div className="relative w-full h-full max-w-[180px] max-h-[120px]">
+                    {meta.dots.map((pos, i) => (
+                      <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center" style={{ left: `${pos[0]}%`, top: `${pos[1]}%` }}>
+                        <div className="w-[18px] h-[26px] rounded-[3px] border flex items-center justify-center shadow-sm group-hover:scale-[1.02] transition-transform" style={{ background: active ? "linear-gradient(160deg,#2d1a4a,#1e0e3a)" : "linear-gradient(160deg,#1d0e38,#1a0a2e)", borderColor: "rgba(212,175,55,0.55)", boxShadow: active ? "0 0 6px rgba(212,175,55,0.25)" : "0 2px 6px rgba(0,0,0,0.35)" }}>
+                          <span className="text-[5px] font-bold" style={{ color: "rgba(253,230,160,0.9)" }}>{i+1}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {/* center cross glow */}
+                    <div className="absolute w-10 h-10 rounded-full pointer-events-none" style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)", background: "radial-gradient(circle, rgba(212,175,55,0.12), transparent 70%)", filter: "blur(4px)" }} />
+                  </div>
+                )}
+              </div>
+              {/* active ring */}
+              {active && <div className="absolute inset-0 rounded-xl pointer-events-none" style={{ boxShadow: "inset 0 0 0 1px rgba(212,175,55,0.22), inset 0 1px 0 rgba(255,255,255,0.06)" }} />}
             </div>
 
             {/* Content */}

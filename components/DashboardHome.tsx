@@ -305,18 +305,43 @@ export default function DashboardHome() {
                 )}
                 aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ, ${cost} แต้ม${insufficient ? " (แต้มไม่พอ)" : ""}`}
               >
-                {/* card back visual */}
-                <div className="relative h-[112px] flex items-center justify-center overflow-hidden" style={{ background: isPopular ? "linear-gradient(135deg,#1e1035,#2a1650 45%,#1a102e)" : "linear-gradient(135deg,#1a1033,#1e1740)", borderBottom: "1px solid var(--border-subtle)" }}>
-                  <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 20%, rgba(167,139,250,0.22), transparent 60%)" }} />
-                  <div className="flex items-center justify-center -space-x-2">
-                    {Array.from({ length: spread.cardCount > 3 ? 3 : spread.cardCount }).map((_, i) => (
-                      <div key={i} className="w-[38px] h-[58px] rounded-[4px] border flex items-center justify-center shrink-0 group-hover:-translate-y-1 transition-transform" style={{ background: "linear-gradient(160deg,#1e0e3a,#2d1548)", borderColor: "rgba(212,175,55,0.45)", boxShadow: "0 4px 12px rgba(0,0,0,0.35)", transform: `rotate(${(i-1)*4}deg)`, transitionDelay: `${i*40}ms` }}>
-                        <div className="w-[18px] h-[18px] rounded-full border border-[rgba(212,175,55,0.18)] grid place-items-center"><div className="w-1 h-1 rounded-full bg-[rgba(212,175,55,0.9)]" /></div>
+                {/* premium card back visual — like homepage hero */}
+                <div className="relative h-[132px] flex items-center justify-center overflow-hidden" style={{ background: isPopular ? "radial-gradient(ellipse 90% 70% at 50% 0%, rgba(167,139,250,0.18) 0%, #0f0a1e 55%, #0a0614 100%)" : "radial-gradient(ellipse 90% 70% at 50% 0%, rgba(167,139,250,0.10) 0%, #0f0a1e 60%, #0a0614 100%)", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: "radial-gradient(1px 1px at 22% 28%, white, transparent), radial-gradient(1px 1px at 68% 18%, white, transparent), radial-gradient(1px 1px at 84% 68%, white, transparent)" }} />
+                  <div className="absolute inset-0 opacity-40 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 35%, rgba(167,139,250,0.16), transparent 60%)" }} />
+                  <div className="absolute w-20 h-20 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(212,175,55,0.10), transparent 70%)", filter: "blur(6px)", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }} />
+                  <div className="relative flex items-center justify-center w-full h-full p-2">
+                    {key === "single" && (
+                      <div className="w-[46px] h-[72px] rounded-[5px] border flex items-center justify-center shadow-lg group-hover:-translate-y-1 transition-transform duration-300" style={{ background: "linear-gradient(160deg,#1e0e3a,#2d1548 35%,#1a0a2e 70%)", borderColor: "rgba(212,175,55,0.55)", boxShadow: "0 6px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(212,175,55,0.12)" }}>
+                        <div className="absolute inset-[3px] rounded-[3px] border border-[rgba(201,168,76,0.18)] pointer-events-none" />
+                        <div className="w-4 h-4 rounded-full border border-[rgba(201,168,76,0.18)] grid place-items-center"><div className="w-1.5 h-1.5 rounded-full bg-[rgba(212,175,55,0.9)] shadow-[0_0_6px_rgba(212,175,55,0.6)]" /></div>
                       </div>
-                    ))}
-                    {spread.cardCount > 3 && <span className="ml-3 text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.12)" }}>+{spread.cardCount - 3}</span>}
+                    )}
+                    {key === "three_card" && (
+                      <div className="flex items-center justify-center -space-x-1.5">
+                        {[0, 1, 2].map(i => (
+                          <div key={i} className="w-[36px] h-[56px] rounded-[4px] border flex items-center justify-center shrink-0 shadow-md group-hover:-translate-y-1 transition-transform" style={{ background: "linear-gradient(160deg,#1e0e3a,#2d1548)", borderColor: "rgba(212,175,55,0.50)", transform: `rotate(${(i-1)*6}deg)`, transitionDelay: `${i*40}ms`, zIndex: i===1?2:1 }}>
+                            <div className="absolute inset-[3px] rounded-[3px] border border-[rgba(201,168,76,0.14)] pointer-events-none" />
+                            <div className="w-3 h-3 rounded-full border border-[rgba(201,168,76,0.16)] grid place-items-center"><div className="w-1 h-1 rounded-full bg-[rgba(212,175,55,0.85)]" /></div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {key === "celtic" && (
+                      <div className="relative w-full h-full max-w-[160px] max-h-[110px]">
+                        {[
+                          [35,50],[50,50],[35,80],[35,20],[35,5],[65,80],[65,60],[65,40],[65,20],[80,50]
+                        ].map((pos, i) => (
+                          <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${pos[0]}%`, top: `${pos[1]}%` }}>
+                            <div className="w-[16px] h-[24px] rounded-[2px] border flex items-center justify-center shadow-sm group-hover:scale-[1.03] transition-transform" style={{ background: isPopular ? "linear-gradient(160deg,#2d1a4a,#1e0e3a)" : "linear-gradient(160deg,#1d0e38,#1a0a2e)", borderColor: "rgba(212,175,55,0.50)", boxShadow: isPopular ? "0 0 6px rgba(212,175,55,0.22)" : "0 2px 6px rgba(0,0,0,0.35)" }}>
+                              <span className="text-[4.5px] font-bold" style={{ color: "rgba(253,230,160,0.9)" }}>{i+1}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <span className="absolute top-2 right-2 text-[9.5px] font-extrabold tracking-widest uppercase px-2 py-1 rounded-full" style={{ background: insufficient ? "rgba(239,68,68,0.14)" : isPopular ? "rgba(167,139,250,0.18)" : "rgba(255,255,255,0.07)", color: insufficient ? "#fca5a5" : isPopular ? "#ddd6fe" : "rgba(255,255,255,0.72)", border: `1px solid ${insufficient ? "rgba(239,68,68,0.18)" : isPopular ? "rgba(167,139,250,0.22)" : "rgba(255,255,255,0.12)"}` }}>{insufficient ? "แต้มไม่พอ" : SPREAD_BADGE[key]}</span>
+                  <span className="absolute top-2 right-2 text-[9.5px] font-extrabold tracking-widest uppercase px-2 py-1 rounded-full backdrop-blur-sm" style={{ background: insufficient ? "rgba(239,68,68,0.14)" : isPopular ? "rgba(167,139,250,0.20)" : "rgba(255,255,255,0.08)", color: insufficient ? "#fca5a5" : isPopular ? "#ddd6fe" : "rgba(255,255,255,0.72)", border: `1px solid ${insufficient ? "rgba(239,68,68,0.20)" : isPopular ? "rgba(167,139,250,0.28)" : "rgba(255,255,255,0.14)"}` }}>{insufficient ? "แต้มไม่พอ" : SPREAD_BADGE[key]}</span>
                 </div>
                 <div className="p-3.5">
                   <div className="text-[14px] font-extrabold leading-none" style={{ color: "var(--text)" }}>{spread.nameTh}</div>
