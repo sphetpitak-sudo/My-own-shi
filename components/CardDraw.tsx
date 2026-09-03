@@ -92,36 +92,49 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
         </div>
       </div>
 
-      {/* Cards Table Spread Area */}
+      {/* Cards Table Spread Area — tactile, deliberate */}
       <div
         className={cn(
           "flex flex-wrap justify-center items-start gap-4 sm:gap-6 p-4 rounded-2xl w-full",
           spread.cardCount === 10 ? "max-w-[760px]" : spread.cardCount === 3 ? "max-w-[560px]" : "max-w-[320px]"
         )}
+        style={{ perspective: "1200px" }}
       >
         {drawnCards.map((dc, i) => {
           const isFlipped = flippedIndices.has(i);
+          const isSelected = isFlipped;
           return (
             <div
               key={i}
               className="flex flex-col items-center gap-2.5"
               style={{
-                animationDelay: `${i * 0.08}s`,
-                animation: "fadeUp 0.5s var(--ease) both",
+                animationDelay: `${i * 0.07}s`,
+                animation: "fadeUp 0.48s var(--ease-magic) both",
+                willChange: "transform, opacity",
               }}
             >
-              <TarotCard
-                card={dc.card}
-                reversed={dc.reversed}
-                flipped={isFlipped}
-                size={spread.cardCount === 10 ? "sm" : spread.cardCount === 1 ? "lg" : "md"}
-                onClick={isFlipped ? undefined : () => handleFlip(i)}
-                ariaLabel={
-                  isFlipped
-                    ? `${dc.card.nameTh}${dc.reversed ? " กลับหัว" : ""}`
-                    : `ไพ่ใบที่ ${i + 1} - ${dc.position.labelTh}`
-                }
-              />
+              <div
+                className={cn(
+                  "rounded-xl transition-all duration-200",
+                  !isFlipped && "hover:-translate-y-1 hover:shadow-md active:translate-y-0 active:scale-[0.98]",
+                  isSelected && "ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)]"
+                )}
+                style={{ borderRadius: spread.cardCount === 10 ? 8 : 10 }}
+              >
+                <TarotCard
+                  card={dc.card}
+                  reversed={dc.reversed}
+                  flipped={isFlipped}
+                  size={spread.cardCount === 10 ? "sm" : spread.cardCount === 1 ? "lg" : "md"}
+                  onClick={isFlipped ? undefined : () => handleFlip(i)}
+                  ariaLabel={
+                    isFlipped
+                      ? `${dc.card.nameTh}${dc.reversed ? " กลับหัว" : ""}`
+                      : `ไพ่ใบที่ ${i + 1} - ${dc.position.labelTh}`
+                  }
+                  selected={isSelected}
+                />
+              </div>
               <span
                 className={cn(
                   "text-[11.5px] font-bold text-center transition-colors max-w-[110px] leading-tight",
@@ -130,6 +143,7 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
               >
                 {dc.position.labelTh}
               </span>
+              {isFlipped && <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-fade" aria-hidden />}
             </div>
           );
         })}

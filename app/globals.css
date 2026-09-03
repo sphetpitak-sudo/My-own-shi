@@ -80,10 +80,23 @@
     --shadow-glow: 0 0 24px rgba(109, 40, 217, 0.16);
     --shadow-gold: 0 0 24px rgba(212, 175, 55, 0.22);
 
-    /* === Motion === */
+    /* === Motion — 10000x tactile, magical, premium === */
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
-    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-magic: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-tactile: cubic-bezier(0.25, 1.2, 0.35, 1);
+    --ease-settle: cubic-bezier(0.33, 1, 0.68, 1);
+    --ease-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+    --duration-enter: 480ms;
+    --duration-split: 680ms;
+    --duration-riffle: 820ms;
+    --duration-fan: 720ms;
+    --duration-settle: 520ms;
+    --duration-flip: 750ms;
+    --duration-hover: 220ms;
+    --duration-press: 120ms;
   }
 
   * {
@@ -916,24 +929,25 @@ body {
 
 /* ============ LOADERS & SKELETONS ============ */
 @keyframes mysticalPulse {
-  0%, 100% { opacity: 0.35; transform: scale(0.92); }
-  50% { opacity: 1; transform: scale(1.08); }
+  0%, 100% { opacity: 0.38; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1.04); }
 }
 .mystical-loader {
   display: flex;
-  gap: 7px;
+  gap: 6px;
   align-items: center;
   justify-content: center;
 }
 .mystical-loader-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--primary);
-  animation: mysticalPulse 1.2s ease-in-out infinite;
+  animation: mysticalPulse 1.35s var(--ease-soft) infinite;
+  will-change: opacity, transform;
 }
-.mystical-loader-dot:nth-child(2) { animation-delay: 0.18s; }
-.mystical-loader-dot:nth-child(3) { animation-delay: 0.36s; }
+.mystical-loader-dot:nth-child(2) { animation-delay: 0.16s; }
+.mystical-loader-dot:nth-child(3) { animation-delay: 0.32s; }
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -948,20 +962,30 @@ body {
 
 /* ============ ENTRANCE ANIMATIONS ============ */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.animate-in { animation: fadeUp 0.5s var(--ease) both; }
-.animate-fade { animation: fadeIn 0.4s var(--ease) both; }
-.d1 { animation-delay: 0.06s; }
-.d2 { animation-delay: 0.12s; }
-.d3 { animation-delay: 0.18s; }
-.d4 { animation-delay: 0.24s; }
-.d5 { animation-delay: 0.30s; }
+@keyframes chatIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes widgetIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-in { animation: fadeUp 0.45s var(--ease-magic) both; }
+.animate-fade { animation: fadeIn 0.35s var(--ease) both; }
+.animate-chat { animation: chatIn 0.28s var(--ease-out) both; }
+.animate-widget { animation: widgetIn 0.32s var(--ease-magic) both; }
+.d1 { animation-delay: 0.05s; }
+.d2 { animation-delay: 0.10s; }
+.d3 { animation-delay: 0.15s; }
+.d4 { animation-delay: 0.20s; }
+.d5 { animation-delay: 0.25s; }
 
 /* ============ ACCESSIBILITY & UTILITIES ============ */
 :focus-visible {

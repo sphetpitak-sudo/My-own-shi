@@ -31,15 +31,16 @@ export default function ShuffleAnimation({
     };
     return Array.from({ length: cardCount }, (_, i) => ({
       id: i,
-      rotate: rand(i, 1) * 5 - 2.5,
-      xOffset: rand(i, 2) * 6 - 3,
-      yOffset: rand(i, 3) * 4 - 2,
-      delay: (i % 4) * 0.03,
+      rotate: rand(i, 1) * 3.2 - 1.6,
+      xOffset: rand(i, 2) * 4.5 - 2.25,
+      yOffset: rand(i, 3) * 2.8 - 1.4,
+      delay: (i % 5) * 0.022,
       depth: i,
-      // per-card shuffle variance
-      splitX: (rand(i, 7) - 0.5) * 12,
-      splitRot: (rand(i, 8) - 0.5) * 6,
-      riffleY: (rand(i, 9) - 0.5) * 18,
+      // per-card shuffle variance — limited stagger, deterministic
+      splitX: (rand(i, 7) - 0.5) * 9,
+      splitRot: (rand(i, 8) - 0.5) * 4.5,
+      riffleY: (rand(i, 9) - 0.5) * 14,
+      fanOffset: (rand(i, 11) - 0.5) * 2.5,
     }));
   }, [cardCount]);
 
@@ -140,7 +141,7 @@ export default function ShuffleAnimation({
   return (
     <div className="shuffle-stage">
       <div className="shuffle-stage-glow" />
-      {/* Ambient radial light */}
+      {/* Ambient radial light — soft, not competing */}
       <div
         aria-hidden
         style={{
@@ -150,9 +151,11 @@ export default function ShuffleAnimation({
           width: 420,
           height: 420,
           transform: "translate(-50%, -50%)",
-          background: "radial-gradient(ellipse at center, rgba(167,139,250,0.10) 0%, transparent 68%)",
-          filter: "blur(6px)",
+          background: "radial-gradient(ellipse at center, rgba(167,139,250,0.09) 0%, transparent 68%)",
+          filter: "blur(8px)",
           pointerEvents: "none",
+          opacity: isEnter ? 0.7 : isSettle ? 0.5 : 1,
+          transition: "opacity 0.6s var(--ease-soft)",
         }}
       />
 
@@ -160,12 +163,18 @@ export default function ShuffleAnimation({
         className="shuffle-deck-wrap"
         style={{
           transform:
-            isSplit || isRiffle
-              ? "translateY(-8px) scale(1.02)"
-              : isFan
-                ? "translateY(-4px) scale(1.01)"
-                : "translateY(0) scale(1)",
-          transition: "transform 0.7s var(--ease)",
+            isSplit
+              ? "translateY(-7px) scale(1.015)"
+              : isRiffle
+                ? "translateY(-6px) scale(1.012)"
+                : isFan
+                  ? "translateY(-3px) scale(1.008)"
+                  : isSettle
+                    ? "translateY(0.5px) scale(1)"
+                    : "translateY(0) scale(1)",
+          transformOrigin: "center center",
+          transition: "transform 0.65s var(--ease-magic)",
+          willChange: "transform",
         }}
       >
         {cards.map((c, i) => {
@@ -180,54 +189,59 @@ export default function ShuffleAnimation({
           let z = c.depth;
 
           if (isEnter) {
-            tx = c.xOffset * 0.6;
-            ty = c.yOffset * 0.6 - i * 0.35;
-            rot = c.rotate * 0.5;
-            scale = 1;
-            opacity = i < cardCount - 4 ? 0.95 : 1;
+            tx = c.xOffset * 0.5;
+            ty = c.yOffset * 0.5 - i * 0.28;
+            rot = c.rotate * 0.4;
+            scale = 0.98 + i * 0.001;
+            opacity = i < cardCount - 4 ? 0.92 : 1;
             z = c.depth;
           } else if (isSplit) {
-            // Split into left/right packets with slight fan
+            // Split into left/right packets — anticipate lift, controlled distance
             const side = isLeft ? -1 : 1;
-            tx = side * (68 + (i % 3) * 6) + c.splitX;
-            ty = -6 + (i % 2) * 4 + c.riffleY * 0.15;
-            rot = side * 7 + c.splitRot;
-            scale = 0.98;
-            opacity = 0.95;
+            const fanTilt = (i % 3) * 1.2;
+            tx = side * (62 + fanTilt * 3) + c.splitX * 0.7;
+            ty = -5 + (i % 2) * 3 + c.riffleY * 0.12 + c.fanOffset;
+            rot = side * 6.5 + c.splitRot * 0.7 + c.rotate * 0.2;
+            scale = 0.985;
+            opacity = 0.96;
             z = isLeft ? i : cardCount - i;
           } else if (isRiffle) {
-            // Interleave — packets slide past each other
+            // Interleave — most tactile, staggered, no teleport, z-flicker free
             const interleave = isLeft ? -1 : 1;
-            const stagger = (i % 4) * 2.5;
-            tx = interleave * 14 + (isEvenGroup ? -8 : 8) + Math.sin((i * 1.2)) * 6;
-            ty = c.riffleY * 0.7 + (isLeft ? -4 : 4) + stagger * 0.6;
-            rot = interleave * -5 + c.splitRot * 0.6 + Math.sin(i) * 4;
-            scale = 0.985 + (i % 3) * 0.008;
+            const stagger = (i % 5) * 1.8;
+            const wave = Math.sin(i * 0.9) * 4.5;
+            tx = interleave * 12 + (isEvenGroup ? -6 : 6) + wave + c.fanOffset;
+            ty = c.riffleY * 0.55 + (isLeft ? -3 : 3) + stagger * 0.5;
+            rot = interleave * -4.2 + c.splitRot * 0.5 + Math.sin(i * 1.1) * 2.8;
+            scale = 0.99 + (i % 3) * 0.005;
             opacity = 1;
-            // alternate z to create interleaving
-            z = i % 2 === 0 ? cardCount - i : i;
+            // Stable interleaving z — prevent flicker
+            z = isLeft ? 100 + i : 100 - i;
           } else if (isFan) {
-            // Elegant fan spread
-            const spread = (i - cardCount / 2 + 0.5) * 11;
-            const arc = Math.abs(spread) * 0.18;
-            tx = spread + c.splitX * 0.3;
-            ty = arc - 18 + c.riffleY * 0.12;
-            rot = spread * 0.62 + c.rotate * 0.4;
-            scale = 0.96 + (1 - Math.abs(spread) / 80) * 0.04;
-            opacity = 0.96;
+            // Elegant fan — centered, smaller rot near center, readable on 320px
+            const isNarrow = typeof window !== "undefined" && window.innerWidth <= 360;
+            const baseSpread = isNarrow ? 8.5 : 10.2;
+            const spread = (i - cardCount / 2 + 0.5) * baseSpread;
+            const arc = Math.abs(spread) * 0.16;
+            tx = spread + c.splitX * 0.25 + c.fanOffset;
+            ty = arc - 16 + c.riffleY * 0.1;
+            rot = spread * 0.52 + c.rotate * 0.3;
+            scale = 0.97 + (1 - Math.abs(spread) / 75) * 0.03;
+            opacity = 0.97;
             z = i;
           } else if (isSettle) {
-            tx = c.xOffset * 0.3;
-            ty = -i * 0.28;
-            rot = c.rotate * 0.3;
+            // Heavier, calmer than riffle — deterministic, no snap, shadow correction
+            tx = c.xOffset * 0.25;
+            ty = -i * 0.22;
+            rot = c.rotate * 0.25;
             scale = 1;
             opacity = 1;
             z = c.depth;
           }
 
-          // Shadow depth based on elevation
-          const elevation = isSplit || isRiffle ? 12 : isFan ? 10 : isSettle ? 4 : 2;
-          const shadowOpacity = isSplit || isRiffle ? 0.22 : isFan ? 0.18 : 0.12;
+          // Shadow depth — subtle, supports physicality, not animating box-shadow heavily
+          const elevation = isSplit ? 11 : isRiffle ? 13 : isFan ? 9 : isSettle ? 5 : 3;
+          const shadowOpacity = isSplit ? 0.2 : isRiffle ? 0.24 : isFan ? 0.16 : isSettle ? 0.14 : 0.11;
 
           return (
             <div

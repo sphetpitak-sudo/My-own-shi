@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/cn";
 import type { TarotCard as TarotCardType } from "@/lib/cards";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 interface Props {
   card: TarotCardType;
@@ -40,9 +41,12 @@ export default function TarotCard({
 }: Props) {
   const dim = SIZES[size];
   const interactive = !!onClick && !disabled;
+  const prefersReduced = useReducedMotion();
 
   const flipTransform = flipped ? "rotateY(180deg)" : "rotateY(0deg)";
-  const shadowDepth = flipped ? "0 12px 28px rgba(0,0,0,0.48), 0 0 0 1px rgba(212,175,55,0.38)" : "0 4px 14px rgba(0,0,0,0.32)";
+  const shadowDepth = flipped
+    ? "0 14px 32px rgba(0,0,0,0.52), 0 0 0 1.5px rgba(212,175,55,0.42), 0 0 18px rgba(167,139,250,0.14)"
+    : "0 5px 16px rgba(0,0,0,0.34), 0 1px 3px rgba(0,0,0,0.18)";
 
   return (
     <div
@@ -80,11 +84,14 @@ export default function TarotCard({
       <div
         className="tarot-card-inner"
         style={{
-          transformStyle: "preserve-3d",
-          transform: flipTransform,
-          transition: "transform 0.75s cubic-bezier(0.34, 1.25, 0.64, 1), box-shadow 0.35s var(--ease)",
+          transformStyle: prefersReduced ? "flat" : "preserve-3d",
+          transform: prefersReduced ? undefined : flipTransform,
+          opacity: prefersReduced ? (flipped ? 1 : 0.98) : undefined,
+          transition: prefersReduced
+            ? "opacity 0.22s var(--ease-soft)"
+            : "transform 0.78s var(--ease-spring), box-shadow 0.38s var(--ease)",
           boxShadow: shadowDepth,
-          willChange: "transform",
+          willChange: prefersReduced ? "opacity" : "transform",
         }}
       >
         {/* ===== BACK ===== */}
