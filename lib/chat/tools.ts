@@ -25,25 +25,47 @@ export interface ToolResult {
   widget?: { type: string; props: unknown };
 }
 
-// Simple heuristic: decide which tools to inject based on user message
+// Intent-based detection: not keyword-only
 export function detectToolsNeeded(message: string): ChatToolName[] {
   const m = message.toLowerCase();
   const tools: ChatToolName[] = [];
-  if (m.includes("วันนี้") || m.includes("ดวงวันนี้") || m.includes("daily") || m.includes("ดูดวงวันนี้")) tools.push("get_daily");
-  if (m.includes("ล่าสุด") || m.includes("ครั้งล่าสุด") || m.includes("ไพ่ล่าสุด") || m.includes("recent")) tools.push("get_recent_readings");
-  if (m.match(/ไพ่\s*(the\s*)?[a-z\u0E00-\u0E7F]+/i) || m.includes("ความหมาย") || m.includes("the fool") || m.includes("the magician")) {
+
+  // get_daily — only when asking about today
+  if (/(วันนี้|ดวงวันนี้|daily)/i.test(m) && !/เมื่อวาน/.test(m)) {
+    if (/ดูดวง|วันนี้เป็นยังไง|ดวงวันนี้/.test(m)) tools.push("get_daily");
+  }
+
+  // get_recent_readings — asking about latest
+  if (/(ล่าสุด|ครั้งล่าสุด|ไพ่ล่าสุด|recent)/i.test(m)) tools.push("get_recent_readings");
+
+  // get_card — asking ABOUT card meaning, not asking to draw
+  if (/ไพ่\s*(the\s*)?[a-z\u0E00-\u0E7F]+/i.test(m) || m.includes("ความหมาย")) {
     const hasCard = ALL_CARDS.some((c) => m.includes(c.name.toLowerCase()) || m.includes(c.nameTh.toLowerCase()));
-    if (hasCard) tools.push("get_card");
+    const isQuestion = /คืออะไร|หมายถึง|แปลว่า|คือไพ่/.test(m);
+    if (hasCard && isQuestion) tools.push("get_card");
   }
-  if (m.includes("โปรไฟล์") || m.includes("แต้ม") || m.includes("points") || m.includes("profile")) tools.push("get_profile");
-  if (m.includes("คอลเลกชัน") || m.includes("collection") || m.includes("สะสมไพ่")) tools.push("get_collection");
-  // Inline card draw — do it directly in chat (free, no points), not navigation
-  if (m.includes("เปิดไพ่") || m.includes("จั่วไพ่") || m.includes("สุ่มไพ่") || m.includes("draw") || m.includes("open cards")) {
-    tools.push("draw_cards");
-  } else if (m.includes("start reading") || m.includes("เปิดไพ่ใหม่")) {
+
+  // get_profile / collection
+  if (/(โปรไฟล์|แต้ม|points|profile)/i.test(m) && /(ดู|เช็ค|เท่าไหร่|profile)/i.test(m)) tools.push("get_profile");
+  if (/(คอลเลกชัน|collection|สะสมไพ่|มีไพ่กี่ใบ)/i.test(m)) tools.push("get_collection");
+
+  // draw_cards vs start_reading — intent distinction
+  const wantsSerious = /จริงจัง|แบบเต็ม|เสียแต้ม|จริงๆ.*เปิดไพ่|เปิดไพ่.*จริงจัง/.test(m);
+  const wantsDrawNow = /(เปิดไพ่ให้ฉัน|สุ่มไพ่ให้หน่อย|จั่วไพ่ให้|draw.*for me|เปิดไพ่ให้หน่อย|sุ่มไพ่.*ให้ฉัน)/i.test(m);
+  const isPastMention = /(เมื่อวาน|เมื่อกี้|แล้ว|เคยเปิด|เคยสุ่ม)/.test(m) && !wantsDrawNow;
+
+  if (wantsSerious) {
     tools.push("start_reading");
+  } else if (wantsDrawNow) {
+    tools.push("draw_cards");
+  } else if (!isPastMention && /(เปิดไพ่|จั่วไพ่|สุ่มไพ่)/.test(m) && /(ให้ฉัน|ให้หน่อย|หน่อย|ได้ไหม|นะ)/.test(m)) {
+    // Generic request with polite particle → draw
+    tools.push("draw_cards");
   }
-  if (m.includes("ประวัติ") || m.includes("history")) tools.push("open_history");
+  // else: casual mention like "เมื่อวานฉันเปิดไพ่แล้ว" → no tool
+
+  if (/(ประวัติ|history)/i.test(m) && /(ดู|เปิด|เช็ค)/.test(m)) tools.push("open_history");
+
   return [...new Set(tools)];
 }
 
