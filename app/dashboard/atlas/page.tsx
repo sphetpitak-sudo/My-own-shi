@@ -85,7 +85,7 @@ export default function AtlasPage(){
             <div className="card p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Compass size={16} style={{color:"var(--primary)"}}/>
-                <div className="text-[12.5px] font-bold">ข้อมูลการเกิด (ตำราตรง: Tropical Whole Sign + Jim Lewis)</div>
+                <div className="text-[12.5px] font-bold">ข้อมูลการเกิด</div>
                 <span className="ml-auto text-[10px] px-2 py-1 rounded-full font-bold" style={{background:"rgba(212,175,55,0.12)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.18)"}}>40 เส้นจริง</span>
               </div>
               <div className="space-y-3">
