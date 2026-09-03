@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import DashboardShell from "@/components/DashboardShell";
 import AtlasMap from "@/components/AtlasMap";
-import { Compass, Calendar, Clock, MapPin, Sparkles, Navigation, Globe, Search, Heart, Briefcase, Lightbulb, Activity } from "lucide-react";
+import { Compass, Calendar, Clock, MapPin, Sparkles, Navigation, Globe, Search, Heart, Briefcase, Lightbulb, Activity, Leaf, Flame, Mountain, Gem, Droplets, Layers } from "lucide-react";
 import type { AtlasLine } from "@/lib/atlas/calcLines";
 import type { AtlasCity } from "@/lib/atlas/cities";
 import { suggestPlaces } from "@/lib/geocoding";
@@ -13,6 +13,9 @@ import { FIVE_ELEMENT_TH } from "@/lib/saju/types";
 import { stripMarkdownMultiline } from "@/lib/text";
 
 const STAGES = ["กำลังคำนวณ 40 เส้น...", "กำลังจัดอันดับ 189 เมือง...", "กำลังให้ AI อ่านเมืองที่ใช่..."];
+
+const ELEMENT_ICON: Record<string, typeof Leaf> = { wood: Leaf, fire: Flame, earth: Mountain, metal: Gem, water: Droplets };
+const ELEMENT_COLOR: Record<string, string> = { wood: "#22c55e", fire: "#ef4444", earth: "#a78bfa", metal: "#eab308", water: "#38bdf8" };
 
 function parseSections(raw: string){
   const text = stripMarkdownMultiline(raw);
@@ -136,7 +139,7 @@ export default function AtlasPage(){
                     <span className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-extrabold shrink-0" style={{ background: idx===0?"linear-gradient(135deg,#f6c944,#b8942a)":"var(--primary-soft)", color: idx===0?"#1a1025":"var(--primary)"}}>{idx+1}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-bold" style={{color:"var(--text)"}}>{r.city.nameTh} <span className="text-[11px] font-normal" style={{color:"var(--text-muted)"}}>({r.city.countryTh})</span></div>
-                      <div className="text-[11px]" style={{color:"var(--text-muted)"}}>{r.bestLine.labelTh} · {r.distKm.toFixed(0)} km · {r.orb==="intense"?"เข้มข้น 0-250km":"เจือจาง 250-1100km"}</div>
+                      <div className="text-[11px] flex items-center gap-1" style={{color:"var(--text-muted)"}}>{r.bestLine.labelTh} · {r.distKm.toFixed(0)} km · {r.orb==="intense"?<><Flame size={10} style={{color:"#f87171"}}/> เข้มข้น 0-250km</>:<><Layers size={10} style={{color:"var(--gold)"}}/> เจือจาง 250-1100km</>}</div>
                     </div>
                     <span className="text-[10px] px-2 py-1 rounded-full font-bold" style={{ background: r.orb==="intense"?"rgba(239,68,68,0.12)":"rgba(212,175,55,0.12)", color: r.orb==="intense"?"#f87171":"var(--gold)"}}>{r.bestLine.angle}</span>
                   </div>
@@ -153,17 +156,21 @@ export default function AtlasPage(){
                   {(["wood","fire","earth","metal","water"] as const).map(el=>{
                     const cnt = saju.elementCountsWithHidden[el];
                     const isWeak = saju.weakest===el;
+                    const Icon = ELEMENT_ICON[el];
+                    const col = ELEMENT_COLOR[el];
                     return (
-                      <div key={el} className="rounded-xl p-2 text-center" style={{ background: isWeak?"rgba(239,68,68,0.08)":"var(--bg)", border:`1px solid ${isWeak?"rgba(239,68,68,0.22)":"var(--border-subtle)"}`}}>
+                      <div key={el} className="rounded-xl p-2 text-center flex flex-col items-center gap-1" style={{ background: isWeak?"rgba(239,68,68,0.08)":"var(--bg)", border:`1px solid ${isWeak?"rgba(239,68,68,0.22)":"var(--border-subtle)"}`}}>
+                        <span className="w-7 h-7 rounded-full grid place-items-center" style={{ background: isWeak? "rgba(239,68,68,0.12)": `${col}14`, color: isWeak? "#f87171": col, border: `1px solid ${isWeak? "rgba(239,68,68,0.22)": `${col}22`}`}}><Icon size={13} /></span>
                         <div className="text-[11px] font-bold" style={{color: isWeak?"#f87171":"var(--text)"}}>{FIVE_ELEMENT_TH[el]}</div>
                         <div className="text-[11px] font-extrabold" style={{color: isWeak?"#f87171":"var(--primary)"}}>{cnt}</div>
-                        {isWeak && <div className="text-[9px] font-bold px-1 py-0.5 rounded-full mt-1" style={{background:"rgba(239,68,68,0.12)", color:"#f87171"}}>ขาด</div>}
+                        {isWeak && <div className="text-[9px] font-bold px-1 py-0.5 rounded-full" style={{background:"rgba(239,68,68,0.12)", color:"#f87171"}}>ขาด</div>}
                       </div>
                     );
                   })}
                 </div>
-                <div className="p-2.5 rounded-xl text-[11.5px]" style={{background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.14)"}}>
-                  {FIVE_ELEMENT_TH[saju.weakest]} ขาด → เสริมด้วย {remedy.join(", ") || "Jupiter/Venus"} · ดูเมืองที่เส้น {remedy.join("/")} ผ่านใกล้สุดใน Top 6 ข้างบน
+                <div className="p-2.5 rounded-xl text-[11.5px] flex items-center gap-2" style={{background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.14)"}}>
+                  {(()=>{ const Icon=ELEMENT_ICON[saju.weakest]; const col=ELEMENT_COLOR[saju.weakest]; return <span className="w-6 h-6 rounded-full grid place-items-center shrink-0" style={{background:`${col}14`, color:col, border:`1px solid ${col}22`}}><Icon size={12}/></span>; })()}
+                  <span>{FIVE_ELEMENT_TH[saju.weakest]} ขาด → เสริมด้วย {remedy.join(", ") || "Jupiter/Venus"} · ดูเมืองที่เส้น {remedy.join("/")} ผ่านใกล้สุดใน Top 6 ข้างบน</span>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 mt-3 text-center">
                   {Object.entries(saju.pillars).map(([k, p]:any)=>(
