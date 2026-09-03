@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
+import SealoChatFAB from "./chat/SealoChatFAB";
 import { createClient } from "@/lib/supabase/client";
 
 interface ProfileData {
@@ -119,6 +120,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
         </div>
 
         <BottomNav />
+        <SealoChatFAB />
       </div>
     </ShellContext.Provider>
   );

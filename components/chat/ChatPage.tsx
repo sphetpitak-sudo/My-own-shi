@@ -380,5 +380,28 @@ function Widget({ widget }: { widget: { type: string; props: unknown } }) {
       </div>
     );
   }
+  if (widget.type === "drawn_cards") {
+    const cards = (p.cards as Array<{ id: number; nameTh: string; name: string; imageFile: string; reversed: boolean; position: string; uprightTh: string; reversedTh: string }>) || [];
+    if (cards.length === 0) return null;
+    return (
+      <div className="rounded-xl p-3" style={{ background: "linear-gradient(135deg, rgba(167,139,250,0.06), rgba(212,175,55,0.05))", border: "1px solid rgba(167,139,250,0.12)" }}>
+        <div className="text-[11px] font-bold tracking-widest uppercase mb-2" style={{ color: "var(--primary)" }}>ไพ่ที่เปิดในแชต • {cards.length} ใบ {cards.length === 1 ? "(ฟรี)" : ""}</div>
+        <div className={`grid gap-2 ${cards.length === 1 ? "grid-cols-1 place-items-center" : "grid-cols-3"}`}>
+          {cards.map((c) => {
+            const tarot = ALL_CARDS.find((x) => x.id === c.id);
+            if (!tarot) return null;
+            return (
+              <div key={c.id} className="flex flex-col items-center gap-1.5">
+                <TarotCard card={tarot} reversed={c.reversed} flipped size={cards.length === 1 ? "md" : "sm"} showLabel={false} />
+                <span className="text-[10px] font-bold tracking-widest uppercase text-center" style={{ color: "var(--primary)" }}>{c.position}</span>
+                <span className="text-[11px] font-semibold text-center leading-tight">{c.nameTh}{c.reversed ? " · กลับหัว" : ""}</span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-center mt-2" style={{ color: "var(--text-muted)" }}>อยากได้คำทำนายเต็มๆ? <Link href="/dashboard/reading" className="underline" style={{ color: "var(--primary)" }}>ไปเปิดไพ่พยากรณ์</Link> (5/15/50 แต้ม)</p>
+      </div>
+    );
+  }
   return null;
 }

@@ -10,6 +10,7 @@ export const CHAT_TOOLS = [
   "get_card",
   "get_collection",
   "get_profile",
+  "draw_cards",
   "start_reading",
   "open_history",
   "open_collection",
@@ -31,15 +32,17 @@ export function detectToolsNeeded(message: string): ChatToolName[] {
   if (m.includes("วันนี้") || m.includes("ดวงวันนี้") || m.includes("daily") || m.includes("ดูดวงวันนี้")) tools.push("get_daily");
   if (m.includes("ล่าสุด") || m.includes("ครั้งล่าสุด") || m.includes("ไพ่ล่าสุด") || m.includes("recent")) tools.push("get_recent_readings");
   if (m.match(/ไพ่\s*(the\s*)?[a-z\u0E00-\u0E7F]+/i) || m.includes("ความหมาย") || m.includes("the fool") || m.includes("the magician")) {
-    // Will try get_card, but only if user asks about a specific card name
-    // Do lightweight check: if message contains a known card name
     const hasCard = ALL_CARDS.some((c) => m.includes(c.name.toLowerCase()) || m.includes(c.nameTh.toLowerCase()));
     if (hasCard) tools.push("get_card");
   }
   if (m.includes("โปรไฟล์") || m.includes("แต้ม") || m.includes("points") || m.includes("profile")) tools.push("get_profile");
   if (m.includes("คอลเลกชัน") || m.includes("collection") || m.includes("สะสมไพ่")) tools.push("get_collection");
-  // Navigation intents — AI will guide, not auto-execute paid actions
-  if (m.includes("เปิดไพ่") || m.includes("start reading") || m.includes("เปิดไพ่ใหม่")) tools.push("start_reading");
+  // Inline card draw — do it directly in chat (free, no points), not navigation
+  if (m.includes("เปิดไพ่") || m.includes("จั่วไพ่") || m.includes("สุ่มไพ่") || m.includes("draw") || m.includes("open cards")) {
+    tools.push("draw_cards");
+  } else if (m.includes("start reading") || m.includes("เปิดไพ่ใหม่")) {
+    tools.push("start_reading");
+  }
   if (m.includes("ประวัติ") || m.includes("history")) tools.push("open_history");
   return [...new Set(tools)];
 }
@@ -97,6 +100,24 @@ export async function executeTool(
       case "get_profile": {
         const { data } = await supabase.from("profiles").select("display_name, points, avatar_url").eq("id", userId).single();
         return { name, data };
+      }
+      case "draw_cards": {
+        // Free inline draw in chat — no points, 1-3 cards based on message
+        const wantsThree = /3\s*ใบ|สามใบ|three/i.test(message);
+        const count = wantsThree ? 3 : 1;
+        // Simple shuffle: pick random distinct cards
+        const shuffled = [...ALL_CARDS].sort(() => Math.random() - 0.5).slice(0, count);
+        const drawn = shuffled.map((card, i) => ({
+          id: card.id,
+          name: card.name,
+          nameTh: card.nameTh,
+          imageFile: card.imageFile,
+          uprightTh: card.uprightTh,
+          reversedTh: card.reversedTh,
+          reversed: Math.random() < 0.5,
+          position: count === 1 ? "คำตอบ" : count === 3 ? ["อดีต", "ปัจจุบัน", "อนาคต"][i]! : `ใบที่ ${i + 1}`,
+        }));
+        return { name, data: drawn, widget: { type: "drawn_cards", props: { cards: drawn } } };
       }
       case "start_reading":
         return { name, data: { route: "/dashboard/reading", cost: "5/15/50 แต้มตาม spread", note: "ต้องมีแต้มพอ, ชำระผ่านระบบปกติ" } };
