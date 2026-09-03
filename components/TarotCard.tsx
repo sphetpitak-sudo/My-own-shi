@@ -209,7 +209,7 @@ export default function TarotCard({
 
         {/* ===== FRONT ===== */}
         <div
-          className={cn("tarot-face tarot-front", flipped && "tarot-front-glow")}
+          className={cn("tarot-face tarot-front")}
           style={{
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
@@ -283,7 +283,7 @@ export default function TarotCard({
         </div>
       </div>
 
-      {/* selection ring */}
+      {/* selection ring — static, no pulse */}
       {selected && (
         <div
           aria-hidden
@@ -294,16 +294,9 @@ export default function TarotCard({
             border: "2px solid var(--primary)",
             boxShadow: "0 0 0 4px var(--primary-soft)",
             pointerEvents: "none",
-            animation: "tarotRingPulse 1.8s ease-in-out infinite",
           }}
         />
       )}
-      <style jsx>{`
-        @keyframes tarotRingPulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.04); opacity: 0.85; }
-        }
-      `}</style>
     </div>
   );
 }
