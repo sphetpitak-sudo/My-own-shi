@@ -860,5 +860,55 @@ CREATE INDEX IF NOT EXISTS idx_birth_charts_user ON birth_charts(user_id);
 CREATE INDEX IF NOT EXISTS idx_birth_charts_created ON birth_charts(created_at DESC);
 
 -- ============================================
+-- 23. CHAT — Sealo Chat (separate from reading follow-ups)
+-- ============================================
+CREATE TABLE IF NOT EXISTS chat_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT 'สนทนาใหม่' CHECK (char_length(title) <= 80),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('user','assistant')),
+  content TEXT NOT NULL CHECK (char_length(content) <= 6000),
+  tool_data JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE chat_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ChatConversations select" ON chat_conversations;
+CREATE POLICY "ChatConversations select" ON chat_conversations FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ChatConversations insert" ON chat_conversations;
+CREATE POLICY "ChatConversations insert" ON chat_conversations FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ChatConversations update" ON chat_conversations;
+CREATE POLICY "ChatConversations update" ON chat_conversations FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ChatConversations delete" ON chat_conversations;
+CREATE POLICY "ChatConversations delete" ON chat_conversations FOR DELETE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ChatMessages select" ON chat_messages;
+CREATE POLICY "ChatMessages select" ON chat_messages FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ChatMessages insert" ON chat_messages;
+CREATE POLICY "ChatMessages insert" ON chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ChatMessages delete" ON chat_messages;
+CREATE POLICY "ChatMessages delete" ON chat_messages FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_updated ON chat_conversations(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation ON chat_messages(conversation_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages(user_id);
+
+-- Trigger to keep updated_at fresh
+CREATE OR REPLACE FUNCTION update_chat_conversation_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE chat_conversations SET updated_at = now() WHERE id = NEW.conversation_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+DROP TRIGGER IF EXISTS trg_chat_message_timestamp ON chat_messages;
+CREATE TRIGGER trg_chat_message_timestamp AFTER INSERT ON chat_messages FOR EACH ROW EXECUTE FUNCTION update_chat_conversation_timestamp();
+
+-- ============================================
 -- DONE
 -- ============================================

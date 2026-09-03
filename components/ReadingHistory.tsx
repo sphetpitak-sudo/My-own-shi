@@ -58,11 +58,11 @@ function parseHistorySections(text: string): { key: string; title: string; conte
   const advice: string[] = [];
   let bucket: "overview" | "detailed" | "advice" = "overview";
   for (const line of lines) {
-    if (/^(คำแนะนำ|สรุป|ข้อแนะนำ|ทิ้งท้าย|สิ่งที่ควรทำ|ก้าวต่อไป|บทสรุป)/i.test(line.replace(/^[-•\d.\s]+/, ""))) {
+    if (/^(คำแนะนำ|สรุป|ข้อแนะนำ|ทิ้งท้าย|สิ่งที่ควรทำ|ก้าวต่อไป|บทสรุป|สิ่งที่ไพ่อยากบอก)/i.test(line.replace(/^[-•\d.\s]+/, ""))) {
       bucket = "advice";
       continue;
     }
-    if (/^(การอ่านไพ่|รายละเอียด|ภาพรวม|การตีความ|แต่ละใบ|ดวงของคุณ)/i.test(line.replace(/^[-•\d.\s]+/, ""))) {
+    if (/^(การอ่านไพ่|รายละเอียด|ภาพรวม|การตีความ|แต่ละใบ|ดวงของคุณ|สิ่งที่ควรสังเกต|ไพ่ใบที่|ตำแหน่ง\s*\d|การเชื่อมโยง|ความเชื่อมโยง|ภาพรวมของสถานการณ์)/i.test(line.replace(/^[-•\d.\s]+/, ""))) {
       if (overview.length === 0 && /ภาพรวม/i.test(line)) continue;
       bucket = "detailed";
       continue;

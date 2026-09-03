@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel } from "@/lib/ai";
-import { READING_SYSTEM_PROMPT_SINGLE, READING_SYSTEM_PROMPT_THREE, READING_SYSTEM_PROMPT_CELTIC, buildReadingUserPrompt } from "@/lib/prompts";
+import { PROMPT_VERSION, getReadingSystemPrompt, buildReadingUserPrompt } from "@/lib/prompts";
 
 export const maxDuration = 90;
 export const dynamic = "force-dynamic";
@@ -19,29 +19,7 @@ const SPREAD_TO_P_SPEND: Record<SpreadType, string> = {
   celtic: "celtic",
 };
 
-function getTopicPrompt(topic: string): string {
-  const base = `คุณคือ "หมอดูทิพย์" นักอ่านไพ่ทาโรต์ Rider-Waite-Smith อบอุ่น เป็นกันเอง คุยเหมือนอยู่ตรงหน้า
-มองทั้งมุมสนับสนุน ท้าทาย และสิ่งที่มองข้าม
-ตอบ 4 ส่วน: ภาพรวม → การอ่านไพ่ → สรุป → คำแนะนำ
-ภาษาไทยธรรมชาติ ห้ามใช้ markdown ห้าม ** # - * > [
-ความยาว: 500-800 คำ (3 ใบ) หรือ 300-500 คำ (1 ใบ)
-กติกา: เป็นแนวทางเชิงสัญลักษณ์เท่านั้น ไม่ฟันธงอนาคต ไม่วินิจฉัยโรค/กฎหมาย/การเงินเด็ดขาด ใช้คำว่า "ไพ่สะท้อนว่า/มีแนวโน้มว่า" ไม่ทำให้กลัวหรือพึ่งพาดูดวง ห้ามอ้างอ่านใจผู้อื่นแม่นยำ`;
-
-  switch (topic) {
-    case "love":
-      return base + `\nโฟกัส: เน้นความสัมพันธ์ ความรัก โสด มารดา ความผูกพัน ความเข้าใจ โปรดใช้ภาษาที่อ่อนโยน สร้างกำลังใจเรื่องหัวใจ`;
-    case "career":
-      return base + `\nโฟกัส: เน้นอาชีพ การทำงาน การตัดสินใจ เส้นทางอาชีพ โอกาสท้าทาย โปรดใช้ภาษาที่กระตือรือร้น ให้กำลังใจในการตัดสินใจ`;
-    case "study":
-      return base + `\nโฟกัส: เน้นการเรียน การสอบ การพัฒนาตนเอง ความรู้ ทักษะ โปรดใช้ภาษาที่ให้กำลังใจ สนับสนุนการเติบโต`;
-    case "finance":
-      return base + `\nโฟกัส: เน้นการเงิน การลงทุน เงินออม การใช้จ่าย โอกาสทางการเงิน โปรดใช้ภาษาที่มีสติปัญญา ให้มุมมองที่มีประโยชน์`;
-    case "health":
-      return base + `\nโฟกัส: เน้นสุขภาพกายและใจ โยคะ วิถีชีวิต การดูแลตัวเอง โปรดใช้ภาษาที่อบอุ่น ให้กำลังใจ การดูแลตัวเอง (ไม่ใช่การวินิจฉัยทางการแพทย์)`;
-    default:
-      return base + `\nโฟกัส: ภาพรวมทั่วไปของชีวิต ให้คำแนะนำที่สมดุลทุกด้าน`;
-  }
-}
+// Removed legacy getTopicPrompt — now handled via lib/prompts TOPIC_MODIFIERS + getReadingSystemPrompt (v2.0)
 
 export async function POST(request: Request) {
   try {
@@ -178,10 +156,9 @@ export async function POST(request: Request) {
       } catch {}
     }, params.timeoutMs);
 
-    const readingPrompt = spreadType === "celtic" ? READING_SYSTEM_PROMPT_CELTIC :
-                          spreadType === "single" ? READING_SYSTEM_PROMPT_SINGLE :
-                          spreadType === "three_card" ? getTopicPrompt(topicKey) :
-                          READING_SYSTEM_PROMPT_THREE;
+    const readingPrompt = getReadingSystemPrompt(spreadType as "single" | "three_card" | "celtic", topicKey);
+    // Log prompt version without exposing content (for observability)
+    console.log(`[reading] promptVersion=${PROMPT_VERSION} spread=${spreadType} topic=${topicKey}`);
 
     let stream: Awaited<ReturnType<typeof getOpenAI extends () => infer R ? R extends { chat: { completions: { create: (...a: unknown[]) => Promise<infer S> } } } ? () => Promise<S> : never : never>> | null = null;
     try {

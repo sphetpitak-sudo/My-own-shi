@@ -19,6 +19,7 @@ import {
   Star,
   Coins,
   Layers,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -32,6 +33,7 @@ interface SidebarProps {
 
 const PRIMARY = [
   { href: "/dashboard", label: "หน้าหลัก", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/chat", label: "Sealo Chat", icon: MessageCircle },
   { href: "/dashboard/reading", label: "เปิดไพ่พยากรณ์", icon: Sparkles },
   { href: "/dashboard/daily", label: "ดูดวงรายวัน", icon: Sun },
   { href: "/dashboard/yesno", label: "ถามใช่หรือไม่", icon: CircleHelp },

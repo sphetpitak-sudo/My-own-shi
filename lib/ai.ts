@@ -33,6 +33,7 @@ export const AI_PARAMS = {
   daily: { temperature: 0.7, max_tokens: 800, timeoutMs: 25_000 },
   zodiac: { temperature: 0.7, max_tokens: 1000, timeoutMs: 30_000 },
   birthchart: { temperature: 0.7, max_tokens: 1200, timeoutMs: 30_000 },
+  chat: { temperature: 0.7, max_tokens: 1000, timeoutMs: 30_000, firstTokenMs: 18_000 },
 } as const;
 
 // ============================================

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Sparkles, Sun, Clock, User } from "lucide-react";
+import { Home, Sparkles, MessageCircle, Sun, Clock, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export default function BottomNav() {
@@ -11,6 +11,7 @@ export default function BottomNav() {
   const items = [
     { href: "/dashboard", label: "หน้าหลัก", icon: Home, exact: true },
     { href: "/dashboard/reading", label: "ไพ่", icon: Sparkles },
+    { href: "/dashboard/chat", label: "แชต", icon: MessageCircle },
     { href: "/dashboard/daily", label: "รายวัน", icon: Sun },
     { href: "/dashboard/history", label: "ประวัติ", icon: Clock },
     { href: "/dashboard/profile", label: "ฉัน", icon: User },
