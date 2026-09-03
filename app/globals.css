@@ -977,10 +977,10 @@ body {
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.animate-in { animation: fadeUp 0.45s var(--ease-magic) both; }
-.animate-fade { animation: fadeIn 0.35s var(--ease) both; }
-.animate-chat { animation: chatIn 0.28s var(--ease-out) both; }
-.animate-widget { animation: widgetIn 0.32s var(--ease-magic) both; }
+.animate-in { animation: fadeUp 0.52s var(--ease-spring) both; }
+.animate-fade { animation: fadeIn 0.38s var(--ease-soft) both; }
+.animate-chat { animation: chatIn 0.32s var(--ease-out) both; }
+.animate-widget { animation: widgetIn 0.36s var(--ease-spring) both; }
 .d1 { animation-delay: 0.05s; }
 .d2 { animation-delay: 0.10s; }
 .d3 { animation-delay: 0.15s; }

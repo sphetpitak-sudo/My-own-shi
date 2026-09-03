@@ -162,9 +162,10 @@ export default function ShuffleAnimation({ onComplete, cardCount = DEFAULT_COUNT
                 zIndex: z,
                 transform: `translate3d(${tx}px, ${ty}px, 0) rotate(${rot}deg) scale(${sc})`,
                 opacity: op,
-                transition: `transform 0.6s var(--ease-magic) ${c.d}s, opacity 0.35s var(--ease) ${c.d}s, box-shadow 0.45s var(--ease)`,
+                transition: `transform 0.68s var(--ease-spring) ${c.d}s, opacity 0.42s var(--ease-soft) ${c.d}s, box-shadow 0.5s var(--ease)`,
                 boxShadow: `0 ${elev}px ${elev * 1.7}px rgba(0,0,0,${so}), 0 1px 3px rgba(0,0,0,0.16)`,
                 willChange: "transform, opacity",
+                backfaceVisibility: "hidden",
               }}
             >
               <div className="shuffle-card-back-design">
