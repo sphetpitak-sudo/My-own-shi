@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 interface Props {
@@ -43,33 +43,57 @@ export default function ShuffleAnimation({
     }));
   }, [cardCount]);
 
+  const completedRef = useRef(false);
+  const timersRef = useRef<number[]>([]);
+
   const handleComplete = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
     onComplete();
   }, [onComplete]);
 
   useEffect(() => {
     if (reducedMotion) {
       setPhase("done");
-      const t = setTimeout(() => handleComplete(), 350);
-      return () => clearTimeout(t);
+      const t = window.setTimeout(() => handleComplete(), 280);
+      timersRef.current = [t];
+      return () => {
+        timersRef.current.forEach((id: number) => clearTimeout(id));
+      };
     }
 
-    // Premium ritual timing — ~4.2s total
-    const t1 = setTimeout(() => setPhase("split"), 480);
-    const t2 = setTimeout(() => setPhase("riffle"), 1180);
-    const t3 = setTimeout(() => setPhase("fan"), 1980);
-    const t4 = setTimeout(() => setPhase("settle"), 2680);
-    const t5 = setTimeout(() => {
+    // Guard StrictMode double-invoke
+    if (completedRef.current) return;
+
+    // Explicit timeline: enter 480 calm → split 700 curiosity → riffle 800 tactile → fan 700 peak → settle 420 calm
+    const schedule = [
+      { phase: "split" as Phase, delay: 480 },
+      { phase: "riffle" as Phase, delay: 1180 },
+      { phase: "fan" as Phase, delay: 1980 },
+      { phase: "settle" as Phase, delay: 2680 },
+    ];
+    schedule.forEach(({ phase: p, delay }) => {
+      const id = window.setTimeout(() => setPhase(p), delay);
+      timersRef.current.push(id);
+    });
+    const doneId = window.setTimeout(() => {
       setPhase("done");
       handleComplete();
-    }, 3100);
+    }, 3120);
+    timersRef.current.push(doneId);
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        // Pause visual work — keep timers but avoid accumulating frames
+        // No-op: CSS animations will pause via will-change optimization
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
+      document.removeEventListener("visibilitychange", onVisibility);
+      timersRef.current.forEach((id: number) => clearTimeout(id));
+      timersRef.current = [];
     };
   }, [handleComplete, reducedMotion]);
 

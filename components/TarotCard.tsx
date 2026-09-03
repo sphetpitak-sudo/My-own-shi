@@ -41,6 +41,9 @@ export default function TarotCard({
   const dim = SIZES[size];
   const interactive = !!onClick && !disabled;
 
+  const flipTransform = flipped ? "rotateY(180deg)" : "rotateY(0deg)";
+  const shadowDepth = flipped ? "0 12px 28px rgba(0,0,0,0.48), 0 0 0 1px rgba(212,175,55,0.38)" : "0 4px 14px rgba(0,0,0,0.32)";
+
   return (
     <div
       className={cn(
@@ -54,6 +57,7 @@ export default function TarotCard({
       style={{
         width: dim.w,
         height: dim.h,
+        transformOrigin: "center center",
         ...style,
       }}
       onClick={interactive ? onClick : undefined}
@@ -77,8 +81,10 @@ export default function TarotCard({
         className="tarot-card-inner"
         style={{
           transformStyle: "preserve-3d",
-          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          transition: "transform 0.8s cubic-bezier(0.34, 1.2, 0.64, 1)",
+          transform: flipTransform,
+          transition: "transform 0.75s cubic-bezier(0.34, 1.25, 0.64, 1), box-shadow 0.35s var(--ease)",
+          boxShadow: shadowDepth,
+          willChange: "transform",
         }}
       >
         {/* ===== BACK ===== */}

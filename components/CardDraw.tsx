@@ -40,7 +40,9 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
   const handleFlip = useCallback(
     (index: number) => {
       if (flippedIndices.has(index)) return;
+      // Guard rapid taps — lock after commitment, prevent duplicate
       setFlippedIndices((prev) => {
+        if (prev.has(index)) return prev;
         const next = new Set(prev);
         next.add(index);
         return next;

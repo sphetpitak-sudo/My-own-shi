@@ -253,7 +253,7 @@ export default function ChatPage() {
             ) : (
               messages.map((m) => (
                 <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[82%] sm:max-w-[72%] rounded-2xl px-4 py-3 text-[13.5px] leading-[1.7] whitespace-pre-wrap break-words ${m.role === "user" ? "bg-[var(--primary)] text-white rounded-br-sm" : "bg-white border shadow-sm rounded-bl-sm"}`} style={m.role === "assistant" ? { borderColor: "rgba(167,139,250,0.12)", color: "var(--text)" } : {}}>
+                  <div className={`max-w-[82%] sm:max-w-[72%] rounded-2xl px-4 py-3 text-[14px] leading-[1.75] whitespace-pre-wrap break-words ${m.role === "user" ? "bg-[var(--primary)] text-white rounded-br-sm shadow-sm" : "bg-[var(--bg-card)] border shadow-sm rounded-bl-sm"}`} style={m.role === "assistant" ? { borderColor: "var(--border)", color: "var(--text)" } : {}}>
                     {m.content || (streaming && m.role === "assistant" ? "…" : "")}
                     {/* Widgets */}
                     {m.tool_data?.widgets && (
@@ -269,8 +269,8 @@ export default function ChatPage() {
             )}
             {streaming && (
               <div className="flex justify-start">
-                <div className="bg-white border rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 text-[12px]" style={{ borderColor: "rgba(167,139,250,0.12)", color: "var(--text-muted)" }}>
-                  <Loader2 size={14} className="animate-spin" /> Sealo กำลังพิมพ์...
+                <div className="bg-[var(--bg-card)] border rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 text-[13px] font-medium shadow-sm" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+                  <Loader2 size={14} className="animate-spin" style={{ color: "var(--primary)" }} /> Sealo กำลังพิมพ์...
                 </div>
               </div>
             )}
