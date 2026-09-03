@@ -1,250 +1,158 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 interface Props {
   onComplete: () => void;
-  duration?: number;
   cardCount?: number;
   reducedMotion?: boolean;
 }
 
-const DEFAULT_CARD_COUNT = 14;
+type Phase = "enter" | "lift" | "split" | "riffle" | "fan" | "settle" | "done";
 
-type Phase = "enter" | "split" | "riffle" | "fan" | "settle" | "done";
+const DEFAULT_COUNT = 14;
 
-export default function ShuffleAnimation({
-  onComplete,
-  cardCount = DEFAULT_CARD_COUNT,
-  reducedMotion: reducedMotionProp,
-}: Props) {
+export default function ShuffleAnimation({ onComplete, cardCount = DEFAULT_COUNT, reducedMotion: prop }: Props) {
   const prefersReduced = useReducedMotion();
-  const reducedMotion = reducedMotionProp ?? prefersReduced;
+  const reduced = prop ?? prefersReduced;
   const [phase, setPhase] = useState<Phase>("enter");
+  const doneRef = useRef(false);
+  const timers = useRef<number[]>([]);
 
   const cards = useMemo(() => {
-    const seed = 1234;
-    const rand = (i: number, salt: number) => {
-      const x = Math.sin((i + salt) * seed) * 10000;
+    const seed = 8391;
+    const r = (i: number, s: number) => {
+      const x = Math.sin((i + 7) * seed + s * 12.91) * 10000;
       return x - Math.floor(x);
     };
     return Array.from({ length: cardCount }, (_, i) => ({
       id: i,
-      rotate: rand(i, 1) * 3.2 - 1.6,
-      xOffset: rand(i, 2) * 4.5 - 2.25,
-      yOffset: rand(i, 3) * 2.8 - 1.4,
-      delay: (i % 5) * 0.022,
-      depth: i,
-      // per-card shuffle variance — limited stagger, deterministic
-      splitX: (rand(i, 7) - 0.5) * 9,
-      splitRot: (rand(i, 8) - 0.5) * 4.5,
-      riffleY: (rand(i, 9) - 0.5) * 14,
-      fanOffset: (rand(i, 11) - 0.5) * 2.5,
+      rot: r(i, 1) * 2.8 - 1.4,
+      offX: r(i, 2) * 3.2 - 1.6,
+      offY: r(i, 3) * 2.2 - 1.1,
+      d: i * 0.018,
+      rx: (r(i, 5) - 0.5) * 6,
+      ry: (r(i, 6) - 0.5) * 10,
+      f: (r(i, 7) - 0.5) * 1.8,
     }));
   }, [cardCount]);
 
-  const completedRef = useRef(false);
-  const timersRef = useRef<number[]>([]);
-
-  const handleComplete = useCallback(() => {
-    if (completedRef.current) return;
-    completedRef.current = true;
+  const finish = useCallback(() => {
+    if (doneRef.current) return;
+    doneRef.current = true;
     onComplete();
   }, [onComplete]);
 
   useEffect(() => {
-    if (reducedMotion) {
+    if (reduced) {
       setPhase("done");
-      const t = window.setTimeout(() => handleComplete(), 280);
-      timersRef.current = [t];
-      return () => {
-        timersRef.current.forEach((id: number) => clearTimeout(id));
-      };
+      const t = window.setTimeout(finish, 260);
+      timers.current = [t];
+      return () => timers.current.forEach((id) => clearTimeout(id));
     }
-
-    // Guard StrictMode double-invoke
-    if (completedRef.current) return;
-
-    // Explicit timeline: enter 480 calm → split 700 curiosity → riffle 800 tactile → fan 700 peak → settle 420 calm
-    const schedule = [
-      { phase: "split" as Phase, delay: 480 },
-      { phase: "riffle" as Phase, delay: 1180 },
-      { phase: "fan" as Phase, delay: 1980 },
-      { phase: "settle" as Phase, delay: 2680 },
+    if (doneRef.current) return;
+    // Timeline: enter 420 calm → lift 220 anticipate → split 620 → riffle 780 tactile → fan 700 peak → settle 480 calm
+    const seq: Array<{ p: Phase; at: number }> = [
+      { p: "lift", at: 420 },
+      { p: "split", at: 640 },
+      { p: "riffle", at: 1260 },
+      { p: "fan", at: 2040 },
+      { p: "settle", at: 2740 },
     ];
-    schedule.forEach(({ phase: p, delay }) => {
-      const id = window.setTimeout(() => setPhase(p), delay);
-      timersRef.current.push(id);
+    seq.forEach(({ p, at }) => {
+      const id = window.setTimeout(() => setPhase(p), at);
+      timers.current.push(id);
     });
     const doneId = window.setTimeout(() => {
       setPhase("done");
-      handleComplete();
-    }, 3120);
-    timersRef.current.push(doneId);
-
-    const onVisibility = () => {
-      if (document.hidden) {
-        // Pause visual work — keep timers but avoid accumulating frames
-        // No-op: CSS animations will pause via will-change optimization
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      timersRef.current.forEach((id: number) => clearTimeout(id));
-      timersRef.current = [];
-    };
-  }, [handleComplete, reducedMotion]);
+      finish();
+    }, 3220);
+    timers.current.push(doneId);
+    return () => timers.current.forEach((id) => clearTimeout(id));
+  }, [finish, reduced]);
 
   if (phase === "done") return null;
 
-  if (reducedMotion) {
+  if (reduced) {
     return (
       <div className="shuffle-stage">
-        <div className="mystical-loader">
-          <div className="mystical-loader-dot" />
-          <div className="mystical-loader-dot" />
-          <div className="mystical-loader-dot" />
-        </div>
-        <div className="shuffle-status">
-          <div className="shuffle-status-title">กำลังเตรียมไพ่...</div>
-        </div>
+        <div className="mystical-loader"><div className="mystical-loader-dot" /><div className="mystical-loader-dot" /><div className="mystical-loader-dot" /></div>
+        <div className="shuffle-status"><div className="shuffle-status-title">กำลังเตรียมไพ่...</div></div>
       </div>
     );
   }
 
-  const statusText = (() => {
-    switch (phase) {
-      case "enter":
-        return { title: "กำลังเตรียมสำรับไพ่", sub: "วางไพ่ลงบนโต๊ะ" };
-      case "split":
-        return { title: "กำลังสับไพ่", sub: "ขอให้จิตใจสงบ" };
-      case "riffle":
-        return { title: "กำลังสับไพ่", sub: "ไพ่กำลังสอดประสาน" };
-      case "fan":
-        return { title: "กำลังคลี่ไพ่", sub: "พลังงานกำลังก่อตัว" };
-      case "settle":
-        return { title: "พร้อมเปิดไพ่", sub: "แตะไพ่เพื่อเปิด" };
-      default:
-        return { title: "พร้อมเปิดไพ่", sub: "" };
-    }
-  })();
-
+  const isEnter = phase === "enter";
+  const isLift = phase === "lift";
   const isSplit = phase === "split";
   const isRiffle = phase === "riffle";
   const isFan = phase === "fan";
   const isSettle = phase === "settle";
-  const isEnter = phase === "enter";
+
+  const title = isEnter ? "วางสำรับ" : isLift ? "ยกสำรับ" : isSplit ? "แยกกอง" : isRiffle ? "สับไพ่" : isFan ? "คลี่วงกลม" : "พร้อมแล้ว";
+  const sub = isEnter ? "ตั้งสมาธิ" : isLift ? "เตรียมสับ" : isSplit ? "จิตใจสงบ" : isRiffle ? "ไพ่สอดประสาน" : isFan ? "พลังงานก่อตัว" : "แตะไพ่เพื่อเลือก";
 
   return (
-    <div className="shuffle-stage">
-      <div className="shuffle-stage-glow" />
-      {/* Ambient radial light — soft, not competing */}
+    <div className="shuffle-stage" style={{ overflow: "visible" }}>
+      {/* Soft table */}
       <div
         aria-hidden
+        className="absolute rounded-full"
         style={{
-          position: "absolute",
-          top: "50%",
+          width: "78%",
+          maxWidth: 520,
+          aspectRatio: "1.2",
+          top: "54%",
           left: "50%",
-          width: 420,
-          height: 420,
           transform: "translate(-50%, -50%)",
-          background: "radial-gradient(ellipse at center, rgba(167,139,250,0.09) 0%, transparent 68%)",
-          filter: "blur(8px)",
+          background: "radial-gradient(ellipse at 50% 38%, rgba(167,139,250,0.06) 0%, transparent 62%), radial-gradient(ellipse at 50% 88%, rgba(0,0,0,0.12) 0%, transparent 42%)",
+          border: "1px solid rgba(167,139,250,0.07)",
           pointerEvents: "none",
-          opacity: isEnter ? 0.7 : isSettle ? 0.5 : 1,
-          transition: "opacity 0.6s var(--ease-soft)",
         }}
       />
 
       <div
         className="shuffle-deck-wrap"
         style={{
-          transform:
-            isSplit
-              ? "translateY(-7px) scale(1.015)"
-              : isRiffle
-                ? "translateY(-6px) scale(1.012)"
-                : isFan
-                  ? "translateY(-3px) scale(1.008)"
-                  : isSettle
-                    ? "translateY(0.5px) scale(1)"
-                    : "translateY(0) scale(1)",
+          transform: isLift ? "translateY(-10px) scale(1.015)" : isSplit ? "translateY(-8px) scale(1.012)" : isRiffle ? "translateY(-6px) scale(1.01)" : isFan ? "translateY(-2px) scale(1.006)" : "translateY(0) scale(1)",
+          transition: "transform 0.62s var(--ease-magic)",
           transformOrigin: "center center",
-          transition: "transform 0.65s var(--ease-magic)",
           willChange: "transform",
         }}
       >
         {cards.map((c, i) => {
-          const isLeft = i % 2 === 0;
-          const isEvenGroup = i < Math.floor(cardCount * 0.55);
-
-          let tx = 0;
-          let ty = 0;
-          let rot = c.rotate;
-          let scale = 1;
-          let opacity = 1;
-          let z = c.depth;
+          const left = i % 2 === 0;
+          let tx = 0, ty = 0, rot = c.rot, sc = 1, op = 1, z = c.id;
 
           if (isEnter) {
-            tx = c.xOffset * 0.5;
-            ty = c.yOffset * 0.5 - i * 0.28;
-            rot = c.rotate * 0.4;
-            scale = 0.98 + i * 0.001;
-            opacity = i < cardCount - 4 ? 0.92 : 1;
-            z = c.depth;
+            tx = c.offX * 0.4; ty = c.offY * 0.4 - i * 0.22; rot *= 0.3; op = 0.94; z = c.id;
+          } else if (isLift) {
+            tx = c.offX * 0.2; ty = -6 - i * 0.18; rot *= 0.2; sc = 1.01; op = 1; z = c.id;
           } else if (isSplit) {
-            // Split into left/right packets — anticipate lift, controlled distance
-            const side = isLeft ? -1 : 1;
-            const fanTilt = (i % 3) * 1.2;
-            tx = side * (62 + fanTilt * 3) + c.splitX * 0.7;
-            ty = -5 + (i % 2) * 3 + c.riffleY * 0.12 + c.fanOffset;
-            rot = side * 6.5 + c.splitRot * 0.7 + c.rotate * 0.2;
-            scale = 0.985;
-            opacity = 0.96;
-            z = isLeft ? i : cardCount - i;
+            const s = left ? -1 : 1;
+            tx = s * (58 + (i % 3) * 4) + c.rx; ty = -4 + (i % 2) * 2 + c.ry * 0.12; rot = s * 6 + c.rx * 0.4; sc = 0.987; op = 0.97; z = left ? i : cardCount - i;
           } else if (isRiffle) {
-            // Interleave — most tactile, staggered, no teleport, z-flicker free
-            const interleave = isLeft ? -1 : 1;
-            const stagger = (i % 5) * 1.8;
-            const wave = Math.sin(i * 0.9) * 4.5;
-            tx = interleave * 12 + (isEvenGroup ? -6 : 6) + wave + c.fanOffset;
-            ty = c.riffleY * 0.55 + (isLeft ? -3 : 3) + stagger * 0.5;
-            rot = interleave * -4.2 + c.splitRot * 0.5 + Math.sin(i * 1.1) * 2.8;
-            scale = 0.99 + (i % 3) * 0.005;
-            opacity = 1;
-            // Stable interleaving z — prevent flicker
-            z = isLeft ? 100 + i : 100 - i;
+            const s = left ? -1 : 1;
+            const st = (i % 5) * 1.6;
+            tx = s * 11 + (i % 2 ? -6 : 6) + Math.sin(i * 0.95) * 3.5 + c.f * 0.4;
+            ty = c.ry * 0.5 + (left ? -2 : 2) + st * 0.45;
+            rot = s * -3.8 + c.rx * 0.35 + Math.sin(i * 1.08) * 2.2;
+            sc = 0.99; op = 1; z = left ? 100 + i : 100 - i;
           } else if (isFan) {
-            // Circular fan — แบบในรูป ล้อมเป็นวงกลม ตรงกลางว่าง 300° overlapping
             const w = typeof window !== "undefined" ? window.innerWidth : 390;
-            const totalArc = 300;
-            const start = -150;
-            const step = totalArc / (cardCount - 1);
-            const angle = start + i * step;
-            const radius = w <= 320 ? 92 : w <= 360 ? 104 : 118;
-            // Place on circle, angled along tangent (no counter-rotate) — เหมือนในรูป
-            tx = Math.sin((angle * Math.PI) / 180) * radius + c.fanOffset * 0.4;
-            ty = -Math.cos((angle * Math.PI) / 180) * radius * 0.88 - 14 + c.riffleY * 0.08;
-            rot = angle * 0.92 + c.rotate * 0.35;
-            scale = 0.94 + (1 - Math.abs(angle) / 160) * 0.06;
-            opacity = 0.98;
-            z = i;
+            const total = 300, start = -150, step = total / (cardCount - 1), ang = start + i * step, rad = w <= 320 ? 84 : w <= 360 ? 96 : 108;
+            tx = Math.sin((ang * Math.PI) / 180) * rad + c.f * 0.3;
+            ty = -Math.cos((ang * Math.PI) / 180) * rad * 0.86 - 10 + c.ry * 0.06;
+            rot = ang * 0.88 + c.rot * 0.25;
+            sc = 0.96 + (1 - Math.abs(ang) / 160) * 0.04;
+            op = 0.98; z = i;
           } else if (isSettle) {
-            // Heavier, calmer than riffle — deterministic, no snap, shadow correction
-            tx = c.xOffset * 0.25;
-            ty = -i * 0.22;
-            rot = c.rotate * 0.25;
-            scale = 1;
-            opacity = 1;
-            z = c.depth;
+            tx = c.offX * 0.18; ty = -i * 0.16; rot *= 0.18; sc = 1; op = 1; z = c.id;
           }
 
-          // Shadow depth — subtle, supports physicality, not animating box-shadow heavily
-          const elevation = isSplit ? 11 : isRiffle ? 13 : isFan ? 9 : isSettle ? 5 : 3;
-          const shadowOpacity = isSplit ? 0.2 : isRiffle ? 0.24 : isFan ? 0.16 : isSettle ? 0.14 : 0.11;
+          const elev = isLift ? 10 : isSplit ? 12 : isRiffle ? 14 : isFan ? 9 : isSettle ? 5 : 3;
+          const so = isRiffle ? 0.22 : isSplit ? 0.19 : isFan ? 0.15 : 0.11;
 
           return (
             <div
@@ -252,10 +160,11 @@ export default function ShuffleAnimation({
               className="shuffle-deck-card"
               style={{
                 zIndex: z,
-                transform: `translate3d(${tx}px, ${ty}px, 0) rotate(${rot}deg) scale(${scale})`,
-                opacity,
-                transition: `transform 0.62s cubic-bezier(0.22, 1, 0.36, 1) ${c.delay}s, opacity 0.4s var(--ease) ${c.delay}s, box-shadow 0.5s var(--ease)`,
-                boxShadow: `0 ${elevation}px ${elevation * 1.8}px rgba(0,0,0,${shadowOpacity}), 0 1px 3px rgba(0,0,0,0.18)`,
+                transform: `translate3d(${tx}px, ${ty}px, 0) rotate(${rot}deg) scale(${sc})`,
+                opacity: op,
+                transition: `transform 0.6s var(--ease-magic) ${c.d}s, opacity 0.35s var(--ease) ${c.d}s, box-shadow 0.45s var(--ease)`,
+                boxShadow: `0 ${elev}px ${elev * 1.7}px rgba(0,0,0,${so}), 0 1px 3px rgba(0,0,0,0.16)`,
+                willChange: "transform, opacity",
               }}
             >
               <div className="shuffle-card-back-design">
@@ -268,74 +177,19 @@ export default function ShuffleAnimation({
                   <div className="shuffle-card-cross-h" />
                   <div className="shuffle-card-cross-v" />
                 </div>
-                <div className="shuffle-card-corners">
-                  <span /><span /><span /><span />
-                </div>
+                <div className="shuffle-card-corners"><span /><span /><span /><span /></div>
               </div>
             </div>
           );
         })}
-
-        {(isSplit || isRiffle) && <SparkleField dense={isRiffle} />}
-        {isFan && <SparkleField dense={false} />}
+        {(isSplit || isRiffle) && <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at center, rgba(167,139,250,${isRiffle ? 0.07 : 0.05}), transparent 68%)`, filter: "blur(8px)" }} />}
       </div>
 
       <div className="shuffle-status" aria-live="polite">
-        <div className="shuffle-status-title" key={phase}>
-          {statusText.title}
-        </div>
-        <div className="shuffle-status-sub">{statusText.sub}</div>
-        {(isSplit || isRiffle) && (
-          <div className="mystical-loader" style={{ marginTop: 12 }}>
-            <div className="mystical-loader-dot" />
-            <div className="mystical-loader-dot" />
-            <div className="mystical-loader-dot" />
-          </div>
-        )}
+        <div className="shuffle-status-title" key={phase}>{title}</div>
+        <div className="shuffle-status-sub">{sub}</div>
+        {(isSplit || isRiffle) && <div className="mystical-loader" style={{ marginTop: 10 }}><div className="mystical-loader-dot" /><div className="mystical-loader-dot" /><div className="mystical-loader-dot" /></div>}
       </div>
     </div>
-  );
-}
-
-function SparkleField({ dense = false }: { dense?: boolean }) {
-  const sparkles = useMemo(() => {
-    const n = dense ? 24 : 16;
-    return Array.from({ length: n }, (_, i) => {
-      const angle = (i / n) * Math.PI * 2;
-      const r = dense ? 70 + (i % 4) * 18 : 85 + (i % 4) * 22;
-      return {
-        id: i,
-        x: Math.cos(angle) * r,
-        y: Math.sin(angle) * r * 0.48,
-        delay: i * 0.035,
-        size: 1.5 + (i % 3) * 0.9,
-        color: i % 3 === 0 ? "#d4af37" : i % 3 === 1 ? "#a78bfa" : "#f472b6",
-      };
-    });
-  }, [dense]);
-
-  return (
-    <>
-      {sparkles.map((s) => (
-        <div
-          key={s.id}
-          className="shuffle-sparkle"
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: s.size,
-            height: s.size,
-            borderRadius: "50%",
-            background: s.color,
-            boxShadow: `0 0 ${s.size * 2.2}px ${s.color}`,
-            transform: `translate(${s.x}px, ${s.y}px)`,
-            opacity: 0,
-            animation: `sparkleFloat 1.15s ${s.delay}s ease-out both`,
-            zIndex: 100,
-          }}
-        />
-      ))}
-    </>
   );
 }
