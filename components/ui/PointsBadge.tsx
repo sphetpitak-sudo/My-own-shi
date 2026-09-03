@@ -24,8 +24,33 @@ export default function PointsBadge({
   const rafRef = useRef<number | null>(null);
   const fromRef = useRef<number>(points);
   const prevPointsRef = useRef<number>(points);
+  const mountedRef = useRef(false);
+  const mountTimeRef = useRef<number>(0);
 
   useEffect(() => {
+    // First mount: sync without animation/pop to avoid flash on navigation
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      mountTimeRef.current = performance.now();
+      prevPointsRef.current = points;
+      fromRef.current = points;
+      setDisplay(points);
+      return;
+    }
+    // No change: skip animation/pop
+    if (points === prevPointsRef.current) {
+      if (display !== points) setDisplay(points);
+      return;
+    }
+    // Suppress animation/pop for initial load artifact: 0 -> actual within 2s of mount
+    // This is navigation remount (DashboardShell remount with 0 then fetch), not a real earn/spend
+    const isInitialLoad = performance.now() - mountTimeRef.current < 2000 && prevPointsRef.current === 0 && points !== 0;
+    if (isInitialLoad) {
+      prevPointsRef.current = points;
+      fromRef.current = points;
+      setDisplay(points);
+      return;
+    }
     fromRef.current = display;
     const from = fromRef.current;
     const to = points;
@@ -51,6 +76,7 @@ export default function PointsBadge({
           if (rafRef.current) cancelAnimationFrame(rafRef.current);
         };
       }
+      prevPointsRef.current = to;
     } else {
       prevPointsRef.current = to;
     }
