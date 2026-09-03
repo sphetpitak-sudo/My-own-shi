@@ -17,6 +17,10 @@ export async function GET() {
     .order("updated_at", { ascending: false })
     .limit(50);
 
-  if (error) return NextResponse.json({ error: "Failed to load" }, { status: 500 });
+  if (error) {
+    // PGRST205 = table not found (migration not yet run) — return empty, don't 500
+    if ((error as { code?: string }).code === "PGRST205") return NextResponse.json({ conversations: [] });
+    return NextResponse.json({ error: "Failed to load" }, { status: 500 });
+  }
   return NextResponse.json({ conversations: data || [] });
 }

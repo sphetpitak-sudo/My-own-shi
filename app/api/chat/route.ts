@@ -29,35 +29,76 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "chat", p_limit: 20, p_window_seconds: 60 });
-    if (rateOk === false) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    // Rate limit — best-effort, don't block if RPC missing
+    try {
+      const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "chat", p_limit: 20, p_window_seconds: 60 });
+      if (rateOk === false) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    } catch {}
 
-    // Resolve or create conversation
+    // Resolve or create conversation — with fallback if tables not yet migrated
     let convId: string | null = conversationId || null;
     let isNew = false;
+    let dbAvailable = true;
     if (convId) {
-      const { data: conv } = await supabase.from("chat_conversations").select("id").eq("id", convId).eq("user_id", user.id).single();
-      if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+      try {
+        const { data: conv, error: convErr } = await supabase.from("chat_conversations").select("id").eq("id", convId).eq("user_id", user.id).single();
+        if (convErr && (convErr as { code?: string }).code === "PGRST205") dbAvailable = false;
+        else if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+      } catch {
+        dbAvailable = false;
+      }
     } else {
-      const title = trimmed.slice(0, 40) || "สนทนาใหม่";
-      const { data: conv, error } = await supabase.from("chat_conversations").insert({ user_id: user.id, title }).select("id").single();
-      if (error || !conv) return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
-      convId = (conv as { id: string }).id;
+      try {
+        const title = trimmed.slice(0, 40) || "สนทนาใหม่";
+        const { data: conv, error } = await supabase.from("chat_conversations").insert({ user_id: user.id, title }).select("id").single();
+        if (error) {
+          if ((error as { code?: string }).code === "PGRST205") {
+            dbAvailable = false;
+            // Fallback ephemeral ID
+            convId = globalThis.crypto?.randomUUID?.() ?? `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            isNew = true;
+          } else {
+            return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
+          }
+        } else if (conv) {
+          convId = (conv as { id: string }).id;
+          isNew = true;
+        }
+      } catch {
+        dbAvailable = false;
+        convId = globalThis.crypto?.randomUUID?.() ?? `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        isNew = true;
+      }
+    }
+    // Ensure convId exists for ephemeral fallback
+    if (!convId) {
+      convId = globalThis.crypto?.randomUUID?.() ?? `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       isNew = true;
+      dbAvailable = false;
     }
 
-    // Save user message
-    const { error: msgErr } = await supabase.from("chat_messages").insert({ conversation_id: convId!, user_id: user.id, role: "user", content: trimmed });
-    if (msgErr) return NextResponse.json({ error: "Failed to save message" }, { status: 500 });
+    // Save user message — best-effort if DB missing
+    if (dbAvailable) {
+      try {
+        const { error: msgErr } = await supabase.from("chat_messages").insert({ conversation_id: convId!, user_id: user.id, role: "user", content: trimmed });
+        if (msgErr && (msgErr as { code?: string }).code === "PGRST205") dbAvailable = false;
+        else if (msgErr) console.warn("[chat] save user msg failed", msgErr);
+      } catch {}
+    }
 
-    // Load recent history (last 6)
-    const { data: historyRows } = await supabase
-      .from("chat_messages")
-      .select("role, content")
-      .eq("conversation_id", convId!)
-      .order("created_at", { ascending: true })
-      .limit(20);
-    const history = (historyRows || []).slice(-6).map((r: { role: string; content: string }) => ({ role: r.role, content: r.content }));
+    // Load recent history (last 6) — fallback empty
+    let history: Array<{ role: string; content: string }> = [];
+    if (dbAvailable) {
+      try {
+        const { data: historyRows } = await supabase
+          .from("chat_messages")
+          .select("role, content")
+          .eq("conversation_id", convId!)
+          .order("created_at", { ascending: true })
+          .limit(20);
+        history = (historyRows || []).slice(-6).map((r: { role: string; content: string }) => ({ role: r.role, content: r.content }));
+      } catch {}
+    }
 
     // Detect and execute tools (whitelisted, read-only, navigation only)
     const needed = detectToolsNeeded(trimmed);
@@ -158,16 +199,17 @@ export async function POST(request: Request) {
           }
           clearTimeout(timeoutId);
           if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
-          // Persist assistant message
-          if (fullText.trim()) {
-            const toSave = fullText.trim().slice(0, 6000);
-            const widgetData = toolWidgets.length ? { widgets: toolWidgets } : null;
-            await supabase.from("chat_messages").insert({ conversation_id: convId!, user_id: user.id, role: "assistant", content: toSave, tool_data: widgetData as unknown as never });
-            // Update conversation title if first message and title still default
-            if (history.length <= 1) {
-              const newTitle = trimmed.slice(0, 40);
-              await supabase.from("chat_conversations").update({ title: newTitle } as never).eq("id", convId!);
-            }
+          // Persist assistant message — best-effort if DB available
+          if (fullText.trim() && dbAvailable) {
+            try {
+              const toSave = fullText.trim().slice(0, 6000);
+              const widgetData = toolWidgets.length ? { widgets: toolWidgets } : null;
+              await supabase.from("chat_messages").insert({ conversation_id: convId!, user_id: user.id, role: "assistant", content: toSave, tool_data: widgetData as unknown as never });
+              if (history.length <= 1) {
+                const newTitle = trimmed.slice(0, 40);
+                await supabase.from("chat_conversations").update({ title: newTitle } as never).eq("id", convId!);
+              }
+            } catch {}
           }
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();

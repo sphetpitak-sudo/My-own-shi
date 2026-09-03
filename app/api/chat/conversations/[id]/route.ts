@@ -13,6 +13,9 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { error } = await supabase.from("chat_conversations").delete().eq("id", id).eq("user_id", user.id);
-  if (error) return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
+  if (error) {
+    if ((error as { code?: string }).code === "PGRST205") return NextResponse.json({ ok: true });
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }
