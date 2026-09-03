@@ -94,7 +94,14 @@ export async function POST(request: Request) {
     const cost = (charged as number) || 0;
     if (!cost || cost === 0) {
       const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).single();
-      return NextResponse.json({ error: "Not enough points", needed: spread.cost, current: profile?.points || 0 }, { status: 400 });
+      // Use dynamic cost from admin_settings if available, fallback to SPREADS default
+      let needed = spread.cost;
+      try {
+        const { data: costRow } = await supabase.from("admin_settings").select("value").eq("key", "reading_costs").single();
+        const dyn = (costRow?.value as Record<string, number> | null)?.[spreadType as string];
+        if (typeof dyn === "number") needed = dyn;
+      } catch {}
+      return NextResponse.json({ error: "Not enough points", needed, current: profile?.points || 0 }, { status: 400 });
     }
 
     // Insert generating marker — allows exactly-once persistence + idempotent refund (guard Supabase hang)

@@ -36,14 +36,20 @@ export async function POST(request: Request) {
     } catch {}
 
     // Resolve or create conversation — with fallback if tables not yet migrated
+    const isValidUUID = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
     let convId: string | null = conversationId || null;
+    // Treat ephemeral tmp-* or invalid UUID as "create new" (prevents 22P02 invalid input syntax)
+    if (convId && (convId.startsWith("tmp-") || !isValidUUID(convId))) {
+      convId = null;
+    }
     let isNew = false;
     let dbAvailable = true;
     if (convId) {
       try {
         const { data: conv, error: convErr } = await supabase.from("chat_conversations").select("id").eq("id", convId).eq("user_id", user.id).single();
-        if (convErr && (convErr as { code?: string }).code === "PGRST205") dbAvailable = false;
-        else if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+        const code = (convErr as { code?: string } | null)?.code;
+        if (code === "PGRST205" || code === "22P02") dbAvailable = false;
+        else if (convErr || !conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
       } catch {
         dbAvailable = false;
       }
@@ -81,7 +87,8 @@ export async function POST(request: Request) {
     if (dbAvailable) {
       try {
         const { error: msgErr } = await supabase.from("chat_messages").insert({ conversation_id: convId!, user_id: user.id, role: "user", content: trimmed });
-        if (msgErr && (msgErr as { code?: string }).code === "PGRST205") dbAvailable = false;
+        const mCode = (msgErr as { code?: string } | null)?.code;
+        if (mCode === "PGRST205" || mCode === "22P02") dbAvailable = false;
         else if (msgErr) console.warn("[chat] save user msg failed", msgErr);
       } catch {}
     }
@@ -100,15 +107,19 @@ export async function POST(request: Request) {
       } catch {}
     }
 
-    // Detect and execute tools (whitelisted, read-only, navigation only)
+    // Detect and execute tools (whitelisted, read-only, navigation only) — parallel for latency
     const needed = detectToolsNeeded(trimmed);
     let toolContext = "";
     const toolWidgets: Array<{ type: string; props: unknown }> = [];
-    for (const toolName of needed.slice(0, 3)) {
-      const res = await executeTool(toolName, user.id, trimmed);
-      if (res) {
-        toolContext += `\n[${toolName}]\n${JSON.stringify(res.data).slice(0, 1500)}\n`;
-        if (res.widget) toolWidgets.push(res.widget);
+    const toRun = needed.slice(0, 3);
+    if (toRun.length > 0) {
+      const results = await Promise.all(toRun.map((n) => executeTool(n, user.id, trimmed)));
+      for (let i = 0; i < toRun.length; i++) {
+        const res = results[i];
+        if (res) {
+          toolContext += `\n[${toRun[i]}]\n${JSON.stringify(res.data).slice(0, 1500)}\n`;
+          if (res.widget) toolWidgets.push(res.widget);
+        }
       }
     }
 
@@ -165,6 +176,7 @@ export async function POST(request: Request) {
 
     const encoder = new TextEncoder();
     let fullText = "";
+    let truncated = false;
     let firstTokenTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
       try {
         abortController.abort();
@@ -182,14 +194,22 @@ export async function POST(request: Request) {
           if (toolWidgets.length > 0) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ widgets: toolWidgets })}\n\n`));
           }
-          for await (const chunk of stream as unknown as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>) {
-            const content = chunk.choices[0]?.delta?.content || "";
+          for await (const chunk of stream as unknown as AsyncIterable<{ choices: Array<{ delta?: { content?: string }; finish_reason?: string }>; finish_reason?: string }>) {
+            const c = chunk as { choices: Array<{ delta?: { content?: string }; finish_reason?: string }>; finish_reason?: string };
+            const content = c.choices[0]?.delta?.content || "";
+            const finishReason = (c.choices[0] as { finish_reason?: string })?.finish_reason || c.finish_reason;
+            if (finishReason === "length") truncated = true;
             if (content) {
               if (firstTokenTimeout) {
                 clearTimeout(firstTokenTimeout);
                 firstTokenTimeout = null;
               }
-              if (fullText.length < 6000) fullText += content.slice(0, 6000 - fullText.length);
+              if (fullText.length < 6000) {
+                fullText += content.slice(0, 6000 - fullText.length);
+                if (fullText.length >= 6000) truncated = true;
+              } else {
+                truncated = true;
+              }
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
             }
           }
@@ -199,6 +219,11 @@ export async function POST(request: Request) {
           }
           clearTimeout(timeoutId);
           if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+          if (truncated) {
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ warning: "truncated" })}\n\n`));
+            } catch {}
+          }
           // Persist assistant message — best-effort if DB available
           if (fullText.trim() && dbAvailable) {
             try {
@@ -207,7 +232,7 @@ export async function POST(request: Request) {
               await supabase.from("chat_messages").insert({ conversation_id: convId!, user_id: user.id, role: "assistant", content: toSave, tool_data: widgetData as unknown as never });
               if (history.length <= 1) {
                 const newTitle = trimmed.slice(0, 40);
-                await supabase.from("chat_conversations").update({ title: newTitle } as never).eq("id", convId!);
+                await supabase.from("chat_conversations").update({ title: newTitle, updated_at: new Date().toISOString() } as never).eq("id", convId!);
               }
             } catch {}
           }

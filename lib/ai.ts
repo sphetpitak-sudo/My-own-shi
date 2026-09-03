@@ -51,9 +51,9 @@ export const LIMITS = {
 // Replaces our fence markers and normalises XML-like brackets.
 export function sanitizeForPrompt(input: string, maxLen: number): string {
   let s = (input || "").trim().slice(0, maxLen);
-  // Neutralise our own fences if the user typed them
-  s = s.replace(/<\/?(user_question|cards|context|question|cards_block)>/gi, (m) => m.replace(/</g, "‹").replace(/>/g, "›"));
-  s = s.replace(/---(USER|CARDS|CONTEXT)(_START|_END)---/g, (m) => m.replace(/-/g, "—"));
+  // Neutralise our own fences if the user typed them (reading + chat)
+  s = s.replace(/<\/?(user_question|cards|context|question|cards_block|user_message|tool_context|conversation_history)>/gi, (m) => m.replace(/</g, "‹").replace(/>/g, "›"));
+  s = s.replace(/---(USER|CARDS|CONTEXT|CHAT)(_START|_END)---/g, (m) => m.replace(/-/g, "—"));
   // Collapse excessive newlines / control tricks
   s = s.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n");
   return s;

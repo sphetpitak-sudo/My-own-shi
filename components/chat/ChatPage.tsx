@@ -76,14 +76,21 @@ export default function ChatPage() {
     if (!msg || streaming) return;
     setInput("");
     setError("");
-    // optimistic user bubble
     // eslint-disable-next-line react-hooks/purity
     const tmpId = `tmp-${Date.now()}`;
-    setMessages((p) => [...p, { id: tmpId, role: "user", content: msg, created_at: new Date().toISOString() }]);
+    // eslint-disable-next-line react-hooks/purity
+    const assistantId = `ast-${Date.now() + 1}`;
+    // snapshot for rollback
+    let snapshot: Message[] = [];
+    setMessages((p) => {
+      snapshot = [...p];
+      return [...p, { id: tmpId, role: "user", content: msg, created_at: new Date().toISOString() }];
+    });
     setStreaming(true);
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
+    let didCreateAssistant = false;
 
     try {
       const res = await fetch("/api/chat", {
@@ -105,13 +112,32 @@ export default function ChatPage() {
       let widgets: Array<{ type: string; props: unknown }> | null = null;
       let newConvId: string | null = null;
       // placeholder assistant message
-      // eslint-disable-next-line react-hooks/purity
-      const assistantId = `ast-${Date.now()}`;
+      didCreateAssistant = true;
       setMessages((p) => [...p, { id: assistantId, role: "assistant", content: "", tool_data: null, created_at: new Date().toISOString() }]);
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // flush remaining buffer tail (when stream ends without trailing newline)
+          if (buffer.trim().startsWith("data: ")) {
+            const d = buffer.trim().slice(6);
+            if (d && d !== "[DONE]") {
+              try {
+                const parsed = JSON.parse(d);
+                if (parsed.conversationId) newConvId = parsed.conversationId;
+                // eslint-disable-next-line react-hooks/immutability
+                if (parsed.widgets) widgets = parsed.widgets;
+                if (parsed.content) {
+                  // eslint-disable-next-line react-hooks/immutability
+                  acc += parsed.content;
+                  setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: acc, tool_data: widgets ? { widgets } : null } : m)));
+                }
+                if (parsed.error) setError(parsed.error);
+              } catch {}
+            }
+          }
+          break;
+        }
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
@@ -119,33 +145,49 @@ export default function ChatPage() {
           const line = raw.replace(/\r$/, "");
           if (!line.startsWith("data: ")) continue;
           const d = line.slice(6);
-          if (d === "[DONE]") break;
+          if (d === "[DONE]") { buffer = ""; break; }
           try {
             const parsed = JSON.parse(d);
             if (parsed.conversationId) newConvId = parsed.conversationId;
-            // eslint-disable-next-line react-hooks/immutability
             if (parsed.widgets) widgets = parsed.widgets;
             if (parsed.content) {
-              // eslint-disable-next-line react-hooks/immutability
               acc += parsed.content;
               setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: acc, tool_data: widgets ? { widgets } : null } : m)));
             }
+            if (parsed.warning === "truncated") setError("คำตอบถูกตัดให้สั้นลงเนื่องจากความยาวเกินกำหนด");
             if (parsed.error) setError(parsed.error);
           } catch {}
         }
+      }
+      // if acc still empty but widgets arrived, ensure widget renders
+      if (widgets && acc === "") {
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, tool_data: { widgets } } : m)));
+      }
+      // remove empty placeholder if nothing streamed
+      if (acc === "" && didCreateAssistant) {
+        setMessages((prev) => prev.filter((m) => !(m.id === assistantId && m.content === "")));
       }
       if (newConvId && !convId) {
         setConvId(newConvId);
         fetchConversations();
       } else if (convId) {
-        // refresh title
+        fetchConversations();
+      } else if (newConvId) {
+        // ephemeral fallback produced id but convId was null
+        setConvId(newConvId);
         fetchConversations();
       }
     } catch (e) {
       if ((e as Error).name === "AbortError") return;
       setError(e instanceof Error ? e.message : "ผิดพลาด");
-      // remove optimistic if failed and no assistant
-      setMessages((p) => p.filter((m) => !m.id.startsWith("tmp-") || p.some((x) => x.id !== m.id)));
+      // rollback: remove optimistic tmp and placeholder assistant, restore snapshot
+      setMessages((p) => {
+        const withoutTmp = p.filter((m) => m.id !== tmpId && m.id !== assistantId);
+        // if we already removed, ensure at least snapshot is preserved without tmp
+        // if stream had started and acc has content, keep it; else revert to snapshot
+        const hasContent = p.some((m) => m.id === assistantId && m.content.trim().length > 0);
+        return hasContent ? withoutTmp : snapshot;
+      });
     } finally {
       setStreaming(false);
       abortRef.current = null;

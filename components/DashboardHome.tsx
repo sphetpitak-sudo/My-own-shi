@@ -138,6 +138,7 @@ export default function DashboardHome() {
       if (f.id === "tarot-three-card" && costs["three_card"] !== undefined) return { ...f, cost: costs["three_card"] };
       if (f.id === "tarot-celtic" && costs["celtic"] !== undefined) return { ...f, cost: costs["celtic"] };
       if (f.id === "yes-no" && costs["single"] !== undefined) return { ...f, cost: costs["single"] };
+      if (["tarot-love","tarot-career","tarot-study","tarot-finance","tarot-health"].includes(f.id) && costs["three_card"] !== undefined) return { ...f, cost: costs["three_card"] };
       return f;
     });
     if (activeCategory === "all") return withDynamicCosts;
@@ -249,7 +250,7 @@ export default function DashboardHome() {
       <div className="dash-section space-y-3">
         <SectionHeader
           title="เลือกหัวข้อที่สนใจ"
-          subtitle="ไพ่ 3 ใบ เน้นเรื่องที่คุณสนใจ 10 แต้ม · ใช้ได้ทุก Spread"
+          subtitle={`ไพ่ 3 ใบ เน้นเรื่องที่คุณสนใจ ${costs["three_card"] ?? SPREADS.three_card.cost} แต้ม · ใช้ได้ทุก Spread`}
         />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {(["love", "career", "study", "finance", "health"] as const).map((topic) => {
@@ -275,7 +276,7 @@ export default function DashboardHome() {
                   <Icon size={20} />
                 </span>
                 <span className="text-[13.5px] font-bold text-[var(--text)] block">{topicData.label}</span>
-                <span className="text-[11px] mt-1 block" style={{ color: "var(--text-muted)" }}>10 แต้ม · 3 ใบ</span>
+                <span className="text-[11px] mt-1 block" style={{ color: "var(--text-muted)" }}>{costs["three_card"] ?? SPREADS.three_card.cost} แต้ม · 3 ใบ</span>
               </a>
             );
           })}

@@ -41,9 +41,9 @@ const PRIMARY = [
   { href: "/dashboard/history", label: "บันทึกคำทำนาย", icon: Clock },
 ];
 
-const TOOLS = [
+const TOOLS: Array<{ href: string; label: string; icon: typeof Star; soon?: boolean }> = [
   { href: "/dashboard/zodiac", label: "ดูดวงตามวันเกิด", icon: Star },
-  { href: "/dashboard/birthchart", label: "แผนที่ดวงดาว", icon: Compass, soon: true },
+  { href: "/dashboard/birthchart", label: "แผนที่ดวงดาว", icon: Compass },
   { href: "/dashboard/oracle", label: "ไพ่ลางสังหรณ์", icon: Eye },
 ];
 

@@ -14,9 +14,14 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Ensure ownership — if tables missing, return empty
+  // Ensure ownership — if tables missing, return empty. Treat ephemeral tmp-* / invalid UUID as empty (no persist)
+  if (conversationId.startsWith("tmp-") || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
+    return NextResponse.json({ messages: [] });
+  }
   const { data: conv, error: convErr } = await supabase.from("chat_conversations").select("id").eq("id", conversationId).eq("user_id", user.id).single();
-  if (convErr && (convErr as { code?: string }).code === "PGRST205") return NextResponse.json({ messages: [] });
+  const c = (convErr as { code?: string } | null)?.code;
+  if (c === "PGRST205") return NextResponse.json({ messages: [] });
+  if (c === "22P02") return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (!conv) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { data, error } = await supabase
