@@ -212,7 +212,7 @@ export default function ChatPage() {
           <div className="text-[11px] text-white/60">เพื่อน AI ของคุณ • ออนไลน์</div>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-[11px] px-2.5 py-1.5 rounded-full" style={{ background: "rgba(212,175,55,0.15)", color: "#f6c944", border: "1px solid rgba(212,175,55,0.25)" }}>
-          <span className="w-2 h-2 rounded-full bg-[#f6c944]" /> {profile?.points ?? 0} แต้ม
+          <span className="w-2 h-2 rounded-full bg-[#f6c944]" /> {profile ? `${profile.points.toLocaleString()} แต้ม` : "…"}
         </div>
         <button onClick={() => setShowList((v) => !v)} className="lg:hidden w-8 h-8 rounded-full bg-white/10 text-white grid place-items-center">
           <MessageCircle size={16} />

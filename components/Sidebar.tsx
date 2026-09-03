@@ -52,7 +52,7 @@ const PERSONAL = [
   { href: "/dashboard/settings", label: "ตั้งค่าบัญชี", icon: Settings },
 ];
 
-export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: SidebarProps) {
+export default function Sidebar({ open, onClose, isAdmin, userPoints }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -117,7 +117,7 @@ export default function Sidebar({ open, onClose, isAdmin, userPoints = 0 }: Side
               แต้มสะสม
             </div>
             <div className="text-[16px] font-extrabold text-[#d4af37] leading-none mt-0.5 tabular-nums">
-              {userPoints.toLocaleString()}
+              {userPoints != null ? userPoints.toLocaleString() : "…"}
             </div>
           </div>
         </Link>

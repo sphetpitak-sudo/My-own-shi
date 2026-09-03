@@ -5,7 +5,7 @@ import { Coins } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface PointsBadgeProps {
-  points: number;
+  points?: number;
   size?: "sm" | "md" | "lg";
   className?: string;
   showPopOnChange?: boolean;
@@ -19,41 +19,44 @@ export default function PointsBadge({
   showPopOnChange = false,
   tone = "gold",
 }: PointsBadgeProps) {
-  const [display, setDisplay] = useState(points);
+  const isLoading = points == null;
+  const pointsVal = points ?? 0;
+  const [display, setDisplay] = useState(pointsVal);
   const [popDelta, setPopDelta] = useState<number | null>(null);
   const rafRef = useRef<number | null>(null);
-  const fromRef = useRef<number>(points);
-  const prevPointsRef = useRef<number>(points);
+  const fromRef = useRef<number>(pointsVal);
+  const prevPointsRef = useRef<number>(pointsVal);
   const mountedRef = useRef(false);
   const mountTimeRef = useRef<number>(0);
 
   useEffect(() => {
+    if (isLoading) return;
     // First mount: sync without animation/pop to avoid flash on navigation
     if (!mountedRef.current) {
       mountedRef.current = true;
       mountTimeRef.current = performance.now();
-      prevPointsRef.current = points;
-      fromRef.current = points;
-      setDisplay(points);
+      prevPointsRef.current = pointsVal;
+      fromRef.current = pointsVal;
+      setDisplay(pointsVal);
       return;
     }
     // No change: skip animation/pop
-    if (points === prevPointsRef.current) {
-      if (display !== points) setDisplay(points);
+    if (pointsVal === prevPointsRef.current) {
+      if (display !== pointsVal) setDisplay(pointsVal);
       return;
     }
     // Suppress animation/pop for initial load artifact: 0 -> actual within 2s of mount
     // This is navigation remount (DashboardShell remount with 0 then fetch), not a real earn/spend
-    const isInitialLoad = performance.now() - mountTimeRef.current < 2000 && prevPointsRef.current === 0 && points !== 0;
+    const isInitialLoad = performance.now() - mountTimeRef.current < 2000 && prevPointsRef.current === 0 && pointsVal !== 0;
     if (isInitialLoad) {
-      prevPointsRef.current = points;
-      fromRef.current = points;
-      setDisplay(points);
+      prevPointsRef.current = pointsVal;
+      fromRef.current = pointsVal;
+      setDisplay(pointsVal);
       return;
     }
     fromRef.current = display;
     const from = fromRef.current;
-    const to = points;
+    const to = pointsVal;
     const duration = 700;
     const start = performance.now();
     const animate = (now: number) => {
@@ -84,7 +87,7 @@ export default function PointsBadge({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points]);
+  }, [pointsVal, isLoading]);
 
   const toneClass = cn(
     tone === "gold" && "points-badge-gold",
@@ -95,7 +98,7 @@ export default function PointsBadge({
   return (
     <div className={cn("points-badge", `points-badge-${size}`, toneClass, className)}>
       <Coins size={size === "lg" ? 16 : size === "md" ? 13 : 11} />
-      <span className="points-badge-number">{display.toLocaleString()}</span>
+      <span className="points-badge-number">{isLoading ? "…" : display.toLocaleString()}</span>
       {popDelta !== null && (
         <span
           key={popDelta}

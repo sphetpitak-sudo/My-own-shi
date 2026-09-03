@@ -16,7 +16,7 @@ interface TopbarProps {
 export default function Topbar({
   userName,
   userAvatar,
-  points = 0,
+  points,
   onMenuClick,
 }: TopbarProps) {
   const { theme, toggle } = useTheme();

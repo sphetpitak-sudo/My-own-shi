@@ -103,14 +103,14 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           isAdmin={profile?.is_admin}
-          userPoints={profile?.points ?? 0}
+          userPoints={profile?.points}
         />
 
         <div className="main-area">
           <Topbar
             userName={profile?.display_name}
             userAvatar={profile?.avatar_url}
-            points={profile?.points ?? 0}
+            points={profile?.points}
             onMenuClick={() => setSidebarOpen(true)}
           />
 
