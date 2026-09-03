@@ -2,9 +2,6 @@ export type FiveElement = "wood" | "fire" | "earth" | "metal" | "water";
 export const FIVE_ELEMENT_TH: Record<FiveElement, string> = {
   wood: "ไม้", fire: "ไฟ", earth: "ดิน", metal: "ทอง", water: "น้ำ",
 };
-export const FIVE_ELEMENT_EMOJI: Record<FiveElement, string> = {
-  wood: "🌱", fire: "🔥", earth: "🪨", metal: "⚙️", water: "💧",
-};
 
 export interface SajuPillar { stem: string; branch: string; stemHanja: string; branchHanja: string; element: FiveElement; branchElement: FiveElement }
 export interface SajuChart {

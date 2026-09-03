@@ -103,7 +103,7 @@ export default function BirthChartPage() {
     <DashboardShell>
       <div className="reading-page">
         <div className="step-header">
-          <p className="step-eyebrow">ดาราศาสตร์ · AI + Astronomy · Whole Sign</p>
+          <p className="step-eyebrow">ดาราศาสตร์ · AI + Astronomy</p>
           <h1 className="step-title">แผนที่ดวงดาวส่วนบุคคล</h1>
           <p className="step-sub">
             กรอกวัน เวลา และสถานที่เกิด — เราคำนวณตำแหน่งดาวจริง 10 ดวง + ลัคนา + เรือนทั้ง 12 แบบแผนที่วงล้อจริง
@@ -118,7 +118,6 @@ export default function BirthChartPage() {
                 <div className="text-[12.5px] font-bold" style={{ color: "var(--text)" }}>
                   ข้อมูลการเกิดของคุณ
                 </div>
-                <span className="ml-auto text-[10px] px-2 py-1 rounded-full font-bold" style={{ background:"rgba(212,175,55,0.12)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.18)"}}>ของจริง · Whole Sign</span>
               </div>
 
               <div className="space-y-3">
@@ -233,7 +232,6 @@ export default function BirthChartPage() {
             <div className="flex flex-wrap gap-1.5 text-[10.5px]">
               <span className="px-2.5 py-1 rounded-full font-bold flex items-center gap-1" style={{ background:"var(--primary-soft)", color:"var(--primary)", border:"1px solid rgba(167,139,250,0.14)"}}><Compass size={11}/> ลัคนา {ZODIAC_SIGNS.find(z=>z.id===chart.ascendant?.sign)?.nameTh ?? ZODIAC_SIGNS.find(z=>z.id===chart.rising)?.nameTh} {chart.ascendant? `${chart.ascendant.degree}°`:""}</span>
               <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background:"var(--bg-card)", border:"1px solid var(--border)", color:"var(--text-muted)"}}><MapPin size={11} className="inline -mt-0.5 mr-1"/>{chart.lat.toFixed(2)}, {chart.lon.toFixed(2)} · {chart.timezone}</span>
-              <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.16)"}}>Whole Sign 12 เรือน</span>
             </div>
 
             {/* Sun sign hero */}

@@ -205,7 +205,7 @@ export default function BirthChartWheel({ chart, size=360 }: { chart: BirthChart
           );
         })}
       </div>
-      <p className="text-[10px] text-center" style={{ color:"var(--text-muted)"}}>Whole Sign · ลัคนา {chart.ascendant? `${ZODIAC_SIGNS.find(z=>z.id===chart.ascendant!.sign)?.nameTh} ${chart.ascendant.degree}°` : chart.rising? ZODIAC_SIGNS.find(z=>z.id===chart.rising)?.nameTh:""} · {chart.timezone} · บ้านคือราศี </p>
+      <p className="text-[10px] text-center" style={{ color:"var(--text-muted)"}}>ลัคนา {chart.ascendant? `${ZODIAC_SIGNS.find(z=>z.id===chart.ascendant!.sign)?.nameTh} ${chart.ascendant.degree}°` : chart.rising? ZODIAC_SIGNS.find(z=>z.id===chart.rising)?.nameTh:""} · {chart.timezone} · บ้านคือราศี </p>
     </div>
   );
 }

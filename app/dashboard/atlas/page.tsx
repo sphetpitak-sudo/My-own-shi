@@ -9,7 +9,7 @@ import type { AtlasLine } from "@/lib/atlas/calcLines";
 import type { AtlasCity } from "@/lib/atlas/cities";
 import { suggestPlaces } from "@/lib/geocoding";
 import type { SajuChart } from "@/lib/saju/types";
-import { FIVE_ELEMENT_TH, FIVE_ELEMENT_EMOJI } from "@/lib/saju/types";
+import { FIVE_ELEMENT_TH } from "@/lib/saju/types";
 import { stripMarkdownMultiline } from "@/lib/text";
 
 const STAGES = ["กำลังคำนวณ 40 เส้น...", "กำลังจัดอันดับ 189 เมือง...", "กำลังให้ AI อ่านเมืองที่ใช่..."];
@@ -136,7 +136,7 @@ export default function AtlasPage(){
                     <span className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-extrabold shrink-0" style={{ background: idx===0?"linear-gradient(135deg,#f6c944,#b8942a)":"var(--primary-soft)", color: idx===0?"#1a1025":"var(--primary)"}}>{idx+1}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-bold" style={{color:"var(--text)"}}>{r.city.nameTh} <span className="text-[11px] font-normal" style={{color:"var(--text-muted)"}}>({r.city.countryTh})</span></div>
-                      <div className="text-[11px]" style={{color:"var(--text-muted)"}}>{r.bestLine.labelTh} · {r.distKm.toFixed(0)} km · {r.orb==="intense"?"🔥 เข้มข้น 0-250km":"~ เจือจาง 250-1100km"}</div>
+                      <div className="text-[11px]" style={{color:"var(--text-muted)"}}>{r.bestLine.labelTh} · {r.distKm.toFixed(0)} km · {r.orb==="intense"?"เข้มข้น 0-250km":"เจือจาง 250-1100km"}</div>
                     </div>
                     <span className="text-[10px] px-2 py-1 rounded-full font-bold" style={{ background: r.orb==="intense"?"rgba(239,68,68,0.12)":"rgba(212,175,55,0.12)", color: r.orb==="intense"?"#f87171":"var(--gold)"}}>{r.bestLine.angle}</span>
                   </div>
@@ -155,7 +155,6 @@ export default function AtlasPage(){
                     const isWeak = saju.weakest===el;
                     return (
                       <div key={el} className="rounded-xl p-2 text-center" style={{ background: isWeak?"rgba(239,68,68,0.08)":"var(--bg)", border:`1px solid ${isWeak?"rgba(239,68,68,0.22)":"var(--border-subtle)"}`}}>
-                        <div className="text-[14px]">{FIVE_ELEMENT_EMOJI[el]}</div>
                         <div className="text-[11px] font-bold" style={{color: isWeak?"#f87171":"var(--text)"}}>{FIVE_ELEMENT_TH[el]}</div>
                         <div className="text-[11px] font-extrabold" style={{color: isWeak?"#f87171":"var(--primary)"}}>{cnt}</div>
                         {isWeak && <div className="text-[9px] font-bold px-1 py-0.5 rounded-full mt-1" style={{background:"rgba(239,68,68,0.12)", color:"#f87171"}}>ขาด</div>}
@@ -163,8 +162,8 @@ export default function AtlasPage(){
                     );
                   })}
                 </div>
-                <div className="p-2.5 rounded-xl text-[11.5px] flex gap-2" style={{background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.14)"}}>
-                  <span>🌿</span><span>{FIVE_ELEMENT_EMOJI[saju.weakest]} {FIVE_ELEMENT_TH[saju.weakest]} ขาด → เสริมด้วย {remedy.join(", ") || "Jupiter/Venus"} · ดูเมืองที่เส้น {remedy.join("/")} ผ่านใกล้สุดใน Top 6 ข้างบน</span>
+                <div className="p-2.5 rounded-xl text-[11.5px]" style={{background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.14)"}}>
+                  {FIVE_ELEMENT_TH[saju.weakest]} ขาด → เสริมด้วย {remedy.join(", ") || "Jupiter/Venus"} · ดูเมืองที่เส้น {remedy.join("/")} ผ่านใกล้สุดใน Top 6 ข้างบน
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 mt-3 text-center">
                   {Object.entries(saju.pillars).map(([k, p]:any)=>(
@@ -186,7 +185,7 @@ export default function AtlasPage(){
                   ["☉ อาทิตย์","ตัวตน ภาพลักษณ์"], ["☽ จันทร์","อารมณ์ บ้าน"], ["☿ พุธ","สื่อสาร ความคิด"], ["♀ ศุกร์","ความรัก ความงาม"], ["♂ อังคาร","พลัง ลงมือ"], ["♃ พฤหัส","โชค ขยาย"], ["♄ เสาร์","วินัย บทเรียน"], ["♅ ยูเรนัส","นวัตกรรม"], ["♆ เนปจูน","ฝัน จิตวิญญาณ"], ["♇ พลูโต","ทรานส์ฟอร์ม"]
                 ].map(([a,b])=> <div key={a} className="flex gap-1.5"><span className="font-bold" style={{color:"var(--primary)"}}>{a}</span><span style={{color:"var(--text-muted)"}}>{b}</span></div>)}
               </div>
-              <p className="text-[10.5px] mt-3 p-2 rounded-xl" style={{background:"var(--bg)", border:"1px solid var(--border-subtle)", color:"var(--text-muted)"}}>🌀 ตั้ง=พลังเปิดเผย (อาชีพ/ตัวตน) · โค้ง=พลังภายใน (รากเหง้า/สัมพันธ์) · ใช้ร่วมกับ Relocation Chart จะแม่นขึ้น — Atlas ให้ภาพกว้าง ส่วน Relocation ให้ภาพเรือนทั้ง 12 ใหม่ ณ เมืองปลายทาง (ต้องดูคู่กัน)</p>
+              <p className="text-[10.5px] mt-3 p-2 rounded-xl" style={{background:"var(--bg)", border:"1px solid var(--border-subtle)", color:"var(--text-muted)"}}>ตั้ง=พลังเปิดเผย (อาชีพ/ตัวตน) · โค้ง=พลังภายใน (รากเหง้า/สัมพันธ์) · ใช้ร่วมกับ Relocation Chart จะแม่นขึ้น — Atlas ให้ภาพกว้าง ส่วน Relocation ให้ภาพเรือนทั้ง 12 ใหม่ ณ เมืองปลายทาง (ต้องดูคู่กัน)</p>
             </div>
 
             {interpretation && (
