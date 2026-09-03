@@ -20,7 +20,6 @@ import {
   Coins,
   Layers,
   MessageCircle,
-  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -45,7 +44,6 @@ const PRIMARY = [
 const TOOLS: Array<{ href: string; label: string; icon: typeof Star; soon?: boolean }> = [
   { href: "/dashboard/zodiac", label: "ดูดวงตามวันเกิด", icon: Star },
   { href: "/dashboard/birthchart", label: "แผนที่ดวงดาว", icon: Compass },
-  { href: "/dashboard/atlas", label: "Atlas แผนที่โลก", icon: Globe },
   { href: "/dashboard/oracle", label: "ไพ่ลางสังหรณ์", icon: Eye },
 ];
 
