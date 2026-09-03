@@ -43,6 +43,7 @@ export interface PlanetPosition {
   planet: Planet;
   sign: ZodiacSign;
   degree: number;
+  longitude: number; // 0-360 ecliptic longitude
   house?: number;
   retrograde?: boolean;
 }
@@ -50,8 +51,15 @@ export interface PlanetPosition {
 export interface BirthChart {
   sun: PlanetPosition;
   moon: PlanetPosition;
-  rising?: ZodiacSign;
+  rising?: ZodiacSign; // legacy sign only
+  ascendant?: { sign: ZodiacSign; degree: number; longitude: number };
   planets: PlanetPosition[];
+  cusps?: number[]; // 12 house cusps 0-360 (Whole Sign: cusps[i] = ascendant + i*30)
+  houseSystem?: "whole_sign" | "placidus";
+  lat: number;
+  lon: number;
+  timezone: string;
+  tzOffsetMinutes: number;
   summary: {
     personality: string;
     personalityTh: string;
@@ -68,4 +76,7 @@ export interface BirthInput {
   date: string;
   time: string;
   place: string;
+  lat?: number;
+  lon?: number;
+  tzOffsetMinutes?: number; // e.g., 420 for Asia/Bangkok (+07:00)
 }

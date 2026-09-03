@@ -9,10 +9,6 @@ import {
 import type { BirthChart, BirthInput, ZodiacSign, Planet, PlanetPosition } from "./types";
 import { ZODIAC_SIGNS } from "./types";
 
-/**
- * Real astrology calculator using astronomy-engine.
- * Calculates accurate planetary positions based on birth date, time, and location.
- */
 export interface AstrologyCalculator {
   calculate(input: BirthInput): Promise<BirthChart>;
   isReady(): boolean;
@@ -35,7 +31,6 @@ const PLANET_ASTRONOMY_MAP: Record<Planet, Body> = {
 };
 
 function longitudeToSign(longitude: number): ZodiacSign {
-  // Normalize to 0-360
   const norm = ((longitude % 360) + 360) % 360;
   const signIndex = Math.floor(norm / 30);
   const signs: ZodiacSign[] = [
@@ -47,67 +42,98 @@ function longitudeToSign(longitude: number): ZodiacSign {
 
 function longitudeToDegree(longitude: number): number {
   const norm = ((longitude % 360) + 360) % 360;
-  return Math.round(norm % 30 * 100) / 100;
+  return Math.round((norm % 30) * 100) / 100;
 }
 
-function isRetrograde(): boolean {
-  // astronomy-engine doesn't directly provide retrograde status
-  // We'll use a simple heuristic: check if the planet's ecliptic longitude is decreasing
-  // For a more accurate implementation, we'd need to check over a time window
-  return false; // Simplified for now
+function normalizeLon(lon: number): number {
+  return ((lon % 360) + 360) % 360;
 }
 
-function calculateAscendant(time: AstroTime, observer: Observer): ZodiacSign {
-  // Calculate Local Sidereal Time (LST)
-  // GMST is in hours, convert to degrees
-  const gmstHours = SiderealTime(time); // Greenwich Mean Sidereal Time in hours
-  const lstHours = gmstHours + observer.longitude / 15; // Local Sidereal Time in hours
-  const lstDeg = (lstHours * 15) % 360; // Convert to degrees
-  
-  // Obliquity of the ecliptic (approximate, J2000)
-  const oblDeg = 23.4393;
-  
-  // Observer latitude in degrees
+// Real retrograde: compare ecliptic longitude delta over ±1 day
+function isRetrogradePlanet(body: Body, time: AstroTime, observer: Observer): boolean {
+  if (body === Body.Sun || body === Body.Moon) return false;
+  try {
+    const dt = 1; // 1 day
+    const tMinus = new AstroTime(new Date(time.date.getTime() - dt * 86400000));
+    const tPlus = new AstroTime(new Date(time.date.getTime() + dt * 86400000));
+    const lonMinus = Ecliptic(Equator(body, tMinus, observer, true, true).vec).elon;
+    const lonPlus = Ecliptic(Equator(body, tPlus, observer, true, true).vec).elon;
+    let d = lonPlus - lonMinus;
+    // normalize -180..180
+    d = ((d + 540) % 360) - 180;
+    return d < 0;
+  } catch {
+    return false;
+  }
+}
+
+function calculateAscendant(time: AstroTime, observer: Observer): { sign: ZodiacSign; degree: number; longitude: number } {
+  const gmstHours = SiderealTime(time);
+  const lstHours = gmstHours + observer.longitude / 15;
+  const lstDeg = ((lstHours * 15) % 360 + 360) % 360;
+  // Use true obliquity approx via astronomy-engine would be ideal, keep J2000 for now but with small correction for date
+  // Approx obliquity decreases ~0.013°/century; for 2026 ~23.4369°
+  const yearsSinceJ2000 = (time.date.getTime() - Date.UTC(2000, 0, 1, 12, 0, 0)) / (36525 * 86400000);
+  const oblDeg = 23.439291 - 0.0130042 * yearsSinceJ2000;
   const latDeg = observer.latitude;
-  
-  // Convert to radians
   const lstRad = (lstDeg * Math.PI) / 180;
   const latRad = (latDeg * Math.PI) / 180;
   const oblRad = (oblDeg * Math.PI) / 180;
-  
-  // Calculate ascendant using the formula:
-  // asc = atan2(-cos(LST), sin(LST) * cos(lat) + tan(obl) * sin(lat))
   const y = -Math.cos(lstRad);
   const x = Math.sin(lstRad) * Math.cos(latRad) + Math.tan(oblRad) * Math.sin(latRad);
   const ascRad = Math.atan2(y, x);
-  
-  // Convert to degrees and normalize to 0-360
   let ascDeg = (ascRad * 180) / Math.PI;
-  ascDeg = ((ascDeg % 360) + 360) % 360;
-  
-  return longitudeToSign(ascDeg);
+  ascDeg = normalizeLon(ascDeg);
+  return { sign: longitudeToSign(ascDeg), degree: longitudeToDegree(ascDeg), longitude: ascDeg };
 }
 
-function parsePlaceToCoords(place: string): { lat: number; lon: number } {
-  // Simple geocoding fallback - in production, use a proper geocoding API
-  const knownPlaces: Record<string, { lat: number; lon: number }> = {
-    "bangkok": { lat: 13.7563, lon: 100.5018 },
-    "กรุงเทพ": { lat: 13.7563, lon: 100.5018 },
-    "กรุงเทพมหานคร": { lat: 13.7563, lon: 100.5018 },
-    "chiang mai": { lat: 18.7883, lon: 98.9853 },
-    "เชียงใหม่": { lat: 18.7883, lon: 98.9853 },
-    "phuket": { lat: 7.8861, lon: 98.2964 },
-    "ภูเก็ต": { lat: 7.8861, lon: 98.2964 },
-    "pattaya": { lat: 12.9236, lon: 100.8825 },
-    "พัทยา": { lat: 12.9236, lon: 100.8825 },
-  };
-  
+// Extended place database with tz info — fallback to Bangkok +07:00
+type PlaceInfo = { lat: number; lon: number; tz: string; offset: number };
+const PLACE_DB: Array<{ keys: string[]; info: PlaceInfo }> = [
+  { keys: ["bangkok", "กรุงเทพ", "กรุงเทพมหานคร"], info: { lat: 13.7563, lon: 100.5018, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["chiang mai", "เชียงใหม่"], info: { lat: 18.7883, lon: 98.9853, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["phuket", "ภูเก็ต"], info: { lat: 7.8861, lon: 98.2964, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["pattaya", "พัทยา"], info: { lat: 12.9236, lon: 100.8825, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["khon kaen", "ขอนแก่น"], info: { lat: 16.4419, lon: 102.835, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["udon", "อุดรธานี", "อุดร"], info: { lat: 17.4156, lon: 102.7859, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["chiang rai", "เชียงราย"], info: { lat: 19.9072, lon: 99.8309, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["hat yai", "หาดใหญ่"], info: { lat: 7.0084, lon: 100.4747, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["nakhon", "โคราช", "นครราชสีมา"], info: { lat: 14.979, lon: 102.0978, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["ubon", "อุบลราชธานี"], info: { lat: 15.2287, lon: 104.856, tz: "Asia/Bangkok", offset: 420 } },
+  { keys: ["tokyo", "โตเกียว"], info: { lat: 35.6762, lon: 139.6503, tz: "Asia/Tokyo", offset: 540 } },
+  { keys: ["osaka"], info: { lat: 34.6937, lon: 135.5023, tz: "Asia/Tokyo", offset: 540 } },
+  { keys: ["seoul", "โซล"], info: { lat: 37.5665, lon: 126.978, tz: "Asia/Seoul", offset: 540 } },
+  { keys: ["singapore", "สิงคโปร์"], info: { lat: 1.3521, lon: 103.8198, tz: "Asia/Singapore", offset: 480 } },
+  { keys: ["london"], info: { lat: 51.5072, lon: -0.1276, tz: "Europe/London", offset: 0 } },
+  { keys: ["new york", "นิวยอร์ก"], info: { lat: 40.7128, lon: -74.006, tz: "America/New_York", offset: -300 } },
+  { keys: ["los angeles", "แอลเอ"], info: { lat: 34.0522, lon: -118.2437, tz: "America/Los_Angeles", offset: -480 } },
+];
+
+function getPlaceInfo(place: string): PlaceInfo {
   const lower = place.toLowerCase().trim();
-  for (const [key, coords] of Object.entries(knownPlaces)) {
-    if (lower.includes(key)) return coords;
+  for (const entry of PLACE_DB) {
+    if (entry.keys.some((k) => lower.includes(k))) return entry.info;
   }
-  // Default to Bangkok
-  return { lat: 13.7563, lon: 100.5018 };
+  return { lat: 13.7563, lon: 100.5018, tz: "Asia/Bangkok", offset: 420 };
+}
+
+function createAstroTime(date: string, time: string, offsetMinutes: number): AstroTime {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  // Input is wall time in place's tz => UTC = wall - offset
+  const wallAsUTC = Date.UTC(year, month - 1, day, hour, minute, 0);
+  const utcMillis = wallAsUTC - offsetMinutes * 60000;
+  return new AstroTime(new Date(utcMillis));
+}
+
+// Whole Sign houses: cusp[i] = ascLon + i*30, house = floor((planetLon - ascLon + 360)%360 /30)+1
+function assignWholeSignHouses(planets: PlanetPosition[], ascLon: number): { planets: PlanetPosition[]; cusps: number[] } {
+  const cusps = Array.from({ length: 12 }, (_, i) => normalizeLon(ascLon + i * 30));
+  const withHouses = planets.map((p) => ({
+    ...p,
+    house: Math.floor((normalizeLon(p.longitude - ascLon) / 30)) + 1,
+  }));
+  return { planets: withHouses, cusps };
 }
 
 export class RealAstrologyCalculator implements AstrologyCalculator {
@@ -120,59 +146,58 @@ export class RealAstrologyCalculator implements AstrologyCalculator {
 
   async calculate(input: BirthInput): Promise<BirthChart> {
     const { date, time, place } = input;
-    
-    // Parse birth date and time
-    const [year, month, day] = date.split("-").map(Number);
-    const [hour, minute] = time.split(":").map(Number);
-    
-    // Create astronomy-engine time object (UTC)
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
-    const astroTime = new AstroTime(utcDate);
-    
-    // Parse location
-    const { lat, lon } = parsePlaceToCoords(place);
-    
-    // Calculate observer location
+    let lat = input.lat;
+    let lon = input.lon;
+    let tzOffset = input.tzOffsetMinutes;
+    let tz = "Asia/Bangkok";
+    if (lat == null || lon == null || tzOffset == null) {
+      const info = getPlaceInfo(place);
+      lat = lat ?? info.lat;
+      lon = lon ?? info.lon;
+      tzOffset = tzOffset ?? info.offset;
+      tz = info.tz;
+    } else {
+      // if coords provided, guess tz from offset
+      tz = offsetToTz(tzOffset);
+    }
+
+    const astroTime = createAstroTime(date, time, tzOffset);
     const observer = new Observer(lat, lon, 0);
-    
-    // Calculate planetary positions
+
     const planets: PlanetPosition[] = [];
-    
     for (const planet of PLANETS) {
       const body = PLANET_ASTRONOMY_MAP[planet];
       const eq = Equator(body, astroTime, observer, true, true);
       const ecl = Ecliptic(eq.vec);
-      
-      const longitude = ecl.elon;
+      const longitude = normalizeLon(ecl.elon);
       const sign = longitudeToSign(longitude);
       const degree = longitudeToDegree(longitude);
-      const retrograde = isRetrograde();
-      
-      planets.push({
-        planet,
-        sign,
-        degree,
-        retrograde,
-      });
+      const retrograde = isRetrogradePlanet(body, astroTime, observer);
+      planets.push({ planet, sign, degree, longitude, retrograde });
     }
-    
-    // Calculate Ascendant (Rising sign)
-    const rising = calculateAscendant(astroTime, observer);
-    
-    // Find Sun and Moon positions
-    const sunPos = planets.find(p => p.planet === "sun")!;
-    const moonPos = planets.find(p => p.planet === "moon")!;
-    
-    // Generate summary based on Sun sign
-    const sunSignDesc = ZODIAC_SIGNS.find(s => s.id === sunPos.sign)!;
-    
+
+    const asc = calculateAscendant(astroTime, observer);
+    const { planets: withHouses, cusps } = assignWholeSignHouses(planets, asc.longitude);
+
+    // Re-find sun/moon with houses
+    const sunPos = withHouses.find((p) => p.planet === "sun")!;
+    const moonPos = withHouses.find((p) => p.planet === "moon")!;
+    const sunSignDesc = ZODIAC_SIGNS.find((s) => s.id === sunPos.sign)!;
+
     return {
       source: "calculated",
       generatedAt: new Date().toISOString(),
-      sun: { planet: "sun", sign: sunPos.sign, degree: sunPos.degree, retrograde: sunPos.retrograde },
-      moon: { planet: "moon", sign: moonPos.sign, degree: moonPos.degree, retrograde: moonPos.retrograde },
-      rising,
-      planets,
+      sun: { planet: "sun", sign: sunPos.sign, degree: sunPos.degree, longitude: sunPos.longitude, retrograde: sunPos.retrograde, house: sunPos.house },
+      moon: { planet: "moon", sign: moonPos.sign, degree: moonPos.degree, longitude: moonPos.longitude, retrograde: moonPos.retrograde, house: moonPos.house },
+      rising: asc.sign,
+      ascendant: asc,
+      planets: withHouses,
+      cusps,
+      houseSystem: "whole_sign",
+      lat,
+      lon,
+      timezone: tz,
+      tzOffsetMinutes: tzOffset,
       summary: {
         personality: sunSignDesc.nameEn,
         personalityTh: sunSignDesc.nameTh,
@@ -183,6 +208,14 @@ export class RealAstrologyCalculator implements AstrologyCalculator {
       },
     };
   }
+}
+
+function offsetToTz(offset: number): string {
+  if (offset === 420) return "Asia/Bangkok";
+  if (offset === 540) return "Asia/Tokyo";
+  if (offset === 480) return "Asia/Singapore";
+  if (offset === 0) return "UTC";
+  return `UTC${offset >= 0 ? "+" : ""}${Math.floor(offset / 60)}:${String(Math.abs(offset % 60)).padStart(2, "0")}`;
 }
 
 export class MockAstrologyCalculator implements AstrologyCalculator {
@@ -201,24 +234,32 @@ export class MockAstrologyCalculator implements AstrologyCalculator {
     const simple = Array.from(hash).reduce((a, c) => a + c.charCodeAt(0), 0);
 
     const pickSign = (offset: number) =>
-      allSigns[(simple + offset) % allSigns.length];
+      allSigns[(simple + offset) % allSigns.length] as ZodiacSign;
 
     const moon = pickSign(3);
     const rising = pickSign(7);
-
+    const info = getPlaceInfo(input.place);
+    const ascLon = (ZODIAC_SIGNS.findIndex((s) => s.id === rising) * 30 + 12);
     return {
       source: "mock",
       generatedAt: new Date().toISOString(),
-      sun: { planet: "sun", sign: sun, degree: 12 },
-      moon: { planet: "moon", sign: moon, degree: 4 },
+      sun: { planet: "sun", sign: sun, degree: 12, longitude: ZODIAC_SIGNS.findIndex(s=>s.id===sun)*30+12, house: 1 },
+      moon: { planet: "moon", sign: moon, degree: 4, longitude: ZODIAC_SIGNS.findIndex(s=>s.id===moon)*30+4, house: 2 },
       rising,
+      ascendant: { sign: rising, degree: 12, longitude: ascLon },
       planets: [
-        { planet: "sun", sign: sun, degree: 12 },
-        { planet: "moon", sign: moon, degree: 4 },
-        { planet: "mercury", sign: pickSign(11), degree: 18 },
-        { planet: "venus", sign: pickSign(2), degree: 9 },
-        { planet: "mars", sign: pickSign(5), degree: 22 },
+        { planet: "sun", sign: sun, degree: 12, longitude: ZODIAC_SIGNS.findIndex(s=>s.id===sun)*30+12, house: 1 },
+        { planet: "moon", sign: moon, degree: 4, longitude: ZODIAC_SIGNS.findIndex(s=>s.id===moon)*30+4, house: 2 },
+        { planet: "mercury", sign: pickSign(11), degree: 18, longitude: ZODIAC_SIGNS.findIndex(s=>s.id===pickSign(11))*30+18, house: 3 },
+        { planet: "venus", sign: pickSign(2), degree: 9, longitude: ZODIAC_SIGNS.findIndex(s=>s.id===pickSign(2))*30+9, house: 5 },
+        { planet: "mars", sign: pickSign(5), degree: 22, longitude: ZODIAC_SIGNS.findIndex(s=>s.id===pickSign(5))*30+22, house: 6 },
       ],
+      cusps: Array.from({ length: 12 }, (_, i) => normalizeLon(ascLon + i * 30)),
+      houseSystem: "whole_sign",
+      lat: info.lat,
+      lon: info.lon,
+      timezone: info.tz,
+      tzOffsetMinutes: info.offset,
       summary: {
         personality: desc.personality,
         personalityTh: desc.personalityTh,

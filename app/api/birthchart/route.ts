@@ -13,22 +13,32 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await request.json().catch(() => ({})) as { date?: string; time?: string; place?: string };
+    const body = await request.json().catch(() => ({})) as { date?: string; time?: string; place?: string; lat?: number; lon?: number; tzOffsetMinutes?: number };
     const date = (body.date || "").trim();
     const time = (body.time || "").trim();
     const place = (body.place || "").trim();
+    const lat = typeof body.lat === "number" ? body.lat : undefined;
+    const lon = typeof body.lon === "number" ? body.lon : undefined;
+    const tzOffsetMinutes = typeof body.tzOffsetMinutes === "number" ? body.tzOffsetMinutes : undefined;
 
     if (!date || !time || !place) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    // Validate real date
+    const parsed = new Date(`${date}T${time}:00`);
+    if (Number.isNaN(parsed.getTime())) return NextResponse.json({ error: "Invalid date/time" }, { status: 400 });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
     if (!/^\d{2}:\d{2}$/.test(time)) return NextResponse.json({ error: "Invalid time" }, { status: 400 });
     if (place.length > 80) return NextResponse.json({ error: "Place too long" }, { status: 400 });
+    if (lat != null && (lat < -90 || lat > 90)) return NextResponse.json({ error: "Invalid lat" }, { status: 400 });
+    if (lon != null && (lon < -180 || lon > 180)) return NextResponse.json({ error: "Invalid lon" }, { status: 400 });
+    // No future dates
+    if (parsed.getTime() > Date.now() + 1000 * 60) return NextResponse.json({ error: "วันเกิดต้องไม่เป็นอนาคต" }, { status: 400 });
 
     // Rate limit: 10 birthchart / hour
     const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "birthchart", p_limit: 10, p_window_seconds: 3600 });
     if (rateOk === false) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-    // Calculate chart (real astronomy)
-    const chart = await astrologyProvider.calculate({ date, time, place });
+    // Calculate chart (real astronomy) — pass precise coords if provided
+    const chart = await astrologyProvider.calculate({ date, time, place, lat, lon, tzOffsetMinutes });
 
     // AI interpretation (non-stream, with fallback)
     let interpretation = "";
@@ -68,10 +78,16 @@ export async function POST(request: Request) {
         birth_date: date,
         birth_time: time,
         birth_place: place,
+        lat: (chart as unknown as { lat?: number }).lat ?? lat ?? null,
+        lon: (chart as unknown as { lon?: number }).lon ?? lon ?? null,
+        tz: (chart as unknown as { timezone?: string }).timezone ?? null,
+        tz_offset: (chart as unknown as { tzOffsetMinutes?: number }).tzOffsetMinutes ?? tzOffsetMinutes ?? null,
+        house_system: (chart as unknown as { houseSystem?: string }).houseSystem ?? "whole_sign",
+        zodiac_system: "tropical",
         chart: chart as unknown as Record<string, unknown>,
         interpretation,
         source,
-      });
+      } as unknown as Record<string, unknown>);
     } catch {}
 
     return NextResponse.json({ chart, interpretation, source });

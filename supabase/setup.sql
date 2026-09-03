@@ -495,7 +495,6 @@ CREATE TABLE IF NOT EXISTS redeem_codes (
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS redeem_claims (
   code_id UUID NOT NULL REFERENCES redeem_codes(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -858,6 +857,44 @@ DROP POLICY IF EXISTS "BirthCharts delete" ON birth_charts;
 CREATE POLICY "BirthCharts delete" ON birth_charts FOR DELETE USING (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS idx_birth_charts_user ON birth_charts(user_id);
 CREATE INDEX IF NOT EXISTS idx_birth_charts_created ON birth_charts(created_at DESC);
+-- Textbook-accurate extension: real chart needs lat/lon/tz + house/angles (idempotent)
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS lon DOUBLE PRECISION;
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS tz TEXT;
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS tz_offset INTEGER;
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS house_system TEXT DEFAULT 'whole_sign';
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS zodiac_system TEXT DEFAULT 'tropical';
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS asc_lon DOUBLE PRECISION;
+ALTER TABLE birth_charts ADD COLUMN IF NOT EXISTS mc_lon DOUBLE PRECISION;
+
+-- ============================================
+-- 22b. SAJU CHARTS — Five Elements (오행 ไม้ไฟดินทองน้ำ) for Atlas remedy
+-- ============================================
+CREATE TABLE IF NOT EXISTS saju_charts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  birth_date TEXT NOT NULL CHECK (char_length(birth_date) <= 20),
+  birth_time TEXT NOT NULL CHECK (char_length(birth_time) <= 20),
+  birth_place TEXT NOT NULL CHECK (char_length(birth_place) <= 80),
+  pillars JSONB NOT NULL DEFAULT '{}'::jsonb, -- {year:{stem,branch}, month, day, hour}
+  element_counts JSONB NOT NULL DEFAULT '{}'::jsonb, -- {wood,fire,earth,metal,water: number 0-8}
+  weakest TEXT CHECK (weakest IN ('wood','fire','earth','metal','water')),
+  day_master TEXT,
+  interpretation TEXT NOT NULL DEFAULT '' CHECK (char_length(interpretation) <= 5000),
+  source TEXT NOT NULL DEFAULT 'ai' CHECK (source IN ('ai','fallback')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE saju_charts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "SajuCharts select" ON saju_charts;
+CREATE POLICY "SajuCharts select" ON saju_charts FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "SajuCharts insert" ON saju_charts;
+CREATE POLICY "SajuCharts insert" ON saju_charts FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "SajuCharts update" ON saju_charts;
+CREATE POLICY "SajuCharts update" ON saju_charts FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "SajuCharts delete" ON saju_charts;
+CREATE POLICY "SajuCharts delete" ON saju_charts FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_saju_charts_user ON saju_charts(user_id);
+CREATE INDEX IF NOT EXISTS idx_saju_charts_created ON saju_charts(created_at DESC);
 
 -- ============================================
 -- 23. CHAT — Sealo Chat (separate from reading follow-ups)

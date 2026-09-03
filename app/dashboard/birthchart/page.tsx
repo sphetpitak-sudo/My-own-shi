@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardShell from "@/components/DashboardShell";
-import { Compass, Calendar, Clock, MapPin, Sparkles, Lock, Heart, Briefcase, Lightbulb, Activity } from "lucide-react";
+import BirthChartWheel from "@/components/BirthChartWheel";
+import { Compass, Calendar, Clock, MapPin, Sparkles, Lock, Heart, Briefcase, Lightbulb, Activity, Navigation, Globe, Search } from "lucide-react";
 import { ZODIAC_SIGNS, type BirthChart } from "@/lib/astrology";
 import { stripMarkdownMultiline } from "@/lib/text";
+import { suggestPlaces } from "@/lib/geocoding";
 
 const STAGES = ["กำลังคำนวณตำแหน่งดาว...", "กำลังแมปแผนที่ดวงดาว...", "กำลังเตรียมคำทำนาย..."];
 
@@ -28,11 +30,33 @@ export default function BirthChartPage() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [place, setPlace] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSug, setShowSug] = useState(false);
+  const [geo, setGeo] = useState<{ lat:number; lon:number; displayName:string }|null>(null);
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState(0);
   const [chart, setChart] = useState<BirthChart | null>(null);
   const [interpretation, setInterpretation] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(()=>{
+    if(place.trim().length>=1){
+      setSuggestions(suggestPlaces(place));
+    } else setSuggestions([]);
+  },[place]);
+
+  // lightweight client geocode via Nominatim for precise wheel outside Thai DB
+  async function resolveGeo(q:string){
+    const trimmed=q.trim();
+    if(!trimmed) return null;
+    try{
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(trimmed)}&accept-language=th,en`, { headers: { "Accept":"application/json" }});
+      if(!r.ok) return null;
+      const j = await r.json() as Array<{lat:string; lon:string; display_name:string}>;
+      if(j[0]) return { lat: parseFloat(j[0].lat), lon: parseFloat(j[0].lon), displayName: j[0].display_name };
+    }catch{}
+    return null;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,7 +69,22 @@ export default function BirthChartPage() {
     setStage(0);
     const t1 = setInterval(() => setStage(s => Math.min(s + 1, 2)), 900);
     try {
-      const res = await fetch("/api/birthchart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date, time, place: place.trim() }) });
+      let lat:number|undefined, lon:number|undefined, tzOffsetMinutes:number|undefined;
+      // use selected geo if matches place, otherwise try resolve
+      if(geo && place.includes(geo.displayName.split(",")[0]!)){
+        lat=geo.lat; lon=geo.lon;
+      } else {
+        const g = await resolveGeo(place.trim());
+        if(g){ lat=g.lat; lon=g.lon; setGeo(g);
+          // guess offset: Thailand +07, Japan +09, SG +08, UTC 0 else Bangkok
+          const d = g.displayName.toLowerCase();
+          if(d.includes("japan")||d.includes("tokyo")) tzOffsetMinutes=540;
+          else if(d.includes("singapore")) tzOffsetMinutes=480;
+          else if(d.includes("london")||d.includes("united kingdom")) tzOffsetMinutes=0;
+          else if(d.includes("thailand")||d.includes("bangkok")||d.includes("chiang")) tzOffsetMinutes=420;
+        }
+      }
+      const res = await fetch("/api/birthchart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date, time, place: place.trim(), lat, lon, tzOffsetMinutes }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "คำนวณไม่สำเร็จ");
       setChart(data.chart);
@@ -64,10 +103,10 @@ export default function BirthChartPage() {
     <DashboardShell>
       <div className="reading-page">
         <div className="step-header">
-          <p className="step-eyebrow">ดาราศาสตร์ · AI + Astronomy</p>
+          <p className="step-eyebrow">ดาราศาสตร์ · AI + Astronomy · Whole Sign</p>
           <h1 className="step-title">แผนที่ดวงดาวส่วนบุคคล</h1>
           <p className="step-sub">
-            กรอกวัน เวลา และสถานที่เกิด — เราคำนวณตำแหน่งดาวจริง + AI ตีความ 6 หัวข้อ
+            กรอกวัน เวลา และสถานที่เกิด — เราคำนวณตำแหน่งดาวจริง 10 ดวง + ลัคนา + เรือนทั้ง 12 แบบแผนที่วงล้อจริง
           </p>
         </div>
 
@@ -79,6 +118,7 @@ export default function BirthChartPage() {
                 <div className="text-[12.5px] font-bold" style={{ color: "var(--text)" }}>
                   ข้อมูลการเกิดของคุณ
                 </div>
+                <span className="ml-auto text-[10px] px-2 py-1 rounded-full font-bold" style={{ background:"rgba(212,175,55,0.12)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.18)"}}>ของจริง · Whole Sign</span>
               </div>
 
               <div className="space-y-3">
@@ -99,7 +139,7 @@ export default function BirthChartPage() {
 
                 <div>
                   <label className="label flex items-center gap-1.5" htmlFor="bc-time">
-                    <Clock size={11} /> เวลาเกิด (ถ้าไม่แน่ใจใส่เที่ยงวัน)
+                    <Clock size={11} /> เวลาเกิด (ถ้าไม่แน่ใจใส่ 12:00)
                   </label>
                   <input
                     id="bc-time"
@@ -110,22 +150,39 @@ export default function BirthChartPage() {
                     required
                     style={{ fontSize: 16 }}
                   />
+                  <p className="text-[10.5px] mt-1" style={{ color:"var(--text-muted)"}}>เวลาตรงยิ่งแม่น — ลัคนาเปลี่ยนทุก ~2 ชม.</p>
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="label flex items-center gap-1.5" htmlFor="bc-place">
                     <MapPin size={11} /> สถานที่เกิด
                   </label>
-                  <input
-                    id="bc-place"
-                    type="text"
-                    value={place}
-                    onChange={(e) => setPlace(e.target.value)}
-                    placeholder="เช่น เชียงใหม่, Bangkok, Tokyo"
-                    className="input"
-                    required
-                    style={{ fontSize: 16 }}
-                  />
+                  <div className="relative">
+                    <input
+                      id="bc-place"
+                      type="text"
+                      value={place}
+                      onChange={(e) => { setPlace(e.target.value); setShowSug(true); setGeo(null); }}
+                      onFocus={()=> setShowSug(true)}
+                      onBlur={()=> setTimeout(()=> setShowSug(false),160)}
+                      placeholder="เช่น เชียงใหม่, Bangkok, Tokyo, Singapore"
+                      className="input pr-9"
+                      required
+                      style={{ fontSize: 16 }}
+                      autoComplete="off"
+                    />
+                    <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color:"var(--text-muted)"}} />
+                  </div>
+                  {showSug && suggestions.length>0 && (
+                    <div className="absolute z-20 mt-1 w-full rounded-xl overflow-hidden border shadow-lg" style={{ background:"var(--bg-card)", borderColor:"var(--border)"}}>
+                      {suggestions.map(s=>(
+                        <button key={s} type="button" onClick={()=>{ setPlace(s); setShowSug(false); }} className="w-full text-left px-3 py-2 text-[13px] hover:bg-[var(--bg)] flex items-center gap-2">
+                          <Globe size={12} style={{ color:"var(--primary)"}} />{s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {geo && <p className="text-[10.5px] mt-1 flex items-center gap-1" style={{ color:"var(--primary)"}}><Navigation size={11}/> พบ: {geo.displayName.slice(0,60)}</p>}
                 </div>
               </div>
             </div>
@@ -137,8 +194,7 @@ export default function BirthChartPage() {
               <Lock size={13} className="flex-shrink-0 mt-0.5" />
               <div>
                 <strong>ทำไมต้องใช้ข้อมูลเหล่านี้?</strong>{" "}
-                ตำแหน่งของดาวเคราะห์ขึ้นอยู่กับเวลาและสถานที่บนโลก
-                ข้อมูลของคุณใช้เพื่อคำนวณแผนที่เท่านั้น ไม่ถูกส่งไปไหน
+                ตำแหน่งดาว ลัคนา และเรือนทั้ง 12 คำนวณจากพิกัดละติจูด/ลองจิจูดและ timezone จริง (แก้แล้ว +07:00 สำหรับไทย) — ข้อมูลใช้คำนวณเท่านั้น
               </div>
             </div>
 
@@ -169,6 +225,17 @@ export default function BirthChartPage() {
 
         {chart && signMeta && (
           <div className="mx-4 space-y-3 animate-in">
+            {/* Wheel — real map */}
+            <div className="card p-3 sm:p-4 flex justify-center overflow-hidden" style={{ background:"radial-gradient(600px 300px at 50% 0%, rgba(167,139,250,0.08), transparent), var(--bg-card)"}}>
+              <BirthChartWheel chart={chart} size={360} />
+            </div>
+            {/* meta bar */}
+            <div className="flex flex-wrap gap-1.5 text-[10.5px]">
+              <span className="px-2.5 py-1 rounded-full font-bold flex items-center gap-1" style={{ background:"var(--primary-soft)", color:"var(--primary)", border:"1px solid rgba(167,139,250,0.14)"}}><Compass size={11}/> ลัคนา {ZODIAC_SIGNS.find(z=>z.id===chart.ascendant?.sign)?.nameTh ?? ZODIAC_SIGNS.find(z=>z.id===chart.rising)?.nameTh} {chart.ascendant? `${chart.ascendant.degree}°`:""}</span>
+              <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background:"var(--bg-card)", border:"1px solid var(--border)", color:"var(--text-muted)"}}><MapPin size={11} className="inline -mt-0.5 mr-1"/>{chart.lat.toFixed(2)}, {chart.lon.toFixed(2)} · {chart.timezone}</span>
+              <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.16)"}}>Whole Sign 12 เรือน</span>
+            </div>
+
             {/* Sun sign hero */}
             <div
               className="rounded-2xl p-5 relative overflow-hidden"
@@ -196,7 +263,7 @@ export default function BirthChartPage() {
                   className="text-[10.5px] font-bold uppercase tracking-[0.12em]"
                   style={{ color: "#818cf8" }}
                 >
-                  ราศีดวงอาทิตย์
+                  ราศีดวงอาทิตย์ · เรือน {chart.sun.house ?? "-"}
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   <div
@@ -211,11 +278,15 @@ export default function BirthChartPage() {
                   </div>
                   <div>
                     <div className="text-[22px] font-extrabold" style={{ color: "var(--text)" }}>
-                      {signMeta.nameTh}
+                      {signMeta.nameTh} {chart.sun.degree}°
                     </div>
                     <div className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-                      {signMeta.range}
+                      {signMeta.range} · {chart.sun.retrograde? "พักร":""}
                     </div>
+                  </div>
+                  <div className="ml-auto hidden sm:flex flex-col items-end">
+                    <span className="text-[11px] px-2 py-1 rounded-full font-bold" style={{ background:"rgba(212,175,55,0.12)", color:"var(--gold)"}}>☉ อาทิตย์</span>
+                    <span className="text-[10px] mt-1" style={{ color:"var(--text-muted)"}}>{chart.timezone} UTC{chart.tzOffsetMinutes>=0?"+":""}{Math.floor(chart.tzOffsetMinutes/60)}:{String(Math.abs(chart.tzOffsetMinutes%60)).padStart(2,"0")}</span>
                   </div>
                 </div>
                 <p className="text-[13.5px] mt-3" style={{ color: "var(--text-secondary)" }}>
@@ -227,30 +298,32 @@ export default function BirthChartPage() {
             {/* Planets */}
             <div className="card p-4">
               <div
-                className="text-[10.5px] font-bold uppercase tracking-[0.12em] mb-2"
+                className="text-[10.5px] font-bold uppercase tracking-[0.12em] mb-2 flex items-center justify-between"
                 style={{ color: "var(--text-muted)" }}
               >
-                ตำแหน่งดาวเคราะห์
+                <span>ตำแหน่งดาวเคราะห์ · องศา + เรือน</span>
+                <span className="text-[10px] font-semibold normal-case tracking-normal" style={{ color:"var(--text-muted)"}}>℞ = พักร</span>
               </div>
               <div className="space-y-1.5">
                 {chart.planets.map((p) => {
                   const s = ZODIAC_SIGNS.find((z) => z.id === p.sign);
                   return (
-                    <div key={p.planet} className="flex items-center gap-2">
+                    <div key={p.planet} className="flex items-center gap-2 py-1">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-[14px]"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-[14px] shrink-0"
                         style={{ background: "var(--bg)" }}
                       >
                         {s?.symbol}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[12.5px] font-bold capitalize" style={{ color: "var(--text)" }}>
-                          {p.planet}
+                        <div className="text-[12.5px] font-bold capitalize flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+                          {p.planet} <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background:"var(--primary-soft)", color:"var(--primary)"}}>เรือน {p.house ?? "-"}</span> {p.retrograde && <span className="text-[10px] font-bold text-red-500">℞</span>}
                         </div>
                         <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                          {s?.nameTh}
+                          {s?.nameTh} {p.degree}° · {p.longitude.toFixed(2)}° · {s?.symbol}
                         </div>
                       </div>
+                      <div className="text-[11px] font-bold" style={{ color:"var(--gold)"}}>{p.degree}°</div>
                     </div>
                   );
                 })}
@@ -258,6 +331,7 @@ export default function BirthChartPage() {
             </div>
 
             {/* Strengths / challenges */}
+            {(chart.summary.strengthsTh.length>0 || chart.summary.challengesTh.length>0) && (
             <div className="grid grid-cols-2 gap-2">
               <div className="card p-4">
                 <div
@@ -272,6 +346,7 @@ export default function BirthChartPage() {
                       <span style={{ color: "var(--green)" }}>·</span> {s}
                     </li>
                   ))}
+                  {chart.summary.strengthsTh.length===0 && <li className="text-[11px]" style={{ color:"var(--text-muted)"}}>—</li>}
                 </ul>
               </div>
               <div className="card p-4">
@@ -287,9 +362,11 @@ export default function BirthChartPage() {
                       <span style={{ color: "#fbbf24" }}>·</span> {c}
                     </li>
                   ))}
+                  {chart.summary.challengesTh.length===0 && <li className="text-[11px]" style={{ color:"var(--text-muted)"}}>—</li>}
                 </ul>
               </div>
             </div>
+            )}
 
             {interpretation && (
               <div className="space-y-3">
