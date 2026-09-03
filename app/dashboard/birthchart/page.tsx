@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import DashboardShell from "@/components/DashboardShell";
+import DashboardShell, { useShell } from "@/components/DashboardShell";
 import BirthChartWheel from "@/components/BirthChartWheel";
-import { Compass, Calendar, Clock, MapPin, Sparkles, Lock, Heart, Briefcase, Lightbulb, Activity, Navigation, Globe, Search } from "lucide-react";
+import { Compass, Calendar, Clock, MapPin, Sparkles, Lock, Heart, Briefcase, Lightbulb, Activity, Navigation, Globe, Search, Share2, History, Download, Coins } from "lucide-react";
 import { ZODIAC_SIGNS, type BirthChart } from "@/lib/astrology";
 import { stripMarkdownMultiline } from "@/lib/text";
 import { suggestPlaces } from "@/lib/geocoding";
+import { createClient } from "@/lib/supabase/client";
 
 const STAGES = ["กำลังคำนวณตำแหน่งดาว...", "กำลังแมปแผนที่ดวงดาว...", "กำลังเตรียมคำทำนาย..."];
 
@@ -27,6 +28,7 @@ function parseBCSections(raw: string) {
 }
 
 export default function BirthChartPage() {
+  const shell = useShell();
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [place, setPlace] = useState("");
@@ -38,6 +40,7 @@ export default function BirthChartPage() {
   const [chart, setChart] = useState<BirthChart | null>(null);
   const [interpretation, setInterpretation] = useState("");
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<Array<{ id:string; birth_date:string; birth_time:string; birth_place:string; created_at:string }>>([]);
 
   useEffect(()=>{
     if(place.trim().length>=1){
@@ -45,7 +48,13 @@ export default function BirthChartPage() {
     } else setSuggestions([]);
   },[place]);
 
-  // lightweight client geocode via Nominatim for precise wheel outside Thai DB
+  useEffect(()=>{
+    const supabase = createClient();
+    supabase.from("birth_charts").select("id, birth_date, birth_time, birth_place, created_at").order("created_at",{ascending:false}).limit(5).then(({data}: { data: unknown })=>{
+      if(data) setHistory(data as Array<{ id:string; birth_date:string; birth_time:string; birth_place:string; created_at:string }>);
+    });
+  },[]);
+
   async function resolveGeo(q:string){
     const trimmed=q.trim();
     if(!trimmed) return null;
@@ -70,13 +79,11 @@ export default function BirthChartPage() {
     const t1 = setInterval(() => setStage(s => Math.min(s + 1, 2)), 900);
     try {
       let lat:number|undefined, lon:number|undefined, tzOffsetMinutes:number|undefined;
-      // use selected geo if matches place, otherwise try resolve
       if(geo && place.includes(geo.displayName.split(",")[0]!)){
         lat=geo.lat; lon=geo.lon;
       } else {
         const g = await resolveGeo(place.trim());
         if(g){ lat=g.lat; lon=g.lon; setGeo(g);
-          // guess offset: Thailand +07, Japan +09, SG +08, UTC 0 else Bangkok
           const d = g.displayName.toLowerCase();
           if(d.includes("japan")||d.includes("tokyo")) tzOffsetMinutes=540;
           else if(d.includes("singapore")) tzOffsetMinutes=480;
@@ -86,14 +93,33 @@ export default function BirthChartPage() {
       }
       const res = await fetch("/api/birthchart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date, time, place: place.trim(), lat, lon, tzOffsetMinutes }) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "คำนวณไม่สำเร็จ");
+      if (!res.ok) {
+        if(data.error==="Not enough points"){
+          setError(`แต้มไม่พอ — ต้องใช้ 25 แต้ม คุณมี ${data.current ?? 0} แต้ม · ไปทำภารกิจประจำวันเพื่อรับแต้มฟรี`);
+        } else throw new Error(data.error || "คำนวณไม่สำเร็จ");
+        return;
+      }
       setChart(data.chart);
       setInterpretation(data.interpretation || "");
+      // refresh shell points and history
+      shell.refreshProfile?.();
+      const supabase2 = createClient();
+      supabase2.from("birth_charts").select("id, birth_date, birth_time, birth_place, created_at").order("created_at",{ascending:false}).limit(5).then(({data}: { data: unknown })=>{ if(data) setHistory(data as Array<{ id:string; birth_date:string; birth_time:string; birth_place:string; created_at:string }>); });
     } catch (err) {
       setError(err instanceof Error ? err.message : "ไม่สามารถคำนวณได้");
     } finally {
       clearInterval(t1);
       setLoading(false);
+    }
+  }
+
+  function handleShare(){
+    if(!chart) return;
+    const text = `แผนที่ดวงดาว ${ZODIAC_SIGNS.find(s=>s.id===chart.sun.sign)?.nameTh} ${chart.sun.degree}° · ลัคนา ${ZODIAC_SIGNS.find(s=>s.id===chart.ascendant?.sign)?.nameTh} · Sealo`;
+    if(navigator.share){
+      navigator.share({ title: "Sealo Birth Chart", text }).catch(()=>{});
+    } else {
+      navigator.clipboard.writeText(text).then(()=> alert("คัดลอกแล้ว"));
     }
   }
 
@@ -108,6 +134,10 @@ export default function BirthChartPage() {
           <p className="step-sub">
             กรอกวัน เวลา และสถานที่เกิด — เราคำนวณตำแหน่งดาวจริง 10 ดวง + ลัคนา + เรือนทั้ง 12 แบบแผนที่วงล้อจริง
           </p>
+          <div className="flex items-center gap-2 mt-3">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full" style={{ background:"rgba(212,175,55,0.12)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.22)"}}><Coins size={12}/> 25 แต้ม / ครั้ง</span>
+            <span className="text-[11px]" style={{color:"var(--text-muted)"}}>คุณมี {(shell.profile?.points ?? 0).toLocaleString()} แต้ม</span>
+          </div>
         </div>
 
         {!chart && (
@@ -215,23 +245,38 @@ export default function BirthChartPage() {
                 </span>
               ) : (
                 <>
-                  <Sparkles size={15} /> สร้างแผนที่ดวงดาว + คำทำนาย AI
+                  <Sparkles size={15} /> สร้างแผนที่ดวงดาว + คำทำนาย AI — 25 แต้ม
                 </>
               )}
             </button>
+            {history.length>0 && (
+              <div className="card p-4">
+                <div className="text-[11px] font-bold uppercase tracking-widest flex items-center gap-1.5" style={{color:"var(--text-muted)"}}><History size={12}/> ประวัติ 5 ครั้งล่าสุด</div>
+                <div className="mt-2 space-y-1.5">
+                  {history.map(h=>(
+                    <div key={h.id} className="flex items-center gap-2 text-[12px] p-2 rounded-xl" style={{background:"var(--bg)", border:"1px solid var(--border-subtle)"}}>
+                      <span className="w-7 h-7 rounded-lg grid place-items-center" style={{background:"var(--primary-soft)", color:"var(--primary)"}}><Compass size={12}/></span>
+                      <div className="flex-1 min-w-0"><div className="font-bold truncate" style={{color:"var(--text)"}}>{h.birth_date} {h.birth_time} · {h.birth_place}</div><div className="text-[11px]" style={{color:"var(--text-muted)"}}>{new Date(h.created_at).toLocaleDateString("th-TH")}</div></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </form>
         )}
 
         {chart && signMeta && (
           <div className="mx-4 space-y-3 animate-in">
             {/* Wheel — real map */}
-            <div className="card p-3 sm:p-4 flex justify-center overflow-hidden" style={{ background:"radial-gradient(600px 300px at 50% 0%, rgba(167,139,250,0.08), transparent), var(--bg-card)"}}>
+            <div className="card p-3 sm:p-4 flex justify-center overflow-hidden relative" style={{ background:"radial-gradient(600px 300px at 50% 0%, rgba(167,139,250,0.08), transparent), var(--bg-card)"}}>
               <BirthChartWheel chart={chart} size={360} />
+              <button onClick={handleShare} className="absolute top-3 right-3 w-8 h-8 rounded-full grid place-items-center" style={{background:"rgba(212,175,55,0.14)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.22)"}} aria-label="แชร์"><Share2 size={14}/></button>
             </div>
             {/* meta bar */}
             <div className="flex flex-wrap gap-1.5 text-[10.5px]">
               <span className="px-2.5 py-1 rounded-full font-bold flex items-center gap-1" style={{ background:"var(--primary-soft)", color:"var(--primary)", border:"1px solid rgba(167,139,250,0.14)"}}><Compass size={11}/> ลัคนา {ZODIAC_SIGNS.find(z=>z.id===chart.ascendant?.sign)?.nameTh ?? ZODIAC_SIGNS.find(z=>z.id===chart.rising)?.nameTh} {chart.ascendant? `${chart.ascendant.degree}°`:""}</span>
               <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background:"var(--bg-card)", border:"1px solid var(--border)", color:"var(--text-muted)"}}><MapPin size={11} className="inline -mt-0.5 mr-1"/>{chart.lat.toFixed(2)}, {chart.lon.toFixed(2)} · {chart.timezone}</span>
+              <span className="px-2.5 py-1 rounded-full font-semibold flex items-center gap-1" style={{ background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.16)"}}><Download size={11}/> 12 เรือน · 10 ดาว · {chart.planets.filter(p=>p.retrograde).length} พักร</span>
             </div>
 
             {/* Sun sign hero */}
@@ -388,12 +433,10 @@ export default function BirthChartPage() {
               </div>
             )}
 
-            <button
-              onClick={() => { setChart(null); setInterpretation(""); }}
-              className="btn btn-ghost w-full rounded-2xl"
-            >
-              เริ่มใหม่
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleShare} className="btn btn-ghost flex-1 rounded-2xl flex items-center justify-center gap-1.5"><Share2 size={14}/> แชร์</button>
+              <button onClick={() => { setChart(null); setInterpretation(""); }} className="btn btn-ghost flex-1 rounded-2xl">เริ่มใหม่</button>
+            </div>
           </div>
         )}
       </div>

@@ -33,12 +33,30 @@ export async function POST(request: Request) {
     // No future dates
     if (parsed.getTime() > Date.now() + 1000 * 60) return NextResponse.json({ error: "วันเกิดต้องไม่เป็นอนาคต" }, { status: 400 });
 
+    // Points check — birthchart uses 25 points (ทุกฟีเจอร์ต้องใช้แต้ม ยกเว้น daily/chat)
+    const { data: charged, error: spendErr } = await supabase.rpc("spend_for_spread", { p_spread: "birthchart", p_description: "birthchart" });
+    if (spendErr) return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
+    if ((charged as number) === 0) {
+      const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).single();
+      return NextResponse.json({ error: "Not enough points", needed: 25, current: profile?.points ?? 0 }, { status: 400 });
+    }
+
     // Rate limit: 10 birthchart / hour
     const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "birthchart", p_limit: 10, p_window_seconds: 3600 });
-    if (rateOk === false) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    if (rateOk === false) {
+      // refund points if rate limited
+      try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: 25 }); } catch {}
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
     // Calculate chart (real astronomy) — pass precise coords if provided
-    const chart = await astrologyProvider.calculate({ date, time, place, lat, lon, tzOffsetMinutes });
+    let chart;
+    try {
+      chart = await astrologyProvider.calculate({ date, time, place, lat, lon, tzOffsetMinutes });
+    } catch (e) {
+      try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: 25 }); } catch {}
+      throw e;
+    }
 
     // AI interpretation (non-stream, with fallback)
     let interpretation = "";

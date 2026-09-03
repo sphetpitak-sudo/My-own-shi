@@ -63,8 +63,19 @@ export async function POST(request: Request) {
       return streamText(cached);
     }
 
+    // Points check — zodiac uses 5 points (daily/chat free, rest use points)
+    const { data: charged, error: spendErr } = await supabase.rpc("spend_for_spread", { p_spread: "zodiac", p_description: "zodiac" });
+    if (spendErr) return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
+    if ((charged as number) === 0) {
+      const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).single();
+      return NextResponse.json({ error: "Not enough points", needed: 5, current: profile?.points ?? 0 }, { status: 400 });
+    }
+
     const { data: zodiacOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "zodiac", p_limit: 10, p_window_seconds: 3600 });
-    if (zodiacOk === false) return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+    if (zodiacOk === false) {
+      try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: 5 }); } catch {}
+      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+    }
 
     const fallback = buildZodiacFortune(birthDate, today);
     const sign = ZODIAC_SIGNS.find((s) => s.id === fallback.signId)!;

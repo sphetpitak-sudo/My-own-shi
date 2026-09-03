@@ -149,11 +149,13 @@ CREATE TABLE IF NOT EXISTS admin_settings (
 ALTER TABLE admin_settings ENABLE ROW LEVEL SECURITY;
 
 INSERT INTO admin_settings (key, value) VALUES
-  ('reading_costs', '{"single": 5, "three_card": 15, "celtic": 50}'::jsonb),
+  ('reading_costs', '{"single": 5, "three_card": 15, "celtic": 50, "birthchart": 25, "daily": 5, "zodiac": 5, "oracle_single": 5, "oracle_three": 15, "lucky_number": 5, "moon_phase": 5}'::jsonb),
   ('daily_bonus', '{"amount": 10}'::jsonb),
   ('referral_bonus', '{"amount": 20}'::jsonb),
   ('maintenance_mode', '{"enabled": false}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
+-- Ensure existing row gets new keys (idempotent update)
+UPDATE admin_settings SET value = value || '{"birthchart": 25, "daily": 5, "zodiac": 5, "oracle_single": 5, "oracle_three": 15, "lucky_number": 5, "moon_phase": 5}'::jsonb WHERE key='reading_costs' AND NOT (value ? 'birthchart');
 
 DO $$ BEGIN
   DROP POLICY IF EXISTS "Admin settings select" ON admin_settings;
@@ -255,7 +257,7 @@ DECLARE
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
-  IF p_spread NOT IN ('single','three_card','celtic','single_yesno','oracle_single','oracle_three') THEN
+  IF p_spread NOT IN ('single','three_card','celtic','single_yesno','oracle_single','oracle_three','daily','zodiac','birthchart','lucky_number','moon_phase') THEN
     RAISE EXCEPTION 'Invalid spread';
   END IF;
   SELECT value INTO costs FROM admin_settings WHERE key='reading_costs';
@@ -265,6 +267,10 @@ BEGIN
     v_cost := COALESCE((costs->>'three_card')::int, 15);
   ELSIF p_spread = 'celtic' THEN
     v_cost := COALESCE((costs->>'celtic')::int, 50);
+  ELSIF p_spread = 'birthchart' THEN
+    v_cost := COALESCE((costs->>'birthchart')::int, 25);
+  ELSIF p_spread IN ('daily','zodiac','lucky_number','moon_phase') THEN
+    v_cost := COALESCE((costs->>p_spread)::int, 5);
   END IF;
   IF v_cost <=0 THEN RAISE EXCEPTION 'Invalid cost'; END IF;
   SELECT points INTO current_points FROM profiles WHERE id = v_user_id FOR UPDATE;
@@ -295,11 +301,17 @@ BEGIN
   END IF;
   SELECT value INTO v_costs FROM admin_settings WHERE key='reading_costs';
   IF v_costs IS NOT NULL THEN
-    IF p_amount = COALESCE((v_costs->>'single')::int, 5) OR p_amount = COALESCE((v_costs->>'three_card')::int, 15) OR p_amount = COALESCE((v_costs->>'celtic')::int, 50) THEN
+    IF p_amount = COALESCE((v_costs->>'single')::int, 5)
+    OR p_amount = COALESCE((v_costs->>'three_card')::int, 15)
+    OR p_amount = COALESCE((v_costs->>'celtic')::int, 50)
+    OR p_amount = COALESCE((v_costs->>'birthchart')::int, 25)
+    OR p_amount = COALESCE((v_costs->>'daily')::int, 5)
+    OR p_amount = COALESCE((v_costs->>'zodiac')::int, 5)
+    THEN
       v_allowed := true;
     END IF;
   ELSE
-    IF p_amount IN (5,15,50) THEN v_allowed := true; END IF;
+    IF p_amount IN (5,15,25,50) THEN v_allowed := true; END IF;
   END IF;
   IF NOT v_allowed THEN RAISE EXCEPTION 'Invalid amount'; END IF;
   -- Must have a recent reading_purchase with exact amount in last 10 minutes
