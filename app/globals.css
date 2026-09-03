@@ -2477,32 +2477,130 @@ button:hover .announce-card {
   font-variant-numeric: tabular-nums;
 }
 
-/* === Shuffle card back design (face) === */
+/* === Shuffle card back design (face) — 100000x premium === */
 .shuffle-card-back-design {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(160deg, #1d0e38 0%, #2a1444 35%, #18092c 70%, #120726 100%);
-  box-shadow: inset 0 0 24px rgba(147, 97, 203, 0.1);
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(167,139,250,0.14), transparent 62%),
+    radial-gradient(ellipse 70% 55% at 30% 80%, rgba(232,121,169,0.06), transparent 60%),
+    linear-gradient(160deg, #1e0e3e 0%, #2a1448 28%, #1a0b33 58%, #14082a 82%, #110726 100%);
+  box-shadow:
+    inset 0 0 28px rgba(147, 97, 203, 0.14),
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -1px 0 rgba(0,0,0,0.25);
+  overflow: hidden;
 }
 .shuffle-card-back-design::before {
   content: "";
   position: absolute;
-  inset: 5px;
-  border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: 4px;
+  inset: 4px;
+  border: 1px solid rgba(201, 168, 76, 0.22);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(201, 168, 76, 0.08),
+    0 0 12px rgba(201, 168, 76, 0.08);
+  background:
+    linear-gradient(180deg, rgba(201,168,76,0.03), transparent 45%),
+    radial-gradient(ellipse at center, transparent 62%, rgba(201,168,76,0.04) 100%);
 }
 .shuffle-card-back-design::after {
   content: "";
   position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(201, 168, 76, 0.09);
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse 65% 45% at 50% 50%, rgba(167,139,250,0.06), transparent 70%),
+    repeating-linear-gradient( -18deg, transparent 0 7px, rgba(201,168,76,0.015) 7px 8px);
+  pointer-events: none;
+}
+
+/* === Shuffle card premium details === */
+.shuffle-card-vignette {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 85% 70% at 50% 50%, transparent 58%, rgba(0,0,0,0.18) 100%);
+  pointer-events: none;
+}
+.shuffle-card-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.shuffle-card-ring {
+  position: absolute;
+  width: 38%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(201,168,76,0.16);
+  box-shadow: 0 0 10px rgba(201,168,76,0.08), inset 0 0 10px rgba(167,139,250,0.06);
+}
+.shuffle-card-ring.inner {
+  width: 26%;
+  border-color: rgba(201,168,76,0.11);
+  box-shadow: inset 0 0 8px rgba(167,139,250,0.05);
+}
+.shuffle-card-star {
+  position: absolute;
+  width: 18%;
+  aspect-ratio: 1;
+  background: linear-gradient(180deg, rgba(201,168,76,0.22), rgba(212,175,55,0.16));
+  clip-path: polygon(50% 0%, 61% 35%, 100% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 0% 35%, 39% 35%);
+  filter: drop-shadow(0 0 6px rgba(212,175,55,0.35)) drop-shadow(0 0 10px rgba(167,139,250,0.12));
+  opacity: 0.95;
+}
+.shuffle-card-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(201,168,76,0.9);
+  box-shadow: 0 0 6px rgba(212,175,55,0.6), 0 0 10px rgba(212,175,55,0.3);
+}
+.shuffle-card-cross-h,
+.shuffle-card-cross-v {
+  position: absolute;
+  background: linear-gradient(to right, transparent, rgba(201,168,76,0.10), transparent);
+  pointer-events: none;
+}
+.shuffle-card-cross-h {
+  width: 42%;
+  height: 1px;
   top: 50%;
   left: 50%;
-  width: 22%;
-  height: 16%;
-  background: rgba(201, 168, 76, 0.18);
   transform: translate(-50%, -50%);
-  clip-path: polygon(50% 0%, 61% 35%, 100% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 0% 35%, 39% 35%);
 }
+.shuffle-card-cross-v {
+  width: 1px;
+  height: 32%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(to bottom, transparent, rgba(201,168,76,0.10), transparent);
+}
+.shuffle-card-corners {
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+}
+.shuffle-card-corners span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgba(201,168,76,0.22);
+  border-radius: 1px;
+  background: rgba(201,168,76,0.04);
+}
+.shuffle-card-corners span:nth-child(1) { top: 0; left: 0; border-right: none; border-bottom: none; }
+.shuffle-card-corners span:nth-child(2) { top: 0; right: 0; border-left: none; border-bottom: none; }
+.shuffle-card-corners span:nth-child(3) { bottom: 0; left: 0; border-right: none; border-top: none; }
+.shuffle-card-corners span:nth-child(4) { bottom: 0; right: 0; border-left: none; border-top: none; }
 
 /* === Shuffle sparkle (a placeholder class) === */
 .shuffle-sparkle {

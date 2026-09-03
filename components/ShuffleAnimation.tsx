@@ -255,7 +255,20 @@ export default function ShuffleAnimation({
                 boxShadow: `0 ${elevation}px ${elevation * 1.8}px rgba(0,0,0,${shadowOpacity}), 0 1px 3px rgba(0,0,0,0.18)`,
               }}
             >
-              <div className="shuffle-card-back-design" />
+              <div className="shuffle-card-back-design">
+                <div className="shuffle-card-vignette" />
+                <div className="shuffle-card-center">
+                  <div className="shuffle-card-ring" />
+                  <div className="shuffle-card-ring inner" />
+                  <div className="shuffle-card-star" />
+                  <div className="shuffle-card-dot" />
+                  <div className="shuffle-card-cross-h" />
+                  <div className="shuffle-card-cross-v" />
+                </div>
+                <div className="shuffle-card-corners">
+                  <span /><span /><span /><span />
+                </div>
+              </div>
             </div>
           );
         })}
