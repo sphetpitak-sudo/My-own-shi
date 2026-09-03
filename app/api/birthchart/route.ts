@@ -34,11 +34,31 @@ export async function POST(request: Request) {
     if (parsed.getTime() > Date.now() + 1000 * 60) return NextResponse.json({ error: "วันเกิดต้องไม่เป็นอนาคต" }, { status: 400 });
 
     // Points check — birthchart uses 25 points (ทุกฟีเจอร์ต้องใช้แต้ม ยกเว้น daily/chat)
-    const { data: charged, error: spendErr } = await supabase.rpc("spend_for_spread", { p_spread: "birthchart", p_description: "birthchart" });
-    if (spendErr) return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
-    if ((charged as number) === 0) {
-      const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).single();
-      return NextResponse.json({ error: "Not enough points", needed: 25, current: profile?.points ?? 0 }, { status: 400 });
+    let charged: number | null = null;
+    let spendErr: unknown = null;
+    try {
+      const r = await supabase.rpc("spend_for_spread", { p_spread: "birthchart", p_description: "birthchart" }) as { data: number | null; error: unknown };
+      charged = r.data as number | null;
+      spendErr = r.error;
+      // Fallback for old DB without birthchart in whitelist
+      if (spendErr && String((spendErr as { message?: string }).message || "").includes("Invalid spread")) {
+        const r2 = await supabase.rpc("spend_points", { p_user_id: user.id, p_amount: 25, p_description: "birthchart" }) as { data: boolean | null; error: unknown };
+        if (r2.error) throw r2.error;
+        charged = r2.data ? 25 : 0;
+        spendErr = null;
+      }
+    } catch (e) {
+      spendErr = e;
+    }
+    if (spendErr) {
+      console.error("[birthchart] spend failed", spendErr);
+      return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
+    }
+    if ((charged as number) === 0 || charged == null) {
+      const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).maybeSingle() as { data: { points:number } | null };
+      const cur = profile?.points ?? 0;
+      // also try direct fallback if profile null (should not happen, but avoid showing 0 incorrectly)
+      return NextResponse.json({ error: "Not enough points", needed: 25, current: cur }, { status: 400 });
     }
 
     // Rate limit: 10 birthchart / hour

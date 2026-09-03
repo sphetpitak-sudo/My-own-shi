@@ -64,10 +64,25 @@ export async function POST(request: Request) {
     }
 
     // Points check — zodiac uses 5 points (daily/chat free, rest use points)
-    const { data: charged, error: spendErr } = await supabase.rpc("spend_for_spread", { p_spread: "zodiac", p_description: "zodiac" });
-    if (spendErr) return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
-    if ((charged as number) === 0) {
-      const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).single();
+    let charged: number | null = null;
+    let spendErr: unknown = null;
+    try {
+      const r = await supabase.rpc("spend_for_spread", { p_spread: "zodiac", p_description: "zodiac" }) as { data: number | null; error: unknown };
+      charged = r.data as number | null;
+      spendErr = r.error;
+      if (spendErr && String((spendErr as { message?: string }).message || "").includes("Invalid spread")) {
+        const r2 = await supabase.rpc("spend_points", { p_user_id: user.id, p_amount: 5, p_description: "zodiac" }) as { data: boolean | null; error: unknown };
+        if (r2.error) throw r2.error;
+        charged = r2.data ? 5 : 0;
+        spendErr = null;
+      }
+    } catch (e) { spendErr = e; }
+    if (spendErr) {
+      console.error("[zodiac] spend failed", spendErr);
+      return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
+    }
+    if ((charged as number) === 0 || charged == null) {
+      const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).maybeSingle() as { data: { points:number } | null };
       return NextResponse.json({ error: "Not enough points", needed: 5, current: profile?.points ?? 0 }, { status: 400 });
     }
 

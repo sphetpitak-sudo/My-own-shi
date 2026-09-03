@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import DashboardShell, { useShell } from "@/components/DashboardShell";
 import BirthChartWheel from "@/components/BirthChartWheel";
 import { Compass, Calendar, Clock, MapPin, Sparkles, Lock, Heart, Briefcase, Lightbulb, Activity, Navigation, Globe, Search, Share2, History, Download, Coins } from "lucide-react";
@@ -41,6 +42,7 @@ export default function BirthChartPage() {
   const [interpretation, setInterpretation] = useState("");
   const [error, setError] = useState("");
   const [history, setHistory] = useState<Array<{ id:string; birth_date:string; birth_time:string; birth_place:string; created_at:string }>>([]);
+  const [directPoints, setDirectPoints] = useState<number|null>(null);
 
   useEffect(()=>{
     if(place.trim().length>=1){
@@ -54,6 +56,18 @@ export default function BirthChartPage() {
       if(data) setHistory(data as Array<{ id:string; birth_date:string; birth_time:string; birth_place:string; created_at:string }>);
     });
   },[]);
+
+  useEffect(()=>{
+    if(shell.profile?.points != null) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }: { data: { user: { id:string } | null } })=>{
+      if(data.user){
+        supabase.from("profiles").select("points").eq("id", data.user.id).single().then(({ data: p }: { data: { points:number } | null })=>{
+          if(p && typeof p.points === "number") setDirectPoints(p.points);
+        });
+      }
+    });
+  },[shell.profile]);
 
   async function resolveGeo(q:string){
     const trimmed=q.trim();
@@ -95,7 +109,9 @@ export default function BirthChartPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if(data.error==="Not enough points"){
-          setError(`แต้มไม่พอ — ต้องใช้ 25 แต้ม คุณมี ${data.current ?? 0} แต้ม · ไปทำภารกิจประจำวันเพื่อรับแต้มฟรี`);
+          const cur = (typeof data.current === "number" ? data.current : shell.profile?.points ?? 0);
+          const need = (typeof data.needed === "number" ? data.needed : 25);
+          setError(`แต้มไม่พอ — ต้องใช้ ${need} แต้ม คุณมี ${cur.toLocaleString()} แต้ม · ไปทำภารกิจประจำวันเพื่อรับแต้มฟรี`);
         } else throw new Error(data.error || "คำนวณไม่สำเร็จ");
         return;
       }
@@ -136,7 +152,7 @@ export default function BirthChartPage() {
           </p>
           <div className="flex items-center gap-2 mt-3">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full" style={{ background:"rgba(212,175,55,0.12)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.22)"}}><Coins size={12}/> 25 แต้ม / ครั้ง</span>
-            <span className="text-[11px]" style={{color:"var(--text-muted)"}}>คุณมี {(shell.profile?.points ?? 0).toLocaleString()} แต้ม</span>
+            <span className="text-[11px]" style={{color:"var(--text-muted)"}}>{shell.profile ? `คุณมี ${shell.profile.points.toLocaleString()} แต้ม` : directPoints != null ? `คุณมี ${directPoints.toLocaleString()} แต้ม` : "กำลังโหลดแต้ม..."}</span>
           </div>
         </div>
 
@@ -228,8 +244,11 @@ export default function BirthChartPage() {
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl text-[12.5px]" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
-                {error}
+              <div className="p-3 rounded-xl text-[12.5px] flex flex-col gap-2" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+                <span>{error}</span>
+                {error.includes("แต้มไม่พอ") && (
+                  <Link href="/dashboard/daily" className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full w-fit" style={{ background:"var(--gold-soft)", color:"var(--gold)", border:"1px solid var(--border-gold)"}}><Coins size={12}/> รับแต้มฟรีที่ดวงรายวัน</Link>
+                )}
               </div>
             )}
 
