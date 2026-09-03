@@ -86,14 +86,14 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
         <svg viewBox="0 0 400 400" width={size} height={size} className="overflow-visible" style={{ filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.45))" }}>
           <defs>
             <radialGradient id="wheelBg" cx="50%" cy="35%" r="75%">
-              <stop offset="0%" stopColor="#1e0e3a" />
-              <stop offset="45%" stopColor="#14082a" />
-              <stop offset="85%" stopColor="#0a0614" />
-              <stop offset="100%" stopColor="#07050d" />
+              <stop offset="0%" stopColor="var(--wheel-bg, #fdfbf7)" />
+              <stop offset="45%" stopColor="var(--bg-card, #ffffff)" />
+              <stop offset="85%" stopColor="var(--bg-elevated, #fdfcf8)" />
+              <stop offset="100%" stopColor="var(--bg, #fdfcf8)" />
             </radialGradient>
             <radialGradient id="zodiacGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="rgba(167,139,250,0.10)" />
-              <stop offset="100%" stopColor="rgba(167,139,250,0.02)" />
+              <stop offset="0%" stopColor="var(--primary-soft, rgba(124,58,237,0.07))" />
+              <stop offset="100%" stopColor="transparent" />
             </radialGradient>
             <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#f6c944" />
@@ -117,10 +117,10 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
           {/* outer premium glow */}
           <circle cx={cx} cy={cy} r={rOuter+9} fill="none" stroke="rgba(212,175,55,0.08)" strokeWidth={8} opacity={0.5} />
 
-          {/* outer rim */}
+          {/* outer rim — light-aware */}
           <circle cx={cx} cy={cy} r={rOuter} fill="url(#wheelBg)" stroke="url(#goldStroke)" strokeWidth={1.6} />
-          <circle cx={cx} cy={cy} r={rOuter-3} fill="none" stroke="rgba(201,168,76,0.18)" strokeWidth={1} />
-          <circle cx={cx} cy={cy} r={rOuter-6} fill="none" stroke="rgba(201,168,76,0.09)" strokeWidth={0.8} />
+          <circle cx={cx} cy={cy} r={rOuter-3} fill="none" stroke="var(--border-gold, rgba(201,168,76,0.18))" strokeWidth={1} />
+          <circle cx={cx} cy={cy} r={rOuter-6} fill="none" stroke="var(--border-subtle, rgba(201,168,76,0.09))" strokeWidth={0.8} />
 
           {/* zodiac ring background */}
           <circle cx={cx} cy={cy} r={(rZodiacOuter+rZodiacInner)/2} fill="none" stroke="url(#goldStroke)" strokeWidth={0} />
@@ -137,7 +137,7 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
             const isEven = i%2===0;
             return (
               <path key={i} d={`M ${p1.x} ${p1.y} A ${rZodiacOuter} ${rZodiacOuter} 0 0 0 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${rZodiacInner} ${rZodiacInner} 0 0 1 ${p4.x} ${p4.y} Z`}
-                fill={isEven? "rgba(18,13,32,0.9)":"rgba(14,10,24,0.92)"} stroke="rgba(212,175,55,0.14)" strokeWidth={0.9}
+                fill={isEven? "var(--wheel-zodiac-even, #ffffff)":"var(--wheel-zodiac-odd, #fdf8f0)"} stroke="var(--border-gold, rgba(212,175,55,0.14))" strokeWidth={0.9}
               />
             );
           })}
@@ -162,7 +162,7 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
             );
           })}
 
-          {/* house cusp degree labels — 100x detail */}
+          {/* house cusp degree labels — 100x detail light-aware */}
           {cusps.map((cusp,i)=>{
             const ang = 180 - normalize(cusp - ascLon);
             const p = polar(cx,cy,rOuter+14, ang);
@@ -170,7 +170,7 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
             const sign = ZODIAC_SIGNS[Math.floor(normalize(cusp)/30)]?.symbol ?? "";
             return (
               <g key={`deg-${i}`} opacity={0.92}>
-                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={6.5} fontWeight={700} fill={i===0? "#f6c944":"rgba(255,255,255,0.55)"} letterSpacing={0.3}>{cuspDeg}°{sign}</text>
+                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={6.5} fontWeight={700} fill={i===0? "var(--wheel-gold, #b8942a)":"var(--text-muted, #8a8198)"} letterSpacing={0.3}>{cuspDeg}°{sign}</text>
               </g>
             );
           })}
@@ -193,11 +193,11 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
             })}
           </g>
 
-          {/* inner circle */}
-          <circle cx={cx} cy={cy} r={rHouseInner} fill="rgba(7,5,13,0.55)" stroke="rgba(201,168,76,0.14)" strokeWidth={1} />
-          <circle cx={cx} cy={cy} r={rHouseInner-10} fill="none" stroke="rgba(167,139,250,0.08)" strokeWidth={0.8} strokeDasharray="2 6" />
+          {/* inner circle — light-aware */}
+          <circle cx={cx} cy={cy} r={rHouseInner} fill="color-mix(in srgb, var(--wheel-house, #faf6ee) 94%, transparent)" stroke="var(--border-gold, rgba(201,168,76,0.14))" strokeWidth={1} />
+          <circle cx={cx} cy={cy} r={rHouseInner-10} fill="none" stroke="var(--primary-soft, rgba(124,58,237,0.08))" strokeWidth={0.8} strokeDasharray="2 6" />
 
-          {/* zodiac glyphs */}
+          {/* zodiac glyphs — light-aware */}
           {ZODIAC_SIGNS.map((z, idx)=>{
             const cuspLon = normalize(ascSignStart + idx*30);
             const midLon = normalize(cuspLon + 15);
@@ -206,8 +206,8 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
             const isAscSign = idx===0;
             return (
               <g key={z.id}>
-                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={16} style={{ filter: isAscSign? "drop-shadow(0 0 6px rgba(212,175,55,0.6))":"none" }} fill={isAscSign? "#f6c944": "rgba(232,230,240,0.92)"} fontWeight={700}>{z.symbol}</text>
-                <text x={polar(cx,cy, (rZodiacOuter+rZodiacInner)/2 + 18, ang).x} y={polar(cx,cy, (rZodiacOuter+rZodiacInner)/2 + 18, ang).y} textAnchor="middle" dominantBaseline="central" fontSize={7.5} letterSpacing={0.6} fill="rgba(255,255,255,0.42)" fontWeight={700}>{String(idx+1)}</text>
+                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={16} style={{ filter: isAscSign? "drop-shadow(0 0 6px rgba(212,175,55,0.5))":"none" }} fill={isAscSign? "var(--wheel-gold, #b8942a)": "var(--wheel-text, #1a1625)"} fontWeight={700} opacity={isAscSign?1:0.92}>{z.symbol}</text>
+                <text x={polar(cx,cy, (rZodiacOuter+rZodiacInner)/2 + 18, ang).x} y={polar(cx,cy, (rZodiacOuter+rZodiacInner)/2 + 18, ang).y} textAnchor="middle" dominantBaseline="central" fontSize={7.5} letterSpacing={0.6} fill="var(--text-muted, #8a8198)" fontWeight={700} opacity={0.9}>{String(idx+1)}</text>
               </g>
             );
           })}
@@ -228,7 +228,7 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
             );
           })()}
 
-          {/* planets — clickable 100x */}
+          {/* planets — clickable 100x light-aware */}
           {planetsWithOffset.map(({p,jitter,rOff})=>{
             const delta = normalize(p.longitude - ascLon);
             const ang = 180 - delta + jitter*0.6;
@@ -238,23 +238,23 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
             const isHover = hover?.planet===p.planet && hover?.sign===p.sign && hover?.degree===p.degree;
             const isSelected = selected?.planet===p.planet;
             return (
-              <g key={p.planet} onMouseEnter={()=>setHover(p)} onMouseLeave={()=>setHover(null)} onClick={()=> interactive && setSelected(p)} style={{ cursor: interactive?"pointer":"default" }} > 
+              <g key={p.planet} onMouseEnter={()=>setHover(p)} onMouseLeave={()=>setHover(null)} onClick={()=> interactive && setSelected(p)} style={{ cursor: interactive?"pointer":"default" }} >
                 {/* selection ring */}
                 {isSelected && <circle cx={pos.x} cy={pos.y} r={18} fill="none" stroke={meta.color} strokeWidth={1.2} strokeDasharray="3 3" opacity={0.6} />}
                 {/* line to center */}
                 <line x1={pos.x} y1={pos.y} x2={polar(cx,cy,rHouseInner+6, ang).x} y2={polar(cx,cy,rHouseInner+6, ang).y} stroke={meta.color} strokeOpacity={0.22} strokeWidth={0.8} strokeDasharray="2 3" />
-                <circle cx={pos.x} cy={pos.y} r={isHover?14:11} fill={isHover? meta.color:"rgba(18,13,32,0.96)"} stroke={meta.color} strokeWidth={isHover?2:1.4} style={{ filter: isHover? "drop-shadow(0 0 8px rgba(212,175,55,0.45))":"drop-shadow(0 2px 6px rgba(0,0,0,0.45))" }} />
-                <text x={pos.x} y={pos.y+0.5} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={800} fill={isHover? "#0a0614": meta.color}>{meta.short}</text>
+                <circle cx={pos.x} cy={pos.y} r={isHover?14:11} fill={isHover? meta.color:"var(--bg-card, #ffffff)"} stroke={meta.color} strokeWidth={isHover?2:1.4} style={{ filter: isHover? "drop-shadow(0 0 8px rgba(212,175,55,0.45))":"drop-shadow(0 2px 6px rgba(0,0,0,0.18))" }} />
+                <text x={pos.x} y={pos.y+0.5} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={800} fill={isHover? "var(--text-invert, #0a0614)": meta.color}>{meta.short}</text>
                 {p.retrograde && <text x={pos.x+8} y={pos.y-9} fontSize={7} fontWeight={800} fill="#ef4444">℞</text>}
               </g>
             );
           })}
 
-          {/* center mandala */}
+          {/* center mandala — light-aware */}
           <g>
-            <circle cx={cx} cy={cy} r={36} fill="rgba(18,13,32,0.92)" stroke="rgba(201,168,76,0.22)" strokeWidth={1.2} />
-            <circle cx={cx} cy={cy} r={30} fill="none" stroke="rgba(201,168,76,0.14)" strokeWidth={0.9} />
-            <circle cx={cx} cy={cy} r={22} fill="none" stroke="rgba(167,139,250,0.10)" strokeWidth={0.8} />
+            <circle cx={cx} cy={cy} r={36} fill="color-mix(in srgb, var(--wheel-house, #faf6ee) 96%, white)" stroke="var(--border-gold, rgba(201,168,76,0.22))" strokeWidth={1.2} />
+            <circle cx={cx} cy={cy} r={30} fill="none" stroke="var(--border-gold, rgba(201,168,76,0.14))" strokeWidth={0.9} />
+            <circle cx={cx} cy={cy} r={22} fill="none" stroke="var(--primary-soft, rgba(124,58,237,0.10))" strokeWidth={0.8} />
             {/* star */}
             <path d={(() => {
               const pts: string[]=[]; const R=14, r=6;
@@ -268,10 +268,10 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
           </g>
         </svg>
 
-        {/* hover tooltip */}
+        {/* hover tooltip — light-aware */}
         {hover && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-2 pointer-events-none">
-            <div className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-2" style={{ background:"rgba(18,13,32,0.92)", color:"white", border:"1px solid rgba(212,175,55,0.22)", backdropFilter:"blur(8px)" }}>
+            <div className="px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-2" style={{ background:"color-mix(in srgb, var(--bg-card) 96%, white)", color:"var(--text)", border:"1px solid var(--border-gold, rgba(212,175,55,0.22))", backdropFilter:"blur(8px)", boxShadow:"var(--shadow-sm)" }}>
               <span style={{ color: PLANET_META[hover.planet]?.color }}>{PLANET_META[hover.planet]?.short}</span>
               {PLANET_META[hover.planet]?.th} · {ZODIAC_SIGNS.find(z=>z.id===hover.sign)?.nameTh} {hover.degree}° {hover.house?`· เรือน ${hover.house}`:""} {hover.retrograde?"℞":""}
             </div>

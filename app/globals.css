@@ -2,48 +2,57 @@
 
 @layer base {
   :root {
-    /* === Surface Hierarchy (Warm Parchment / Light) === */
-    --bg: #f6f4ee;
+    /* === Surface Hierarchy (Luminous Warm Light — 100x Premium) === */
+    --bg: #fdfcf8;
     --bg-elevated: #ffffff;
     --bg-card: #ffffff;
-    --bg-card-hover: #faf8f3;
-    --bg-overlay: rgba(246, 244, 238, 0.92);
+    --bg-card-hover: #fdf8f0;
+    --bg-overlay: rgba(253, 252, 248, 0.88);
     --sidebar: #0e0a18;
     --sidebar-hover: #1b132c;
     --sidebar-active: #281c42;
 
     /* === Border System === */
-    --border: #e6e0d4;
-    --border-strong: #d2cabb;
-    --border-subtle: #eee9df;
-    --border-gold: rgba(184, 148, 42, 0.3);
+    --border: #ece6d9;
+    --border-strong: #ddd2bd;
+    --border-subtle: #f5efe6;
+    --border-gold: rgba(184, 148, 42, 0.22);
 
     /* === Text Hierarchy === */
-    --text: #14121a;
-    --text-secondary: #58534c;
-    --text-muted: #8e877c;
-    --text-invert: #f6f4ee;
+    --text: #1a1625;
+    --text-secondary: #4a4458;
+    --text-muted: #8a8198;
+    --text-invert: #fdfcf8;
 
     /* === Accent Palette === */
-    --primary: #6d28d9;
-    --primary-hover: #5b21b6;
-    --primary-soft: rgba(109, 40, 217, 0.08);
-    --primary-glow: rgba(109, 40, 217, 0.2);
+    --primary: #7c3aed;
+    --primary-hover: #6d28d9;
+    --primary-soft: rgba(124, 58, 237, 0.07);
+    --primary-glow: rgba(124, 58, 237, 0.18);
 
     --gold: #b8942a;
     --gold-light: #d4af37;
-    --gold-soft: rgba(212, 175, 55, 0.12);
-    --gold-glow: rgba(212, 175, 55, 0.25);
+    --gold-soft: rgba(184, 148, 42, 0.08);
+    --gold-glow: rgba(184, 148, 42, 0.18);
 
     --green: #2d7a4f;
-    --green-soft: #e4f5ec;
+    --green-soft: #eef6f0;
     --red: #c24130;
-    --red-soft: #fdecea;
+    --red-soft: #fdf0ee;
     --blue: #2563eb;
-    --blue-soft: #e8f0fd;
-    --amber: #b8942a;
-    --amber-soft: #faf3e0;
+    --blue-soft: #eef2ff;
+    --amber: #b45309;
+    --amber-soft: #fff7ed;
     --yellow: #eab308;
+
+    /* === Wheel Light Tokens (100x) === */
+    --wheel-bg: #fdfbf7;
+    --wheel-zodiac-even: #ffffff;
+    --wheel-zodiac-odd: #fdf8f0;
+    --wheel-house: #faf6ee;
+    --wheel-text: #1a1625;
+    --wheel-gold: #b8942a;
+    --wheel-gold-soft: rgba(184,148,42,0.10);
 
     /* === Semantic Color Roles (for consistent theming) === */
     --topic-love: #e879a9;
@@ -141,10 +150,14 @@ body {
   background-position: center 18%;
   background-repeat: no-repeat;
   pointer-events: none;
-  filter: saturate(0.82) brightness(0.92) contrast(1.04);
-  opacity: 0.42;
+  filter: saturate(0.92) brightness(1.02) contrast(1.02);
+  opacity: 0.22;
   mask-image: linear-gradient(to bottom, black 58%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, black 58%, transparent 100%);
+}
+.dark .global-bg {
+  filter: saturate(0.82) brightness(0.92) contrast(1.04);
+  opacity: 0.42;
 }
 .global-bg-overlay {
   position: fixed;
@@ -152,9 +165,9 @@ body {
   height: 72vh;
   z-index: -1;
   background:
-    radial-gradient(ellipse 78% 55% at 50% 8%, rgba(167,139,250,0.12), transparent 62%),
-    radial-gradient(ellipse 60% 40% at 80% 12%, rgba(232,121,169,0.06), transparent 60%),
-    linear-gradient(180deg, rgba(14,10,24,0.14) 0%, rgba(14,10,24,0.38) 52%, rgba(7,5,13,0.88) 100%);
+    radial-gradient(ellipse 78% 55% at 50% 8%, rgba(124,58,237,0.06), transparent 62%),
+    radial-gradient(ellipse 60% 40% at 80% 12%, rgba(212,175,55,0.07), transparent 60%),
+    linear-gradient(180deg, rgba(253,252,248,0.02) 0%, rgba(253,252,248,0.18) 52%, rgba(253,252,248,0.72) 100%);
   backdrop-filter: blur(1px) saturate(1.02);
   -webkit-backdrop-filter: blur(1px) saturate(1.02);
   pointer-events: none;
@@ -224,6 +237,15 @@ body {
   --sidebar: #06040b;
   --sidebar-hover: #110c1c;
   --sidebar-active: #1c142e;
+
+  /* Wheel Dark Tokens */
+  --wheel-bg: #1e0e3a;
+  --wheel-zodiac-even: #120d20;
+  --wheel-zodiac-odd: #0a0614;
+  --wheel-house: #07050d;
+  --wheel-text: #eae6df;
+  --wheel-gold: #d4af37;
+  --wheel-gold-soft: rgba(212,175,55,0.14);
 
   /* Shadows */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
