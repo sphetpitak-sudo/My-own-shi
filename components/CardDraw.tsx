@@ -92,13 +92,13 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
         </div>
       </div>
 
-      {/* Cards — Circle Fan (ล้อมเป็นวงกลมให้เลือก) */}
+      {/* Cards — Full Circle (ล้อมเป็นวงกลมจริง) */}
       <div
         className={cn(
           "relative w-full flex justify-center items-center",
-          spread.cardCount === 10 ? "h-[360px] sm:h-[420px]" : spread.cardCount === 3 ? "h-[280px] sm:h-[320px]" : "h-[320px]"
+          spread.cardCount === 10 ? "h-[420px] sm:h-[480px]" : spread.cardCount === 3 ? "h-[300px] sm:h-[360px]" : "h-[320px]"
         )}
-        style={{ perspective: "1200px" }}
+        style={{ perspective: "1200px", overflow: "visible" }}
       >
         {/* Subtle circular table hint */}
         <div
@@ -119,14 +119,21 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
         {drawnCards.map((dc, i) => {
           const isFlipped = flippedIndices.has(i);
           const isSelected = isFlipped;
-          // Circle fan math — arc 200° for 10, 68° for 3, single center
-          const totalArc = spread.cardCount === 10 ? 200 : spread.cardCount === 3 ? 68 : 0;
-          const startAngle = -totalArc / 2;
-          const step = spread.cardCount > 1 ? totalArc / (spread.cardCount - 1) : 0;
-          const angle = spread.cardCount === 1 ? 0 : startAngle + i * step;
+          // Full circle —ล้อมเป็นวงกลมจริง
           const w = typeof window !== "undefined" ? window.innerWidth : 390;
-          const radius = spread.cardCount === 10 ? (w <= 320 ? 102 : w <= 360 ? 118 : 148) : spread.cardCount === 3 ? (w <= 320 ? 82 : 92) : 0;
-          // For 10, use half-circle fan with center at bottom (like hand fan) — translateY -radius then rotate
+          let angle = 0;
+          let radius = 0;
+          if (spread.cardCount === 1) {
+            angle = 0;
+            radius = 0;
+          } else if (spread.cardCount === 3) {
+            // 3 ใบ = สามเหลี่ยมรอบวง
+            angle = -90 + i * 120;
+            radius = w <= 320 ? 88 : w <= 360 ? 100 : 118;
+          } else if (spread.cardCount === 10) {
+            angle = -90 + i * 36;
+            radius = w <= 320 ? 98 : w <= 360 ? 112 : 138;
+          }
           const translate = spread.cardCount === 1 ? "translate(-50%, -50%)" : `rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
           return (
             <div
