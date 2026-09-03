@@ -92,75 +92,34 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
         </div>
       </div>
 
-      {/* Cards — Full Circle (ล้อมเป็นวงกลมจริง) */}
+      {/* Cards Table Spread Area — กลับแบบเดิม เรียงปกติ */}
       <div
         className={cn(
-          "relative w-full flex justify-center items-center",
-          spread.cardCount === 10 ? "h-[420px] sm:h-[480px]" : spread.cardCount === 3 ? "h-[300px] sm:h-[360px]" : "h-[320px]"
+          "flex flex-wrap justify-center items-start gap-4 sm:gap-6 p-4 rounded-2xl w-full",
+          spread.cardCount === 10 ? "max-w-[760px]" : spread.cardCount === 3 ? "max-w-[560px]" : "max-w-[320px]"
         )}
-        style={{ perspective: "1200px", overflow: "visible" }}
+        style={{ perspective: "1200px" }}
       >
-        {/* Subtle circular table hint */}
-        <div
-          aria-hidden
-          className="absolute rounded-full"
-          style={{
-            width: spread.cardCount === 10 ? "88%" : spread.cardCount === 3 ? "72%" : "52%",
-            maxWidth: spread.cardCount === 10 ? 520 : 380,
-            aspectRatio: "1",
-            top: "52%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "radial-gradient(ellipse at center, rgba(167,139,250,0.07) 0%, transparent 62%), radial-gradient(ellipse at center, rgba(212,175,55,0.04) 30%, transparent 72%)",
-            border: "1px dashed rgba(167,139,250,0.10)",
-            pointerEvents: "none",
-          }}
-        />
         {drawnCards.map((dc, i) => {
           const isFlipped = flippedIndices.has(i);
           const isSelected = isFlipped;
-          // Full circle —ล้อมเป็นวงกลมจริง
-          const w = typeof window !== "undefined" ? window.innerWidth : 390;
-          let angle = 0;
-          let radius = 0;
-          if (spread.cardCount === 1) {
-            angle = 0;
-            radius = 0;
-          } else if (spread.cardCount === 3) {
-            // 3 ใบ = สามเหลี่ยมรอบวง
-            angle = -90 + i * 120;
-            radius = w <= 320 ? 88 : w <= 360 ? 100 : 118;
-          } else if (spread.cardCount === 10) {
-            angle = -90 + i * 36;
-            radius = w <= 320 ? 98 : w <= 360 ? 112 : 138;
-          }
-          const translate = spread.cardCount === 1 ? "translate(-50%, -50%)" : `rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
           return (
             <div
               key={i}
-              className="absolute flex flex-col items-center gap-2"
+              className="flex flex-col items-center gap-2.5"
               style={{
-                top: "52%",
-                left: "50%",
-                transform: spread.cardCount === 1 ? "translate(-50%, -50%)" : `translate(-50%, -50%) ${translate}`,
-                transformOrigin: "center center",
                 animationDelay: `${i * 0.07}s`,
                 animation: "fadeUp 0.48s var(--ease-magic) both",
                 willChange: "transform, opacity",
-                zIndex: isFlipped ? 20 + i : 10 + i,
               }}
             >
               <div
                 className={cn(
                   "rounded-xl transition-all duration-200",
-                  !isFlipped && "hover:-translate-y-1.5 hover:shadow-lg active:translate-y-0 active:scale-[0.97]",
-                  isSelected && "ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)] shadow-[0_0_18px_rgba(167,139,250,0.22)]"
+                  !isFlipped && "hover:-translate-y-1 hover:shadow-md active:translate-y-0 active:scale-[0.98]",
+                  isSelected && "ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)]"
                 )}
-                style={{
-                  borderRadius: spread.cardCount === 10 ? 8 : 10,
-                  transform: isFlipped ? "scale(1.02)" : undefined,
-                  transition: "transform 0.22s var(--ease-magic), box-shadow 0.22s var(--ease)",
-                }}
+                style={{ borderRadius: spread.cardCount === 10 ? 8 : 10 }}
               >
                 <TarotCard
                   card={dc.card}
@@ -178,30 +137,16 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
               </div>
               <span
                 className={cn(
-                  "text-[11px] font-bold text-center leading-tight px-1.5 py-0.5 rounded-full backdrop-blur-sm",
-                  isFlipped ? "text-[var(--text)] bg-[var(--bg-card)] border border-[var(--border)] shadow-sm" : "text-white bg-black/55 border border-white/10"
+                  "text-[11.5px] font-bold text-center transition-colors max-w-[110px] leading-tight",
+                  isFlipped ? "text-[var(--text)]" : "text-[var(--text-muted)]"
                 )}
-                style={{ fontSize: spread.cardCount === 10 ? 10 : 11.5, maxWidth: 110 }}
               >
                 {dc.position.labelTh}
               </span>
+              {isFlipped && <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-fade" aria-hidden />}
             </div>
           );
         })}
-        {/* Center glow */}
-        <div
-          aria-hidden
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            width: 180,
-            height: 180,
-            top: "52%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "radial-gradient(circle, rgba(167,139,250,0.10), transparent 70%)",
-            filter: "blur(10px)",
-          }}
-        />
       </div>
 
       {/* Submit / Proceed Action */}

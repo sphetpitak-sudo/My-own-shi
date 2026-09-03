@@ -218,16 +218,19 @@ export default function ShuffleAnimation({
             // Stable interleaving z — prevent flicker
             z = isLeft ? 100 + i : 100 - i;
           } else if (isFan) {
-            // Elegant fan — centered, smaller rot near center, readable on 320px
-            const isNarrow = typeof window !== "undefined" && window.innerWidth <= 360;
-            const baseSpread = isNarrow ? 8.5 : 10.2;
-            const spread = (i - cardCount / 2 + 0.5) * baseSpread;
-            const arc = Math.abs(spread) * 0.16;
-            tx = spread + c.splitX * 0.25 + c.fanOffset;
-            ty = arc - 16 + c.riffleY * 0.1;
-            rot = spread * 0.52 + c.rotate * 0.3;
-            scale = 0.97 + (1 - Math.abs(spread) / 75) * 0.03;
-            opacity = 0.97;
+            // Circular fan — แบบในรูป ล้อมเป็นวงกลม ตรงกลางว่าง 300° overlapping
+            const w = typeof window !== "undefined" ? window.innerWidth : 390;
+            const totalArc = 300;
+            const start = -150;
+            const step = totalArc / (cardCount - 1);
+            const angle = start + i * step;
+            const radius = w <= 320 ? 92 : w <= 360 ? 104 : 118;
+            // Place on circle, angled along tangent (no counter-rotate) — เหมือนในรูป
+            tx = Math.sin((angle * Math.PI) / 180) * radius + c.fanOffset * 0.4;
+            ty = -Math.cos((angle * Math.PI) / 180) * radius * 0.88 - 14 + c.riffleY * 0.08;
+            rot = angle * 0.92 + c.rotate * 0.35;
+            scale = 0.94 + (1 - Math.abs(angle) / 160) * 0.06;
+            opacity = 0.98;
             z = i;
           } else if (isSettle) {
             // Heavier, calmer than riffle — deterministic, no snap, shadow correction
