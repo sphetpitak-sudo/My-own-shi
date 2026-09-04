@@ -1,38 +1,57 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOpenAI, AI_MODEL, AI_PARAMS } from "@/lib/ai";
+import { getOpenAI, AI_MODEL, AI_PARAMS, createAiStream, armFirstTokenGuard, isBreakerOpen, recordBreakerFailure } from "@/lib/ai";
 import { CHAT_SYSTEM_PROMPT, PROMPT_VERSION, buildChatUserPrompt } from "@/lib/prompts";
 import { detectToolsNeeded, executeTool } from "@/lib/chat/tools";
+import { startObs, setObsUser, endObs, logObs, logPromptVersion, obsHeaders } from "@/lib/observability";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const obs = startObs("chat", request);
   try {
     const rawLen = request.headers.get("content-length");
-    if (rawLen && parseInt(rawLen, 10) > 8000) return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    if (rawLen && parseInt(rawLen, 10) > 8000) {
+      endObs(obs, "validation_error", { status: 413, reason: "payload_too_large" });
+      return NextResponse.json({ error: "Payload too large" }, { status: 413, headers: obsHeaders(obs) });
+    }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_json" });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: obsHeaders(obs) });
     }
     const { message, conversationId } = body as { message?: string; conversationId?: string };
     const trimmed = (message || "").trim();
-    if (!trimmed) return NextResponse.json({ error: "Message required" }, { status: 400 });
-    if (trimmed.length > 2000) return NextResponse.json({ error: "Message too long (max 2000)" }, { status: 400 });
+    if (!trimmed) {
+      endObs(obs, "validation_error", { status: 400, reason: "message_required" });
+      return NextResponse.json({ error: "Message required" }, { status: 400, headers: obsHeaders(obs) });
+    }
+    if (trimmed.length > 2000) {
+      endObs(obs, "validation_error", { status: 400, reason: "message_too_long" });
+      return NextResponse.json({ error: "Message too long (max 2000)" }, { status: 400, headers: obsHeaders(obs) });
+    }
 
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      endObs(obs, "unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
+    }
+    setObsUser(obs, user.id);
 
     // Rate limit — best-effort, don't block if RPC missing
     try {
       const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "chat", p_limit: 20, p_window_seconds: 60 });
-      if (rateOk === false) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+      if (rateOk === false) {
+        endObs(obs, "rate_limited", { status: 429 });
+        return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: obsHeaders(obs) });
+      }
     } catch {}
 
     // Resolve or create conversation — with fallback if tables not yet migrated
@@ -49,7 +68,10 @@ export async function POST(request: Request) {
         const { data: conv, error: convErr } = await supabase.from("chat_conversations").select("id").eq("id", convId).eq("user_id", user.id).single();
         const code = (convErr as { code?: string } | null)?.code;
         if (code === "PGRST205" || code === "22P02") dbAvailable = false;
-        else if (convErr || !conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+        else if (convErr || !conv) {
+          endObs(obs, "validation_error", { status: 404, reason: "conversation_not_found" });
+          return NextResponse.json({ error: "Conversation not found" }, { status: 404, headers: obsHeaders(obs) });
+        }
       } catch {
         dbAvailable = false;
       }
@@ -64,7 +86,8 @@ export async function POST(request: Request) {
             convId = globalThis.crypto?.randomUUID?.() ?? `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             isNew = true;
           } else {
-            return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
+            endObs(obs, "db_error", { status: 500, reason: "create_conversation_failed" });
+            return NextResponse.json({ error: "Failed to create conversation" }, { status: 500, headers: obsHeaders(obs) });
           }
         } else if (conv) {
           convId = (conv as { id: string }).id;
@@ -126,60 +149,61 @@ export async function POST(request: Request) {
     const userPrompt = buildChatUserPrompt({ message: trimmed, toolContext: toolContext || undefined, history: history.slice(0, -1) });
 
     const params = AI_PARAMS.chat;
+    logPromptVersion(obs, PROMPT_VERSION);
 
-    const abortController = new AbortController();
-    const onClientAbort = () => {
-      try {
-        abortController.abort();
-      } catch {}
-    };
-    if (request.signal) {
-      if (request.signal.aborted) abortController.abort();
-      else request.signal.addEventListener("abort", onClientAbort, { once: true });
+    // Circuit breaker (shared store): skip the AI call when Typhoon is
+    // failing globally instead of adding retry load. Fail-open on RPC error.
+    // Free endpoint — no spend/refund.
+    if (await isBreakerOpen(supabase, "chat")) {
+      endObs(obs, "breaker_open", { status: 503, reason: "ai_breaker_open" });
+      return NextResponse.json({ error: "AI กำลังหนาแน่น กรุณาลองใหม่ในครู่" }, { status: 503, headers: obsHeaders(obs) });
     }
-    const timeoutId = setTimeout(() => {
-      try {
-        abortController.abort();
-      } catch {}
-    }, params.timeoutMs);
 
-    let stream: Awaited<ReturnType<typeof getOpenAI extends () => infer R ? R extends { chat: { completions: { create: (...a: unknown[]) => Promise<infer S> } } } ? () => Promise<S> : never : never>> | null = null;
+    type ChatChunk = { choices: Array<{ delta?: { content?: string }; finish_reason?: string }>; finish_reason?: string };
+    let handle: Awaited<ReturnType<typeof createAiStream<AsyncIterable<ChatChunk>>>> | null = null;
     try {
-      const p = getOpenAI().chat.completions.create(
-        {
-          model: AI_MODEL,
-          messages: [
-            { role: "system", content: CHAT_SYSTEM_PROMPT },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: params.temperature,
-          max_tokens: params.max_tokens,
-          stream: true,
-        },
-        { timeout: params.timeoutMs, maxRetries: 0, signal: abortController.signal } as unknown as Record<string, unknown>
-      );
-      const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("AI_CREATE_TIMEOUT")), params.timeoutMs + 3000));
-      const s = await Promise.race([p, timeoutPromise]);
-      stream = s as unknown as typeof stream;
+      // Centralized pre-stream setup: client-abort forwarding + create
+      // timeout + ONE safe retry (pre-stream only — see lib/ai.ts).
+      handle = await createAiStream<AsyncIterable<ChatChunk>>({
+        create: (signal) =>
+          getOpenAI().chat.completions.create(
+            {
+              model: AI_MODEL,
+              messages: [
+                { role: "system", content: CHAT_SYSTEM_PROMPT },
+                { role: "user", content: userPrompt },
+              ],
+              temperature: params.temperature,
+              max_tokens: params.max_tokens,
+              stream: true,
+            },
+            { timeout: params.timeoutMs, maxRetries: 0, signal } as unknown as Record<string, unknown>
+          ) as unknown as Promise<AsyncIterable<ChatChunk>>,
+        requestSignal: request.signal,
+        timeoutMs: params.timeoutMs,
+        onRetry: (err, attempt) => logObs(obs, "ai_retry", { attempt }),
+      });
     } catch (err) {
-      clearTimeout(timeoutId);
-      if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+      handle?.detach();
+      await recordBreakerFailure(supabase, "chat");
       console.error("[chat] promptVersion", PROMPT_VERSION, err);
-      return NextResponse.json({ error: "AI ไม่ตอบสนอง กรุณาลองใหม่" }, { status: 502 });
+      endObs(obs, "ai_error", { status: 502, reason: "ai_create_failed" });
+      return NextResponse.json({ error: "AI ไม่ตอบสนอง กรุณาลองใหม่" }, { status: 502, headers: obsHeaders(obs) });
     }
 
-    if (!stream) {
-      clearTimeout(timeoutId);
-      if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
-      return NextResponse.json({ error: "AI unavailable" }, { status: 502 });
+    if (!handle) {
+      await recordBreakerFailure(supabase, "chat");
+      endObs(obs, "ai_error", { status: 502, reason: "no_stream" });
+      return NextResponse.json({ error: "AI unavailable" }, { status: 502, headers: obsHeaders(obs) });
     }
+    const stream = handle.stream;
 
     const encoder = new TextEncoder();
     let fullText = "";
     let truncated = false;
-    let firstTokenTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+    const clearFirstTokenGuard = armFirstTokenGuard(() => {
       try {
-        abortController.abort();
+        handle?.abort();
       } catch {}
     }, params.firstTokenMs);
 
@@ -194,16 +218,13 @@ export async function POST(request: Request) {
           if (toolWidgets.length > 0) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ widgets: toolWidgets })}\n\n`));
           }
-          for await (const chunk of stream as unknown as AsyncIterable<{ choices: Array<{ delta?: { content?: string }; finish_reason?: string }>; finish_reason?: string }>) {
+          for await (const chunk of stream) {
             const c = chunk as { choices: Array<{ delta?: { content?: string }; finish_reason?: string }>; finish_reason?: string };
             const content = c.choices[0]?.delta?.content || "";
             const finishReason = (c.choices[0] as { finish_reason?: string })?.finish_reason || c.finish_reason;
             if (finishReason === "length") truncated = true;
             if (content) {
-              if (firstTokenTimeout) {
-                clearTimeout(firstTokenTimeout);
-                firstTokenTimeout = null;
-              }
+              clearFirstTokenGuard();
               if (fullText.length < 6000) {
                 fullText += content.slice(0, 6000 - fullText.length);
                 if (fullText.length >= 6000) truncated = true;
@@ -213,12 +234,8 @@ export async function POST(request: Request) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
             }
           }
-          if (firstTokenTimeout) {
-            clearTimeout(firstTokenTimeout);
-            firstTokenTimeout = null;
-          }
-          clearTimeout(timeoutId);
-          if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+          clearFirstTokenGuard();
+          handle?.detach();
           if (truncated) {
             try {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ warning: "truncated" })}\n\n`));
@@ -237,12 +254,14 @@ export async function POST(request: Request) {
             } catch {}
           }
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+          endObs(obs, "ok", { status: 200, chars: fullText.length, truncated });
           controller.close();
         } catch (err) {
-          if (firstTokenTimeout) clearTimeout(firstTokenTimeout);
-          clearTimeout(timeoutId);
-          if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+          clearFirstTokenGuard();
+          handle?.detach();
           console.error("[chat] stream failed", err);
+          await recordBreakerFailure(supabase, "chat");
+          endObs(obs, "ai_error", { status: 502, reason: "stream_failed" });
           try {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "สตรีมขัดข้อง กรุณาลองใหม่" })}\n\n`));
           } catch {}
@@ -253,11 +272,10 @@ export async function POST(request: Request) {
       },
       cancel() {
         try {
-          abortController.abort();
+          handle?.abort();
         } catch {}
-        if (firstTokenTimeout) clearTimeout(firstTokenTimeout);
-        clearTimeout(timeoutId);
-        if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+        clearFirstTokenGuard();
+        handle?.detach();
       },
     });
 
@@ -268,9 +286,11 @@ export async function POST(request: Request) {
         Connection: "keep-alive",
         "X-Accel-Buffering": "no",
         "X-Prompt-Version": PROMPT_VERSION,
+        "x-request-id": obs.requestId,
       },
     });
   } catch (e: unknown) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed" }, { status: 500 });
+    endObs(obs, "db_error", { status: 500, reason: "unhandled" });
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed" }, { status: 500, headers: obsHeaders(obs) });
   }
 }

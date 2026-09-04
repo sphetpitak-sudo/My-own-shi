@@ -4,11 +4,12 @@ import { getOpenAI, AI_MODEL, AI_PARAMS, getCachedFortune, setCachedFortune } fr
 import { ZODIAC_SYSTEM_PROMPT, buildZodiacUserPrompt } from "@/lib/prompts";
 import { ZODIAC_SIGNS } from "@/lib/astrology/types";
 import { buildZodiacFortune, fortuneToProse, isValidBirthDate } from "@/lib/zodiac";
+import { startObs, setObsUser, endObs, obsHeaders, type ObsContext } from "@/lib/observability";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-function streamText(text: string) {
+function streamText(text: string, obs?: ObsContext) {
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
     start(controller) {
@@ -23,44 +24,53 @@ function streamText(text: string) {
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
+      ...(obs ? { "x-request-id": obs.requestId } : {}),
     },
   });
 }
 
 export async function POST(request: Request) {
+  const obs = startObs("zodiac", request);
   try {
     const rawLen = request.headers.get("content-length");
     if (rawLen && parseInt(rawLen, 10) > 4000) {
-      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+      endObs(obs, "validation_error", { status: 413, reason: "payload_too_large" });
+      return NextResponse.json({ error: "Payload too large" }, { status: 413, headers: obsHeaders(obs) });
     }
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_json" });
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400, headers: obsHeaders(obs) });
     }
 
     const { birthDate } = body as { birthDate?: string };
     if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-      return NextResponse.json({ error: "Invalid birth date" }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_birth_date" });
+      return NextResponse.json({ error: "Invalid birth date" }, { status: 400, headers: obsHeaders(obs) });
     }
     const [y, m, d] = birthDate.split("-").map(Number);
     if (!isValidBirthDate(y!, m!, d!)) {
-      return NextResponse.json({ error: "Invalid birth date" }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_birth_date" });
+      return NextResponse.json({ error: "Invalid birth date" }, { status: 400, headers: obsHeaders(obs) });
     }
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      endObs(obs, "unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
     }
+    setObsUser(obs, user.id);
 
     const today = new Date().toISOString().slice(0, 10);
     const cacheKey = `zodiac:${user.id}:${birthDate}:${today}`;
 
     const cached = getCachedFortune(cacheKey, 24 * 3600_000);
     if (cached && typeof cached === "string") {
-      return streamText(cached);
+      endObs(obs, "ok", { status: 200, cached: true });
+      return streamText(cached, obs);
     }
 
     // Points check — zodiac uses 5 points (daily/chat free, rest use points)
@@ -79,23 +89,27 @@ export async function POST(request: Request) {
     } catch (e) { spendErr = e; }
     if (spendErr) {
       console.error("[zodiac] spend failed", spendErr);
-      return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
+      endObs(obs, "db_error", { status: 500, reason: "spend_failed" });
+      return NextResponse.json({ error: "Failed to process points" }, { status: 500, headers: obsHeaders(obs) });
     }
     if ((charged as number) === 0 || charged == null) {
       const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).maybeSingle() as { data: { points:number } | null };
-      return NextResponse.json({ error: "Not enough points", needed: 5, current: profile?.points ?? 0 }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "not_enough_points", needed: 5, current: profile?.points ?? 0 });
+      return NextResponse.json({ error: "Not enough points", needed: 5, current: profile?.points ?? 0 }, { status: 400, headers: obsHeaders(obs) });
     }
 
     const { data: zodiacOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "zodiac", p_limit: 10, p_window_seconds: 3600 });
     if (zodiacOk === false) {
       try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: 5 }); } catch {}
-      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+      endObs(obs, "rate_limited", { status: 429, refunded: 5 });
+      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429, headers: obsHeaders(obs) });
     }
 
     const fallback = buildZodiacFortune(birthDate, today);
     const sign = ZODIAC_SIGNS.find((s) => s.id === fallback.signId)!;
 
     let text = fortuneToProse(fallback);
+    let source: "ai" | "fallback" = "fallback";
     try {
       const userPrompt = buildZodiacUserPrompt({
         birthDate,
@@ -140,6 +154,7 @@ export async function POST(request: Request) {
         const raw = (completion as unknown as { choices: Array<{ message?: { content?: string } }> }).choices[0]?.message?.content?.trim() || "";
         if (raw.length > 40) {
           text = raw;
+          source = "ai";
         }
       }
     } catch {
@@ -147,9 +162,15 @@ export async function POST(request: Request) {
     }
 
     setCachedFortune(cacheKey, text);
-    return streamText(text);
+    if (source === "ai") {
+      endObs(obs, "ok", { status: 200, cost: 5 });
+    } else {
+      endObs(obs, "fallback", { status: 200, reason: "ai_failed_or_empty", cost: 5 });
+    }
+    return streamText(text, obs);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to generate zodiac fortune";
-    return NextResponse.json({ error: message }, { status: 500 });
+    endObs(obs, "db_error", { status: 500, reason: "unhandled" });
+    return NextResponse.json({ error: message }, { status: 500, headers: obsHeaders(obs) });
   }
 }

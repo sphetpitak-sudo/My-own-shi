@@ -959,5 +959,180 @@ DROP TRIGGER IF EXISTS trg_chat_message_timestamp ON chat_messages;
 CREATE TRIGGER trg_chat_message_timestamp AFTER INSERT ON chat_messages FOR EACH ROW EXECUTE FUNCTION update_chat_conversation_timestamp();
 
 -- ============================================
+-- 24. AI CIRCUIT BREAKER (Phase 1.3) — shared store, NOT in-memory
+-- In-memory counters reset on cold start / split across serverless
+-- instances, so breaker state lives here. Same advisory-lock pattern
+-- as check_rate_limit. T thresholds default 10 fails/60s, cooldown 30s
+-- (tune from Phase 0 dashboard: refund rate / p95 / error-rate).
+-- ============================================
+CREATE TABLE IF NOT EXISTS ai_circuit_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  endpoint TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE ai_circuit_events ENABLE ROW LEVEL SECURITY;
+-- No client policies: written/read only via SECURITY DEFINER RPCs below.
+CREATE INDEX IF NOT EXISTS idx_ai_circuit_endpoint_created ON ai_circuit_events(endpoint, created_at DESC);
+
+CREATE OR REPLACE FUNCTION record_ai_failure(p_endpoint TEXT)
+RETURNS VOID AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+  INSERT INTO ai_circuit_events (endpoint) VALUES (p_endpoint);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION check_ai_breaker(
+  p_endpoint TEXT,
+  p_fail_threshold INTEGER DEFAULT 10,
+  p_window_seconds INTEGER DEFAULT 60,
+  p_cooldown_seconds INTEGER DEFAULT 30
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_count INTEGER;
+  v_last TIMESTAMPTZ;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN false; -- fail-open for anon
+  END IF;
+  PERFORM pg_advisory_xact_lock(hashtext('ai_breaker:' || p_endpoint));
+  SELECT COUNT(*), MAX(created_at) INTO v_count, v_last
+  FROM ai_circuit_events
+  WHERE endpoint = p_endpoint
+    AND created_at >= now() - (p_window_seconds || ' seconds')::interval;
+  IF v_count IS NULL OR v_count < p_fail_threshold THEN
+    RETURN false;
+  END IF;
+  -- Trip only if failures are recent (within cooldown of now).
+  IF v_last IS NOT NULL AND v_last >= now() - (p_cooldown_seconds || ' seconds')::interval THEN
+    RETURN true;
+  END IF;
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION record_ai_failure(TEXT) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION record_ai_failure(TEXT) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION check_ai_breaker(TEXT,INTEGER,INTEGER,INTEGER) FROM public, anon;
+  GRANT EXECUTE ON FUNCTION check_ai_breaker(TEXT,INTEGER,INTEGER,INTEGER) TO authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+
+-- ============================================
+-- 25. PHASE 2 SWEEPER (orphan __generating__ rows) + LEDGER RECONCILE
+-- The sweeper refunds+deletes rows whose invocation provably died
+-- (older than route maxDuration + buffer; same TTLs as
+-- v_orphan_expired in observability_metrics.sql).
+-- Safety properties:
+--   * service_role ONLY (GRANTs below + in-function role check).
+--   * FOR UPDATE SKIP LOCKED: never fights the Phase 1.1 CAS guard —
+--     rows locked by a live retry worker are skipped, not refunded.
+--   * Same ledger description as refund_by_reading ('Refund: reading <id>')
+--     + NOT EXISTS guard: a row refunded by EITHER path is never
+--     refunded twice, in either order.
+--   * Report-only reconcile: lists profile-vs-ledger drift, never auto-fixes.
+-- ============================================
+CREATE OR REPLACE FUNCTION sweep_expired_generating(p_limit INTEGER DEFAULT 50)
+RETURNS JSONB AS $$
+DECLARE
+  v_row RECORD;
+  v_desc TEXT;
+  v_n_readings INTEGER := 0;
+  v_n_followups INTEGER := 0;
+  v_points INTEGER := 0;
+BEGIN
+  IF COALESCE(auth.jwt()->>'role', '') <> 'service_role' THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  FOR v_row IN
+    SELECT id, user_id, points_spent FROM readings
+    WHERE interpretation = '__generating__'
+      AND created_at < now() - interval '180 seconds'
+    ORDER BY created_at ASC
+    LIMIT GREATEST(1, LEAST(p_limit, 500))
+    FOR UPDATE SKIP LOCKED
+  LOOP
+    v_desc := 'Refund: reading ' || v_row.id::text;
+    IF v_row.points_spent > 0 THEN
+      PERFORM 1 FROM point_transactions
+      WHERE user_id = v_row.user_id AND type = 'refund' AND description = v_desc;
+      IF NOT FOUND THEN
+        UPDATE profiles
+        SET points = LEAST(1000000, points + v_row.points_spent)
+        WHERE id = v_row.user_id;
+        INSERT INTO point_transactions (user_id, amount, type, description)
+        VALUES (v_row.user_id, v_row.points_spent, 'refund', v_desc);
+        v_points := v_points + v_row.points_spent;
+      END IF;
+    END IF;
+    DELETE FROM readings WHERE id = v_row.id;
+    v_n_readings := v_n_readings + 1;
+  END LOOP;
+
+  FOR v_row IN
+    SELECT id FROM reading_followups
+    WHERE answer = '__generating__'
+      AND created_at < now() - interval '120 seconds'
+    ORDER BY created_at ASC
+    LIMIT GREATEST(1, LEAST(p_limit, 500))
+    FOR UPDATE SKIP LOCKED
+  LOOP
+    DELETE FROM reading_followups WHERE id = v_row.id;
+    v_n_followups := v_n_followups + 1;
+  END LOOP;
+
+  RETURN jsonb_build_object(
+    'readings_swept', v_n_readings,
+    'followups_swept', v_n_followups,
+    'points_refunded', v_points
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION reconcile_ledger_mismatches(p_limit INTEGER DEFAULT 20)
+RETURNS JSONB AS $$
+DECLARE
+  v_checked INTEGER;
+  v_sample JSONB;
+BEGIN
+  IF COALESCE(auth.jwt()->>'role', '') <> 'service_role' THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+  SELECT COUNT(*) INTO v_checked FROM profiles;
+  SELECT COALESCE(jsonb_agg(s ORDER BY s.user_id), '[]'::jsonb) INTO v_sample
+  FROM (
+    SELECT p.id AS user_id, p.points AS profile_points,
+      COALESCE(SUM(t.amount), 0)::INTEGER AS ledger_total
+    FROM profiles p
+    LEFT JOIN point_transactions t ON t.user_id = p.id
+    GROUP BY p.id
+    HAVING p.points <> COALESCE(SUM(t.amount), 0)
+    ORDER BY p.id
+    LIMIT GREATEST(1, LEAST(p_limit, 100))
+  ) s;
+  RETURN jsonb_build_object(
+    'checked_users', v_checked,
+    'mismatch_count', jsonb_array_length(v_sample),
+    'sample', v_sample
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION sweep_expired_generating(INTEGER) FROM public, anon, authenticated;
+  GRANT EXECUTE ON FUNCTION sweep_expired_generating(INTEGER) TO service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION reconcile_ledger_mismatches(INTEGER) FROM public, anon, authenticated;
+  GRANT EXECUTE ON FUNCTION reconcile_ledger_mismatches(INTEGER) TO service_role;
+EXCEPTION WHEN undefined_function THEN NULL; END $$;
+
+-- ============================================
 -- DONE
 -- ============================================

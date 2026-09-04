@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { startObs, setObsUser, endObs, obsHeaders } from "@/lib/observability";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const obs = startObs("daily-bonus", request);
   try {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      endObs(obs, "unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
     }
+    setObsUser(obs, user.id);
 
     // Get bonus amount from admin settings
     const { data: settingsRow } = await supabase
@@ -52,16 +56,20 @@ export async function POST() {
     });
 
     if (rpcErr) {
-      return NextResponse.json({ error: rpcErr.message }, { status: 500 });
+      endObs(obs, "db_error", { status: 500, reason: "claim_failed" });
+      return NextResponse.json({ error: rpcErr.message }, { status: 500, headers: obsHeaders(obs) });
     }
 
     if (!claimed) {
-      return NextResponse.json({ error: "Already claimed today" }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "already_claimed" });
+      return NextResponse.json({ error: "Already claimed today" }, { status: 400, headers: obsHeaders(obs) });
     }
 
-    return NextResponse.json({ success: true, amount: bonusAmount, base: baseBonus, tier: tierBonus, streak: newStreak });
+    endObs(obs, "ok", { status: 200, amount: bonusAmount, streak: newStreak });
+    return NextResponse.json({ success: true, amount: bonusAmount, base: baseBonus, tier: tierBonus, streak: newStreak }, { headers: obsHeaders(obs) });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to claim daily bonus";
-    return NextResponse.json({ error: message }, { status: 500 });
+    endObs(obs, "db_error", { status: 500, reason: "unhandled" });
+    return NextResponse.json({ error: message }, { status: 500, headers: obsHeaders(obs) });
   }
 }

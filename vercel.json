@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sweep-generating",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-ledger",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

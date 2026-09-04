@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
-import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel } from "@/lib/ai";
+import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel, createAiStream, armFirstTokenGuard, isBreakerOpen, recordBreakerFailure } from "@/lib/ai";
 import { FOLLOWUP_SYSTEM_PROMPT, buildFollowupUserPrompt } from "@/lib/prompts";
+import { startObs, setObsUser, endObs, logObs, obsHeaders } from "@/lib/observability";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -14,16 +15,19 @@ function isUUID(v: string) {
 }
 
 export async function POST(request: Request) {
+  const obs = startObs("followup", request);
   try {
     const rawLen = request.headers.get("content-length");
     if (rawLen && parseInt(rawLen, 10) > 8000) {
-      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+      endObs(obs, "validation_error", { status: 413, reason: "payload_too_large" });
+      return NextResponse.json({ error: "Payload too large" }, { status: 413, headers: obsHeaders(obs) });
     }
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_json" });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: obsHeaders(obs) });
     }
     // parentInterpretation is intentionally ignored — authoritative value is fetched from DB
     const { question, spreadType, cards, followQuestion, readingId } = body as {
@@ -37,20 +41,29 @@ export async function POST(request: Request) {
 
     // Validate followQuestion strictly — reject, do not truncate
     if (typeof followQuestion !== "string" || !followQuestion.trim()) {
-      return NextResponse.json({ error: "Missing followQuestion" }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "missing_follow_question" });
+      return NextResponse.json({ error: "Missing followQuestion" }, { status: 400, headers: obsHeaders(obs) });
     }
     const trimmedQ = followQuestion.trim();
     if (trimmedQ.length > LIMITS.followQuestionMax) {
-      return NextResponse.json({ error: `Question too long (max ${LIMITS.followQuestionMax})` }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "question_too_long" });
+      return NextResponse.json({ error: `Question too long (max ${LIMITS.followQuestionMax})` }, { status: 400, headers: obsHeaders(obs) });
     }
 
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      endObs(obs, "unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
+    }
+    setObsUser(obs, user.id);
 
-    if (!readingId || !isUUID(readingId)) return NextResponse.json({ error: "Missing or invalid readingId" }, { status: 400 });
+    if (!readingId || !isUUID(readingId)) {
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_reading_id" });
+      return NextResponse.json({ error: "Missing or invalid readingId" }, { status: 400, headers: obsHeaders(obs) });
+    }
     const effectiveReadingId = readingId;
 
     // Verify ownership and fetch authoritative reading (never trust client-supplied interpretation/cards)
@@ -59,11 +72,18 @@ export async function POST(request: Request) {
       .select("id, user_id, cards, spread_type, question, interpretation")
       .eq("id", readingId)
       .single();
-    if (readErr || !reading) return NextResponse.json({ error: "Reading not found" }, { status: 404 });
-    if (reading.user_id !== user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (readErr || !reading) {
+      endObs(obs, "validation_error", { status: 404, reason: "reading_not_found", readingId });
+      return NextResponse.json({ error: "Reading not found" }, { status: 404, headers: obsHeaders(obs) });
+    }
+    if (reading.user_id !== user.id) {
+      endObs(obs, "unauthorized", { status: 403, reason: "forbidden", readingId });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: obsHeaders(obs) });
+    }
     // Do not allow followup on generating placeholder
     if ((reading.interpretation as string) === "__generating__") {
-      return NextResponse.json({ error: "Reading not ready" }, { status: 409 });
+      endObs(obs, "validation_error", { status: 409, reason: "reading_generating", readingId });
+      return NextResponse.json({ error: "Reading not ready" }, { status: 409, headers: obsHeaders(obs) });
     }
 
     // Verify client cards match stored reading if provided (tamper detection)
@@ -101,7 +121,10 @@ export async function POST(request: Request) {
 
     // Atomic rate limit
     const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "followup", p_limit: 5, p_window_seconds: 60 });
-    if (rateOk === false) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    if (rateOk === false) {
+      endObs(obs, "rate_limited", { status: 429, readingId });
+      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: obsHeaders(obs) });
+    }
 
     // Reserve slot before AI (prevents parallel burst)
     const { data: pending, error: pendingErr } = await supabase
@@ -134,68 +157,102 @@ export async function POST(request: Request) {
       followQuestion: trimmedQ,
     });
 
-    // Forward client disconnect to AI
-    const abortController = new AbortController();
-    const onClientAbort = () => {
-      try {
-        abortController.abort();
-      } catch {}
-    };
-    if (request.signal) {
-      if (request.signal.aborted) abortController.abort();
-      else request.signal.addEventListener("abort", onClientAbort, { once: true });
-    }
-    const timeoutId = setTimeout(() => {
-      try {
-        abortController.abort();
-      } catch {}
-    }, AI_PARAMS.followup.timeoutMs);
+    const params = AI_PARAMS.followup;
 
-    const stream = await getOpenAI()
-      .chat.completions.create(
-        {
-          model: AI_MODEL,
-          messages: [
-            { role: "system", content: FOLLOWUP_SYSTEM_PROMPT },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: AI_PARAMS.followup.temperature,
-          max_tokens: AI_PARAMS.followup.max_tokens,
-          stream: true,
-        },
-        { maxRetries: 0, signal: abortController.signal } as unknown as Record<string, unknown>
-      )
-      .catch(() => null);
-
-    if (!stream) {
-      clearTimeout(timeoutId);
-      if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+    // Circuit breaker (shared store): skip the AI call when Typhoon is
+    // failing globally instead of adding retry load. Fail-open on RPC error.
+    // Free endpoint — no spend/refund, but clean up the reserved slot.
+    if (await isBreakerOpen(supabase, "followup")) {
       try {
         await supabase.from("reading_followups").delete().eq("id", pendingId).eq("user_id", user.id);
       } catch {}
-      return NextResponse.json({ error: "AI unavailable" }, { status: 502 });
+      endObs(obs, "breaker_open", { status: 503, reason: "ai_breaker_open", readingId, pendingId });
+      return NextResponse.json({ error: "AI กำลังหนาแน่น กรุณาลองใหม่ในครู่" }, { status: 503, headers: obsHeaders(obs) });
     }
+
+    type FollowupChunk = { choices: Array<{ delta?: { content?: string } }> };
+    let handle: Awaited<ReturnType<typeof createAiStream<AsyncIterable<FollowupChunk>>>> | null = null;
+    try {
+      // Centralized pre-stream setup: client-abort forwarding + create
+      // timeout + ONE safe retry (pre-stream only — see lib/ai.ts).
+      handle = await createAiStream<AsyncIterable<FollowupChunk>>({
+        create: (signal) =>
+          getOpenAI().chat.completions.create(
+            {
+              model: AI_MODEL,
+              messages: [
+                { role: "system", content: FOLLOWUP_SYSTEM_PROMPT },
+                { role: "user", content: userPrompt },
+              ],
+              temperature: params.temperature,
+              max_tokens: params.max_tokens,
+              stream: true,
+            },
+            { timeout: params.timeoutMs, maxRetries: 0, signal } as unknown as Record<string, unknown>
+          ) as unknown as Promise<AsyncIterable<FollowupChunk>>,
+        requestSignal: request.signal,
+        timeoutMs: params.timeoutMs,
+        onRetry: (err, attempt) => logObs(obs, "ai_retry", { attempt }),
+      });
+    } catch (err: unknown) {
+      handle?.detach();
+      await recordBreakerFailure(supabase, "followup");
+      try {
+        await supabase.from("reading_followups").delete().eq("id", pendingId).eq("user_id", user.id);
+      } catch {}
+      console.error("AI create failed", err);
+      endObs(obs, "ai_error", { status: 502, reason: "ai_create_failed", readingId, pendingId });
+      return NextResponse.json({ error: "AI unavailable" }, { status: 502, headers: obsHeaders(obs) });
+    }
+
+    if (!handle) {
+      await recordBreakerFailure(supabase, "followup");
+      try {
+        await supabase.from("reading_followups").delete().eq("id", pendingId).eq("user_id", user.id);
+      } catch {}
+      endObs(obs, "ai_error", { status: 502, reason: "no_stream", readingId, pendingId });
+      return NextResponse.json({ error: "AI unavailable" }, { status: 502, headers: obsHeaders(obs) });
+    }
+    const stream = handle.stream;
 
     const encoder = new TextEncoder();
     let fullAnswer = "";
     let deleted = false;
+    const clearFirstTokenGuard = armFirstTokenGuard(() => {
+      try {
+        handle?.abort();
+      } catch {}
+    }, params.firstTokenMs);
 
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream as unknown as AsyncIterable<{ choices: Array<{ delta?: { content?: string } }> }>) {
+          for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
             if (content) {
+              clearFirstTokenGuard();
               if (fullAnswer.length < 2000) fullAnswer += content.slice(0, 2000 - fullAnswer.length);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
             }
           }
-          clearTimeout(timeoutId);
-          if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+          clearFirstTokenGuard();
+          handle?.detach();
 
-          // Persist BEFORE sending [DONE]
+          // Persist BEFORE sending [DONE] — CAS guard (mirror reading/route.ts):
+          // only overwrite while the row is still ours (__generating__). If the
+          // sweeper already deleted it, the update matches 0 rows and we tell
+          // the client to retry instead of sending a dead [DONE].
+          let casWon = false;
           try {
-            await supabase.from("reading_followups").update({ answer: fullAnswer.slice(0, 2000) }).eq("id", pendingId).eq("user_id", user.id);
+            const persisted = await supabase
+              .from("reading_followups")
+              .update({ answer: fullAnswer.slice(0, 2000) })
+              .eq("id", pendingId)
+              .eq("user_id", user.id)
+              .eq("answer", "__generating__")
+              .select("id");
+            const rows = (persisted as unknown as { data: Array<{ id: string }> | null })?.data;
+            casWon = Array.isArray(rows) && rows.length > 0;
           } catch (e) {
             console.error("Failed to persist followup", e);
             try {
@@ -203,11 +260,26 @@ export async function POST(request: Request) {
             } catch {}
           }
 
+          if (!casWon && fullAnswer.trim()) {
+            // Sweeper won the race: reservation already cleaned up.
+            endObs(obs, "refunded", { status: 200, reason: "cas_lost_to_sweeper", readingId, pendingId });
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "หมดเวลา กรุณาลองใหม่" })}\n\n`));
+            } catch {}
+            try {
+              controller.error(new Error("CAS lost to sweeper"));
+            } catch {}
+            return;
+          }
+
+          endObs(obs, "ok", { status: 200, readingId, pendingId, chars: fullAnswer.length });
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
-        } catch {
-          clearTimeout(timeoutId);
-          if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+        } catch (err) {
+          clearFirstTokenGuard();
+          handle?.detach();
+          console.error("Streaming failed", err);
+          await recordBreakerFailure(supabase, "followup");
           if (!deleted) {
             deleted = true;
             try {
@@ -221,10 +293,10 @@ export async function POST(request: Request) {
       },
       cancel() {
         try {
-          abortController.abort();
+          handle?.abort();
         } catch {}
-        clearTimeout(timeoutId);
-        if (request.signal) request.signal.removeEventListener("abort", onClientAbort);
+        clearFirstTokenGuard();
+        handle?.detach();
         if (!deleted) {
           deleted = true;
           supabase.from("reading_followups").delete().eq("id", pendingId).eq("user_id", user.id).then(() => {}, () => {});
@@ -232,9 +304,10 @@ export async function POST(request: Request) {
       },
     });
     return new Response(readable, {
-      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive", "X-Accel-Buffering": "no" },
+      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive", "X-Accel-Buffering": "no", "x-request-id": obs.requestId },
     });
   } catch (e: unknown) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed" }, { status: 500 });
+    endObs(obs, "db_error", { status: 500, reason: "unhandled" });
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed" }, { status: 500, headers: obsHeaders(obs) });
   }
 }

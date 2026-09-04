@@ -126,6 +126,199 @@ export function colorToHex(name: string, fallbackHex = "#d4af37"): { hex: string
 }
 
 // ============================================
+// Phase 1 — AI resilience: retry + centralized stream creation + breaker
+// RULE: retry is ONLY allowed pre-stream (before the first SSE enqueue).
+// Retrying after streaming started risks double-spend / duplicate rows.
+// ============================================
+
+export const RETRY_DEFAULTS = {
+  maxAttempts: 2, // 1 initial + 1 retry
+  baseDelayMs: 1000, // linear backoff: 1s before attempt 2
+} as const;
+
+/** True for transient pre-stream failures worth one retry. */
+export function isRetryableAiError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  if (err.message === "AI_CREATE_TIMEOUT") return true;
+  if (err.name === "AbortError") return true;
+  const status = (err as { status?: unknown }).status;
+  if (status === 502 || status === 503 || status === 429) return true;
+  const code = (err as { code?: unknown }).code;
+  if (code === "ECONNRESET" || code === "ETIMEDOUT" || code === "ENOTFOUND") return true;
+  return false;
+}
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Run an async AI-create callback with one safe retry.
+ * The callback MUST be pre-stream (no side effects visible to the user).
+ */
+export async function withAiRetry<T>(
+  fn: (attempt: number) => Promise<T>,
+  opts?: {
+    maxAttempts?: number;
+    baseDelayMs?: number;
+    shouldRetry?: (err: unknown, attempt: number) => boolean;
+    onRetry?: (err: unknown, attempt: number) => void;
+  }
+): Promise<T> {
+  const maxAttempts = opts?.maxAttempts ?? RETRY_DEFAULTS.maxAttempts;
+  const baseDelayMs = opts?.baseDelayMs ?? RETRY_DEFAULTS.baseDelayMs;
+  const shouldRetry = opts?.shouldRetry ?? isRetryableAiError;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= Math.max(1, maxAttempts); attempt++) {
+    try {
+      return await fn(attempt);
+    } catch (err) {
+      lastErr = err;
+      if (attempt >= Math.max(1, maxAttempts) || !shouldRetry(err, attempt)) throw err;
+      try {
+        opts?.onRetry?.(err, attempt);
+      } catch {}
+      await sleep(baseDelayMs * attempt);
+    }
+  }
+  throw lastErr;
+}
+
+export interface AiStreamHandle<T> {
+  stream: T;
+  /** Abort the AI call and clear all timers/listeners. */
+  abort: () => void;
+  /** Remove client-abort listener + clear create-timeout (call on every exit). */
+  detach: () => void;
+}
+
+/**
+ * Centralized pre-stream setup (replaces per-route copy-paste):
+ * client-disconnect forwarding + create-timeout abort + safe retry.
+ * First-token watchdog stays with stream consumption (see armFirstTokenGuard).
+ */
+export async function createAiStream<T>(opts: {
+  create: (signal: AbortSignal) => Promise<T>;
+  requestSignal?: AbortSignal | null;
+  timeoutMs: number;
+  onRetry?: (err: unknown, attempt: number) => void;
+}): Promise<AiStreamHandle<T>> {
+  const abortController = new AbortController();
+  const onClientAbort = () => {
+    try {
+      abortController.abort();
+    } catch {}
+  };
+  if (opts.requestSignal) {
+    if (opts.requestSignal.aborted) abortController.abort();
+    else opts.requestSignal.addEventListener("abort", onClientAbort, { once: true });
+  }
+  const timeoutId = setTimeout(() => {
+    try {
+      abortController.abort();
+    } catch {}
+  }, opts.timeoutMs);
+
+  const detach = () => {
+    clearTimeout(timeoutId);
+    try {
+      opts.requestSignal?.removeEventListener("abort", onClientAbort);
+    } catch {}
+  };
+  const abort = () => {
+    detach();
+    try {
+      abortController.abort();
+    } catch {}
+  };
+
+  try {
+    const stream = await withAiRetry(
+      async () => {
+        // Safety net: if the SDK ignores AbortSignal, force a timeout rejection.
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("AI_CREATE_TIMEOUT")), opts.timeoutMs + 3000)
+        );
+        return (await Promise.race([
+          opts.create(abortController.signal),
+          timeoutPromise,
+        ])) as T;
+      },
+      { onRetry: opts.onRetry }
+    );
+    return { stream, abort, detach };
+  } catch (err) {
+    detach();
+    throw err;
+  }
+}
+
+/** First-token watchdog for stream consumption; call clearFirstTokenGuard on first chunk. */
+export function armFirstTokenGuard(onTimeout: () => void, ms: number): () => void {
+  let fired = false;
+  const id = setTimeout(() => {
+    fired = true;
+    try {
+      onTimeout();
+    } catch {}
+  }, ms);
+  return () => {
+    if (!fired) clearTimeout(id);
+  };
+}
+
+// ============================================
+// Phase 1.3 — Circuit breaker (shared store via RPC, NOT in-memory)
+// In-memory counters reset on cold start / split across instances, so the
+// breaker state lives in Postgres (ai_circuit_events + check_ai_breaker).
+// Fail-open: if the RPC is missing/fails, the breaker reads CLOSED so a
+// telemetry outage never blocks readings.
+// ============================================
+
+export const BREAKER_DEFAULTS = {
+  failThreshold: 10, // trip after N failures...
+  windowSeconds: 60, // ...within this window...
+  cooldownSeconds: 30, // ...stay open this long after the last failure (tune from Phase 0 dashboard)
+} as const;
+
+export interface BreakerStore {
+  // PromiseLike (not Promise): Supabase rpc() returns a thenable builder.
+  rpc: (
+    fn: string,
+    args?: Record<string, unknown>
+  ) => PromiseLike<{ data: unknown; error: unknown }>;
+}
+
+export async function isBreakerOpen(
+  store: BreakerStore,
+  endpoint: string,
+  overrides?: Partial<typeof BREAKER_DEFAULTS>
+): Promise<boolean> {
+  try {
+    const { data, error } = await store.rpc("check_ai_breaker", {
+      p_endpoint: endpoint,
+      p_fail_threshold: overrides?.failThreshold ?? BREAKER_DEFAULTS.failThreshold,
+      p_window_seconds: overrides?.windowSeconds ?? BREAKER_DEFAULTS.windowSeconds,
+      p_cooldown_seconds: overrides?.cooldownSeconds ?? BREAKER_DEFAULTS.cooldownSeconds,
+    });
+    if (error) return false;
+    return data === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Best-effort failure recording. Never throws. */
+export async function recordBreakerFailure(
+  store: BreakerStore,
+  endpoint: string
+): Promise<void> {
+  try {
+    await store.rpc("record_ai_failure", { p_endpoint: endpoint });
+  } catch {}
+}
+
+// ============================================
 // In-memory rate limiting (per process) — fallback only; primary is DB RPC
 // ============================================
 const rateBuckets = new Map<string, number[]>();

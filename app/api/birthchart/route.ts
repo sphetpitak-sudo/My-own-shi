@@ -3,15 +3,21 @@ import { createClient } from "@/lib/supabase/server";
 import { getOpenAI, AI_MODEL, AI_PARAMS } from "@/lib/ai";
 import { BIRTH_CHART_SYSTEM_PROMPT, buildBirthChartUserPrompt } from "@/lib/prompts";
 import { astrologyProvider } from "@/lib/astrology/calculator";
+import { startObs, setObsUser, endObs, obsHeaders } from "@/lib/observability";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const obs = startObs("birthchart", request);
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      endObs(obs, "unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
+    }
+    setObsUser(obs, user.id);
 
     const body = await request.json().catch(() => ({})) as { date?: string; time?: string; place?: string; lat?: number; lon?: number; tzOffsetMinutes?: number };
     const date = (body.date || "").trim();
@@ -21,17 +27,41 @@ export async function POST(request: Request) {
     const lon = typeof body.lon === "number" ? body.lon : undefined;
     const tzOffsetMinutes = typeof body.tzOffsetMinutes === "number" ? body.tzOffsetMinutes : undefined;
 
-    if (!date || !time || !place) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!date || !time || !place) {
+      endObs(obs, "validation_error", { status: 400, reason: "missing_fields" });
+      return NextResponse.json({ error: "Missing fields" }, { status: 400, headers: obsHeaders(obs) });
+    }
     // Validate real date
     const parsed = new Date(`${date}T${time}:00`);
-    if (Number.isNaN(parsed.getTime())) return NextResponse.json({ error: "Invalid date/time" }, { status: 400 });
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
-    if (!/^\d{2}:\d{2}$/.test(time)) return NextResponse.json({ error: "Invalid time" }, { status: 400 });
-    if (place.length > 80) return NextResponse.json({ error: "Place too long" }, { status: 400 });
-    if (lat != null && (lat < -90 || lat > 90)) return NextResponse.json({ error: "Invalid lat" }, { status: 400 });
-    if (lon != null && (lon < -180 || lon > 180)) return NextResponse.json({ error: "Invalid lon" }, { status: 400 });
+    if (Number.isNaN(parsed.getTime())) {
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_datetime" });
+      return NextResponse.json({ error: "Invalid date/time" }, { status: 400, headers: obsHeaders(obs) });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_date" });
+      return NextResponse.json({ error: "Invalid date" }, { status: 400, headers: obsHeaders(obs) });
+    }
+    if (!/^\d{2}:\d{2}$/.test(time)) {
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_time" });
+      return NextResponse.json({ error: "Invalid time" }, { status: 400, headers: obsHeaders(obs) });
+    }
+    if (place.length > 80) {
+      endObs(obs, "validation_error", { status: 400, reason: "place_too_long" });
+      return NextResponse.json({ error: "Place too long" }, { status: 400, headers: obsHeaders(obs) });
+    }
+    if (lat != null && (lat < -90 || lat > 90)) {
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_lat" });
+      return NextResponse.json({ error: "Invalid lat" }, { status: 400, headers: obsHeaders(obs) });
+    }
+    if (lon != null && (lon < -180 || lon > 180)) {
+      endObs(obs, "validation_error", { status: 400, reason: "invalid_lon" });
+      return NextResponse.json({ error: "Invalid lon" }, { status: 400, headers: obsHeaders(obs) });
+    }
     // No future dates
-    if (parsed.getTime() > Date.now() + 1000 * 60) return NextResponse.json({ error: "วันเกิดต้องไม่เป็นอนาคต" }, { status: 400 });
+    if (parsed.getTime() > Date.now() + 1000 * 60) {
+      endObs(obs, "validation_error", { status: 400, reason: "future_birthdate" });
+      return NextResponse.json({ error: "วันเกิดต้องไม่เป็นอนาคต" }, { status: 400, headers: obsHeaders(obs) });
+    }
 
     // Points check — birthchart uses 25 points (ทุกฟีเจอร์ต้องใช้แต้ม ยกเว้น daily/chat)
     let charged: number | null = null;
@@ -52,13 +82,15 @@ export async function POST(request: Request) {
     }
     if (spendErr) {
       console.error("[birthchart] spend failed", spendErr);
-      return NextResponse.json({ error: "Failed to process points" }, { status: 500 });
+      endObs(obs, "db_error", { status: 500, reason: "spend_failed" });
+      return NextResponse.json({ error: "Failed to process points" }, { status: 500, headers: obsHeaders(obs) });
     }
     if ((charged as number) === 0 || charged == null) {
       const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).maybeSingle() as { data: { points:number } | null };
       const cur = profile?.points ?? 0;
       // also try direct fallback if profile null (should not happen, but avoid showing 0 incorrectly)
-      return NextResponse.json({ error: "Not enough points", needed: 25, current: cur }, { status: 400 });
+      endObs(obs, "validation_error", { status: 400, reason: "not_enough_points", needed: 25, current: cur });
+      return NextResponse.json({ error: "Not enough points", needed: 25, current: cur }, { status: 400, headers: obsHeaders(obs) });
     }
 
     // Rate limit: 10 birthchart / hour
@@ -66,7 +98,8 @@ export async function POST(request: Request) {
     if (rateOk === false) {
       // refund points if rate limited
       try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: 25 }); } catch {}
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+      endObs(obs, "rate_limited", { status: 429, refunded: 25 });
+      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: obsHeaders(obs) });
     }
 
     // Calculate chart (real astronomy) — pass precise coords if provided
@@ -128,8 +161,14 @@ export async function POST(request: Request) {
       } as unknown as Record<string, unknown>);
     } catch {}
 
-    return NextResponse.json({ chart, interpretation, source });
+    if (source === "ai") {
+      endObs(obs, "ok", { status: 200, cost: 25 });
+    } else {
+      endObs(obs, "fallback", { status: 200, reason: "ai_failed_or_empty", cost: 25 });
+    }
+    return NextResponse.json({ chart, interpretation, source }, { headers: obsHeaders(obs) });
   } catch (e: unknown) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed" }, { status: 500 });
+    endObs(obs, "db_error", { status: 500, reason: "unhandled" });
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed" }, { status: 500, headers: obsHeaders(obs) });
   }
 }

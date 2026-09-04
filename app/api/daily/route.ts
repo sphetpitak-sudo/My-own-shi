@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOpenAI, AI_MODEL, AI_PARAMS, extractJSON, asString, asNumber, colorToHex, getCachedFortune, setCachedFortune } from "@/lib/ai";
 import { DAILY_SYSTEM_PROMPT, buildDailyUserPrompt } from "@/lib/prompts";
 import { pickDailyCard, buildDailyFallback, type DailyFortune } from "@/lib/daily";
+import { startObs, setObsUser, endObs, obsHeaders } from "@/lib/observability";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -33,24 +34,31 @@ function normalize(parsed: Record<string, unknown>, fallback: DailyFortune): Dai
 }
 
 export async function POST(request: Request) {
+  const obs = startObs("daily", request);
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      endObs(obs, "unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
     }
+    setObsUser(obs, user.id);
 
     const today = new Date().toISOString().slice(0, 10);
     const cacheKey = `daily:${user.id}:${today}`;
 
     const cached = getCachedFortune(cacheKey, 24 * 3600_000);
     if (cached) {
-      return NextResponse.json(cached);
+      endObs(obs, "ok", { status: 200, cached: true });
+      return NextResponse.json(cached, { headers: obsHeaders(obs) });
     }
 
     // Atomic DB rate limit only (in-mem is ineffective on serverless)
     const { data: dailyOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "daily", p_limit: 10, p_window_seconds: 3600 });
-    if (dailyOk === false) return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+    if (dailyOk === false) {
+      endObs(obs, "rate_limited", { status: 429 });
+      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429, headers: obsHeaders(obs) });
+    }
 
     const card = pickDailyCard(user.id, today);
     const fallback = buildDailyFallback(user.id, today);
@@ -105,9 +113,15 @@ export async function POST(request: Request) {
     }
 
     setCachedFortune(cacheKey, fortune);
-    return NextResponse.json(fortune);
+    if (fortune.source === "ai") {
+      endObs(obs, "ok", { status: 200 });
+    } else {
+      endObs(obs, "fallback", { status: 200, reason: "ai_failed_or_empty" });
+    }
+    return NextResponse.json(fortune, { headers: obsHeaders(obs) });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to generate daily fortune";
-    return NextResponse.json({ error: message }, { status: 500 });
+    endObs(obs, "db_error", { status: 500, reason: "unhandled" });
+    return NextResponse.json({ error: message }, { status: 500, headers: obsHeaders(obs) });
   }
 }
