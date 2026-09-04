@@ -19,6 +19,9 @@ export function SentryInit() {
     try {
       Sentry.init({
         dsn,
+        // Same-origin tunnel (app/api/sentry-tunnel): host-based ad-blockers
+        // can't block envelopes addressed to our own domain.
+        tunnel: "/api/sentry-tunnel",
         tracesSampleRate: 0.05,
         replaysSessionSampleRate: 0,
         replaysOnErrorSampleRate: 0,

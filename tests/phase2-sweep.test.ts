@@ -101,3 +101,29 @@ describe("reconcile-ledger (report-only)", () => {
     expect(await res.json()).toMatchObject({ checked_users: 100, mismatch_count: 2 });
   });
 });
+
+describe("sentry-tunnel", () => {
+  it("dsnToEnvelopeUrl parses EU + US DSNs, rejects garbage", async () => {
+    const { dsnToEnvelopeUrl } = await import("@/lib/sentry");
+    expect(dsnToEnvelopeUrl("https://abc@o123.ingest.de.sentry.io/456")).toBe(
+      "https://o123.ingest.de.sentry.io/api/456/envelope/"
+    );
+    expect(dsnToEnvelopeUrl("https://abc@o123.ingest.sentry.io/456")).toBe(
+      "https://o123.ingest.sentry.io/api/456/envelope/"
+    );
+    expect(dsnToEnvelopeUrl(undefined)).toBeNull();
+    expect(dsnToEnvelopeUrl("not-a-dsn")).toBeNull();
+  });
+
+  it("503 when SENTRY_DSN is not configured", async () => {
+    const saved = process.env.SENTRY_DSN;
+    delete process.env.SENTRY_DSN;
+    try {
+      const { POST } = await import("@/app/api/sentry-tunnel/route");
+      const res = await POST(new Request("http://localhost/api/sentry-tunnel", { method: "POST" }));
+      expect(res.status).toBe(503);
+    } finally {
+      if (saved !== undefined) process.env.SENTRY_DSN = saved;
+    }
+  });
+});
