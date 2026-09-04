@@ -22,7 +22,9 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
       - name: Reconcile ledger
         run: |
-          curl -sf -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/reconcile-ledger"
+          BASE="${APP_URL%/}"
+          RESP=$(curl -sf -H "Authorization: Bearer $CRON_SECRET" "$BASE/api/cron/reconcile-ledger")
+          echo "$RESP"
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
