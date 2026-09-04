@@ -4,6 +4,7 @@ import { getOpenAI, AI_MODEL, AI_PARAMS, createAiStream, armFirstTokenGuard, isB
 import { CHAT_SYSTEM_PROMPT, PROMPT_VERSION, buildChatUserPrompt } from "@/lib/prompts";
 import { detectToolsNeeded, executeTool } from "@/lib/chat/tools";
 import { startObs, setObsUser, endObs, logObs, logPromptVersion, obsHeaders } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -45,14 +46,16 @@ export async function POST(request: Request) {
     }
     setObsUser(obs, user.id);
 
-    // Rate limit — best-effort, don't block if RPC missing
-    try {
-      const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "chat", p_limit: 20, p_window_seconds: 60 });
-      if (rateOk === false) {
-        endObs(obs, "rate_limited", { status: 429 });
-        return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: obsHeaders(obs) });
+    // Single policy: limit BEFORE work, fail-closed on DB errors.
+    const rl = await checkRateLimitPolicy(supabase, "chat");
+    if (!rl.allowed) {
+      if (rl.reason === "db_unavailable") {
+        endObs(obs, "db_error", { status: 503, reason: "rate_limit_unavailable" });
+        return NextResponse.json({ error: "Database busy, please retry" }, { status: 503, headers: obsHeaders(obs) });
       }
-    } catch {}
+      endObs(obs, "rate_limited", { status: 429 });
+      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: obsHeaders(obs) });
+    }
 
     // Resolve or create conversation — with fallback if tables not yet migrated
     const isValidUUID = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);

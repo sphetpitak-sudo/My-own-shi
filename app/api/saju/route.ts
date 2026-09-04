@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { calculateSaju, REMEDY_MAP } from "@/lib/saju/calculator";
 import { startObs, setObsUser, endObs, obsHeaders } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
@@ -23,8 +24,12 @@ export async function POST(request: Request){
     endObs(obs, "validation_error", { status: 400, reason: "missing_fields" });
     return NextResponse.json({ error:"Missing fields"}, {status:400, headers: obsHeaders(obs)});
   }
-  const { data: rateOk } = await supabase.rpc("check_rate_limit",{ p_endpoint:"saju", p_limit:10, p_window_seconds:3600});
-  if(rateOk===false) {
+  const rl = await checkRateLimitPolicy(supabase, "saju");
+  if (!rl.allowed) {
+    if (rl.reason === "db_unavailable") {
+      endObs(obs, "db_error", { status: 503, reason: "rate_limit_unavailable" });
+      return NextResponse.json({ error:"Database busy, please retry"}, {status:503, headers: obsHeaders(obs)});
+    }
     endObs(obs, "rate_limited", { status: 429 });
     return NextResponse.json({ error:"Too many requests"}, {status:429, headers: obsHeaders(obs)});
   }

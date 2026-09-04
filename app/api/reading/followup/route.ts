@@ -4,6 +4,7 @@ import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel, createAiStream, armFirstTokenGuard, isBreakerOpen, recordBreakerFailure } from "@/lib/ai";
 import { FOLLOWUP_SYSTEM_PROMPT, buildFollowupUserPrompt } from "@/lib/prompts";
 import { startObs, setObsUser, endObs, logObs, obsHeaders } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -92,36 +93,40 @@ export async function POST(request: Request) {
       const storedIds = new Set(stored.map((c) => c.cardId));
       const reqIds = new Set(cards.map((c) => c.cardId));
       if (storedIds.size !== reqIds.size || [...storedIds].some((id) => !reqIds.has(id))) {
-        return NextResponse.json({ error: "Cards do not match reading" }, { status: 400 });
+        return NextResponse.json({ error: "Cards do not match reading" }, { status: 400, headers: obsHeaders(obs) });
       }
       if (spreadType && spreadType !== reading.spread_type) {
-        return NextResponse.json({ error: "Spread mismatch" }, { status: 400 });
+        return NextResponse.json({ error: "Spread mismatch" }, { status: 400, headers: obsHeaders(obs) });
       }
     }
 
     // Enforce 2 followup limit server-side (reservation prevents cost amplification)
     const { count: followCount } = await supabase.from("reading_followups").select("id", { count: "exact", head: true }).eq("reading_id", readingId);
     if ((followCount ?? 0) >= 2) {
-      return NextResponse.json({ error: "Followup limit reached (max 2)" }, { status: 429 });
+      return NextResponse.json({ error: "Followup limit reached (max 2)" }, { status: 429, headers: obsHeaders(obs) });
     }
 
     // Effective cards: always use stored reading cards (authoritative) — ignore client-supplied cards content except for tamper check above
     const effectiveCards: FollowCard[] = (reading.cards as unknown as FollowCard[]) || [];
-    if (!Array.isArray(effectiveCards) || effectiveCards.length === 0) return NextResponse.json({ error: "Invalid reading cards" }, { status: 400 });
+    if (!Array.isArray(effectiveCards) || effectiveCards.length === 0) return NextResponse.json({ error: "Invalid reading cards" }, { status: 400, headers: obsHeaders(obs) });
     // Validate stored cards charset/length (defense if old data was polluted)
     for (const c of effectiveCards) {
-      if (!isValidPositionLabel(c.positionLabel)) return NextResponse.json({ error: "Invalid position in stored reading" }, { status: 400 });
+      if (!isValidPositionLabel(c.positionLabel)) return NextResponse.json({ error: "Invalid position in stored reading" }, { status: 400, headers: obsHeaders(obs) });
     }
 
     // If client supplied cards with valid spread but different length, already rejected; still verify count
     const expectedSpread = SPREADS[reading.spread_type as SpreadType];
     if (expectedSpread && effectiveCards.length !== expectedSpread.cardCount) {
-      return NextResponse.json({ error: "Stored card count mismatch" }, { status: 400 });
+      return NextResponse.json({ error: "Stored card count mismatch" }, { status: 400, headers: obsHeaders(obs) });
     }
 
-    // Atomic rate limit
-    const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "followup", p_limit: 5, p_window_seconds: 60 });
-    if (rateOk === false) {
+    // Single policy: limit BEFORE reserve, fail-closed on DB errors.
+    const rl = await checkRateLimitPolicy(supabase, "followup");
+    if (!rl.allowed) {
+      if (rl.reason === "db_unavailable") {
+        endObs(obs, "db_error", { status: 503, reason: "rate_limit_unavailable", readingId });
+        return NextResponse.json({ error: "Database busy, please retry" }, { status: 503, headers: obsHeaders(obs) });
+      }
       endObs(obs, "rate_limited", { status: 429, readingId });
       return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: obsHeaders(obs) });
     }
@@ -134,9 +139,9 @@ export async function POST(request: Request) {
       .single();
     if (pendingErr) {
       if (pendingErr.message && pendingErr.message.includes("Followup limit")) {
-        return NextResponse.json({ error: "Followup limit reached (max 2)" }, { status: 429 });
+        return NextResponse.json({ error: "Followup limit reached (max 2)" }, { status: 429, headers: obsHeaders(obs) });
       }
-      return NextResponse.json({ error: "Failed to reserve followup" }, { status: 429 });
+      return NextResponse.json({ error: "Failed to reserve followup" }, { status: 429, headers: obsHeaders(obs) });
     }
     const pendingId = (pending as { id: string }).id;
 

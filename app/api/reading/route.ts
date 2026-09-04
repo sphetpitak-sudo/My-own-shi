@@ -4,6 +4,7 @@ import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel, createAiStream, armFirstTokenGuard, isBreakerOpen, recordBreakerFailure } from "@/lib/ai";
 import { PROMPT_VERSION, getReadingSystemPrompt, buildReadingUserPrompt } from "@/lib/prompts";
 import { startObs, setObsUser, endObs, logObs, logPromptVersion, obsHeaders, normalizeTopic } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 import { reportError } from "@/lib/sentry";
 
 export const maxDuration = 90;
@@ -115,11 +116,18 @@ export async function POST(request: Request) {
     }
     setObsUser(obs, user.id);
 
-    // Atomic rate limit (serverless-safe)
-    const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "reading", p_limit: 5, p_window_seconds: 60 });
-    if (rateOk === false) {
-      endObs(obs, "rate_limited", { status: 429 });
-      return NextResponse.json({ error: "Too many readings. Please try again shortly." }, { status: 429, headers: obsHeaders(obs) });
+    // Single policy: limit BEFORE spend, fail-closed on DB errors.
+    const rl = await checkRateLimitPolicy(supabase, "reading");
+    if (!rl.allowed) {
+      const limited = rl.reason === "exceeded";
+      endObs(obs, limited ? "rate_limited" : "db_error", {
+        status: limited ? 429 : 503,
+        reason: limited ? "rate_limited" : "rate_limit_unavailable",
+      });
+      return NextResponse.json(
+        { error: limited ? "Too many readings. Please try again shortly." : "Database busy, please retry" },
+        { status: limited ? 429 : 503, headers: obsHeaders(obs) }
+      );
     }
 
     // Authoritative spend via spend_for_spread (prevents cost tampering)

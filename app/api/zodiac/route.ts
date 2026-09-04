@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOpenAI, AI_MODEL, AI_PARAMS, getCachedFortune, setCachedFortune } from "@/lib/ai";
+import { getOpenAI, AI_MODEL, AI_PARAMS } from "@/lib/ai";
 import { ZODIAC_SYSTEM_PROMPT, buildZodiacUserPrompt } from "@/lib/prompts";
 import { ZODIAC_SIGNS } from "@/lib/astrology/types";
 import { buildZodiacFortune, fortuneToProse, isValidBirthDate } from "@/lib/zodiac";
 import { startObs, setObsUser, endObs, obsHeaders, type ObsContext } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -65,27 +66,30 @@ export async function POST(request: Request) {
     setObsUser(obs, user.id);
 
     const today = new Date().toISOString().slice(0, 10);
-    const cacheKey = `zodiac:${user.id}:${birthDate}:${today}`;
 
-    const cached = getCachedFortune(cacheKey, 24 * 3600_000);
-    if (cached && typeof cached === "string") {
-      endObs(obs, "ok", { status: 200, cached: true });
-      return streamText(cached, obs);
+    // Single policy (Phase 3): limit BEFORE spend, fail-closed. The
+    // per-process fortune cache was removed (inconsistent on serverless).
+    const rl = await checkRateLimitPolicy(supabase, "zodiac");
+    if (!rl.allowed) {
+      const limited = rl.reason === "exceeded";
+      endObs(obs, limited ? "rate_limited" : "db_error", {
+        status: limited ? 429 : 503,
+        reason: limited ? "rate_limited" : "rate_limit_unavailable",
+      });
+      return NextResponse.json(
+        { error: limited ? "Too many requests. Try again later." : "Database busy, please retry" },
+        { status: limited ? 429 : 503, headers: obsHeaders(obs) }
+      );
     }
 
-    // Points check — zodiac uses 5 points (daily/chat free, rest use points)
+    // Points check — zodiac uses 5 points (single spend path only; the
+    // legacy spend_points fallback was removed in Phase 3).
     let charged: number | null = null;
     let spendErr: unknown = null;
     try {
       const r = await supabase.rpc("spend_for_spread", { p_spread: "zodiac", p_description: "zodiac" }) as { data: number | null; error: unknown };
       charged = r.data as number | null;
       spendErr = r.error;
-      if (spendErr && String((spendErr as { message?: string }).message || "").includes("Invalid spread")) {
-        const r2 = await supabase.rpc("spend_points", { p_user_id: user.id, p_amount: 5, p_description: "zodiac" }) as { data: boolean | null; error: unknown };
-        if (r2.error) throw r2.error;
-        charged = r2.data ? 5 : 0;
-        spendErr = null;
-      }
     } catch (e) { spendErr = e; }
     if (spendErr) {
       console.error("[zodiac] spend failed", spendErr);
@@ -96,13 +100,6 @@ export async function POST(request: Request) {
       const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).maybeSingle() as { data: { points:number } | null };
       endObs(obs, "validation_error", { status: 400, reason: "not_enough_points", needed: 5, current: profile?.points ?? 0 });
       return NextResponse.json({ error: "Not enough points", needed: 5, current: profile?.points ?? 0 }, { status: 400, headers: obsHeaders(obs) });
-    }
-
-    const { data: zodiacOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "zodiac", p_limit: 10, p_window_seconds: 3600 });
-    if (zodiacOk === false) {
-      try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: 5 }); } catch {}
-      endObs(obs, "rate_limited", { status: 429, refunded: 5 });
-      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429, headers: obsHeaders(obs) });
     }
 
     const fallback = buildZodiacFortune(birthDate, today);
@@ -161,7 +158,6 @@ export async function POST(request: Request) {
       // fall through to deterministic prose
     }
 
-    setCachedFortune(cacheKey, text);
     if (source === "ai") {
       endObs(obs, "ok", { status: 200, cost: 5 });
     } else {

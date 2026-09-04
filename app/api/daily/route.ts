@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getOpenAI, AI_MODEL, AI_PARAMS, extractJSON, asString, asNumber, colorToHex, getCachedFortune, setCachedFortune } from "@/lib/ai";
+import { getOpenAI, AI_MODEL, AI_PARAMS, extractJSON, asString, asNumber, colorToHex } from "@/lib/ai";
 import { DAILY_SYSTEM_PROMPT, buildDailyUserPrompt } from "@/lib/prompts";
 import { pickDailyCard, buildDailyFallback, type DailyFortune } from "@/lib/daily";
 import { startObs, setObsUser, endObs, obsHeaders } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -45,19 +46,21 @@ export async function POST(request: Request) {
     setObsUser(obs, user.id);
 
     const today = new Date().toISOString().slice(0, 10);
-    const cacheKey = `daily:${user.id}:${today}`;
 
-    const cached = getCachedFortune(cacheKey, 24 * 3600_000);
-    if (cached) {
-      endObs(obs, "ok", { status: 200, cached: true });
-      return NextResponse.json(cached, { headers: obsHeaders(obs) });
-    }
-
-    // Atomic DB rate limit only (in-mem is ineffective on serverless)
-    const { data: dailyOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "daily", p_limit: 10, p_window_seconds: 3600 });
-    if (dailyOk === false) {
-      endObs(obs, "rate_limited", { status: 429 });
-      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429, headers: obsHeaders(obs) });
+    // Single policy (Phase 3): DB rate limit only — the per-process fortune
+    // cache was removed (inconsistent across serverless instances). Every
+    // request within quota gets a fresh AI reading (or deterministic fallback).
+    const rl = await checkRateLimitPolicy(supabase, "daily");
+    if (!rl.allowed) {
+      const limited = rl.reason === "exceeded";
+      endObs(obs, limited ? "rate_limited" : "db_error", {
+        status: limited ? 429 : 503,
+        reason: limited ? "rate_limited" : "rate_limit_unavailable",
+      });
+      return NextResponse.json(
+        { error: limited ? "Too many requests. Try again later." : "Database busy, please retry" },
+        { status: limited ? 429 : 503, headers: obsHeaders(obs) }
+      );
     }
 
     const card = pickDailyCard(user.id, today);
@@ -112,7 +115,6 @@ export async function POST(request: Request) {
       // fall through to deterministic fallback
     }
 
-    setCachedFortune(cacheKey, fortune);
     if (fortune.source === "ai") {
       endObs(obs, "ok", { status: 200 });
     } else {

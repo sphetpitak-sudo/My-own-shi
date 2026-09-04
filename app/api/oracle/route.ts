@@ -4,6 +4,7 @@ import { ALL_CARDS } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, createAiStream, armFirstTokenGuard, isBreakerOpen, recordBreakerFailure } from "@/lib/ai";
 import { ORACLE_SYSTEM_PROMPT, buildOracleUserPrompt } from "@/lib/prompts";
 import { startObs, setObsUser, endObs, logObs, obsHeaders } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 
 export const maxDuration = 90;
 export const dynamic = "force-dynamic";
@@ -74,19 +75,15 @@ export async function POST(request: Request) {
     }
     setObsUser(obs, user.id);
 
-    // Serverless-safe rate limit for oracle (5 elaborations / 60s) — guard DB hang
-    try {
-      const rateOk = await withTimeout(
-        supabase.rpc("check_rate_limit", { p_endpoint: "oracle", p_limit: 5, p_window_seconds: 60 }) as unknown as Promise<{ data: boolean }>,
-        5000
-      ).then((r) => (r as unknown as { data: boolean }).data);
-      if (rateOk === false) {
-        endObs(obs, "rate_limited", { status: 429 });
-        return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429, headers: obsHeaders(obs) });
+    // Single policy: limit BEFORE spend, fail-closed on DB errors.
+    const rl = await checkRateLimitPolicy(supabase, "oracle");
+    if (!rl.allowed) {
+      if (rl.reason === "db_unavailable") {
+        endObs(obs, "db_error", { status: 503, reason: "rate_limit_unavailable" });
+        return NextResponse.json({ error: "Database busy, please retry" }, { status: 503, headers: obsHeaders(obs) });
       }
-    } catch {
-      // DB busy — allow through but log; rate limit is best-effort
-      console.error("oracle rate limit DB timeout");
+      endObs(obs, "rate_limited", { status: 429 });
+      return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429, headers: obsHeaders(obs) });
     }
 
     // Verify payment — also validate amount matches spread (prevents 5pt ticket for 15pt elaboration)

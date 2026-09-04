@@ -187,23 +187,4 @@ describe("Suite 3 — rate-limit invariant (429 never leaves the user charged)",
     expect(charged * 25 - refunded * 25).toBe(0);
   });
 
-  it("CURRENT BEHAVIOR — will change in Phase 3: birthchart spends BEFORE rate-limit check", async () => {
-    // TEMPORARY contract documenting today's order (spend -> limit -> refund).
-    // Phase 3 unifies this to limit-before-spend (like /api/reading); when
-    // that lands, DELETE this test — the invariant test above is the keeper.
-    const sb = makeSupabase({ rateLimitOk: false, spendResult: 25 });
-    vi.mocked(createClient).mockResolvedValue(sb as never);
-
-    const res = await birthchartPOST(
-      post("http://localhost/api/birthchart", {
-        date: "2000-01-01",
-        time: "12:00",
-        place: "Bangkok",
-      })
-    );
-    expect(res.status).toBe(429);
-    const order = sb.rpc.mock.calls.map((c) => c[0]);
-    expect(order.indexOf("spend_for_spread")).toBeLessThan(order.indexOf("check_rate_limit"));
-    expect(order).toContain("refund_points");
-  });
 });

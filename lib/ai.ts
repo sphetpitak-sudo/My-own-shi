@@ -318,40 +318,8 @@ export async function recordBreakerFailure(
   } catch {}
 }
 
-// ============================================
-// In-memory rate limiting (per process) — fallback only; primary is DB RPC
-// ============================================
-const rateBuckets = new Map<string, number[]>();
-
-export function checkRateLimit(key: string, limit: number, windowMs: number): boolean {
-  if (rateBuckets.size > 2000) rateBuckets.clear();
-  const now = Date.now();
-  const arr = (rateBuckets.get(key) || []).filter((t) => now - t < windowMs);
-  if (arr.length >= limit) {
-    rateBuckets.set(key, arr);
-    return false;
-  }
-  arr.push(now);
-  rateBuckets.set(key, arr);
-  return true;
-}
-
-// ============================================
-// In-memory daily cache (per process) — best-effort, not authoritative
-// ============================================
-const fortuneCache = new Map<string, { at: number; value: unknown }>();
-
-export function getCachedFortune(key: string, ttlMs: number): unknown | null {
-  const hit = fortuneCache.get(key);
-  if (!hit) return null;
-  if (Date.now() - hit.at > ttlMs) {
-    fortuneCache.delete(key);
-    return null;
-  }
-  return hit.value;
-}
-
-export function setCachedFortune(key: string, value: unknown): void {
-  if (fortuneCache.size > 2000) fortuneCache.clear();
-  fortuneCache.set(key, { at: Date.now(), value });
-}
+// NOTE (Phase 3): the in-memory rate limiter and fortune cache were removed.
+// They are wrong on serverless: counters/caches reset on cold start and split
+// across instances (some users throttled early, others over quota; some get
+// cached fortunes, others don't). The DB RPC (check_rate_limit) is the single
+// source of truth — see lib/ratelimit.ts.

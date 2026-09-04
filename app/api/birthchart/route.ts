@@ -4,6 +4,7 @@ import { getOpenAI, AI_MODEL, AI_PARAMS } from "@/lib/ai";
 import { BIRTH_CHART_SYSTEM_PROMPT, buildBirthChartUserPrompt } from "@/lib/prompts";
 import { astrologyProvider } from "@/lib/astrology/calculator";
 import { startObs, setObsUser, endObs, obsHeaders } from "@/lib/observability";
+import { checkRateLimitPolicy } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -63,20 +64,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "วันเกิดต้องไม่เป็นอนาคต" }, { status: 400, headers: obsHeaders(obs) });
     }
 
-    // Points check — birthchart uses 25 points (ทุกฟีเจอร์ต้องใช้แต้ม ยกเว้น daily/chat)
+    // Single policy: limit BEFORE spend (no spend-then-refund on 429),
+    // fail-closed on DB errors.
+    const rl = await checkRateLimitPolicy(supabase, "birthchart");
+    if (!rl.allowed) {
+      const limited = rl.reason === "exceeded";
+      endObs(obs, limited ? "rate_limited" : "db_error", {
+        status: limited ? 429 : 503,
+        reason: limited ? "rate_limited" : "rate_limit_unavailable",
+      });
+      return NextResponse.json(
+        { error: limited ? "Too many requests" : "Database busy, please retry" },
+        { status: limited ? 429 : 503, headers: obsHeaders(obs) }
+      );
+    }
+
+    // Points check — birthchart uses 25 points (single spend path only;
+    // the legacy spend_points fallback was removed in Phase 3).
     let charged: number | null = null;
     let spendErr: unknown = null;
     try {
       const r = await supabase.rpc("spend_for_spread", { p_spread: "birthchart", p_description: "birthchart" }) as { data: number | null; error: unknown };
       charged = r.data as number | null;
       spendErr = r.error;
-      // Fallback for old DB without birthchart in whitelist
-      if (spendErr && String((spendErr as { message?: string }).message || "").includes("Invalid spread")) {
-        const r2 = await supabase.rpc("spend_points", { p_user_id: user.id, p_amount: 25, p_description: "birthchart" }) as { data: boolean | null; error: unknown };
-        if (r2.error) throw r2.error;
-        charged = r2.data ? 25 : 0;
-        spendErr = null;
-      }
     } catch (e) {
       spendErr = e;
     }
@@ -91,15 +101,6 @@ export async function POST(request: Request) {
       // also try direct fallback if profile null (should not happen, but avoid showing 0 incorrectly)
       endObs(obs, "validation_error", { status: 400, reason: "not_enough_points", needed: 25, current: cur });
       return NextResponse.json({ error: "Not enough points", needed: 25, current: cur }, { status: 400, headers: obsHeaders(obs) });
-    }
-
-    // Rate limit: 10 birthchart / hour
-    const { data: rateOk } = await supabase.rpc("check_rate_limit", { p_endpoint: "birthchart", p_limit: 10, p_window_seconds: 3600 });
-    if (rateOk === false) {
-      // refund points if rate limited
-      try { await supabase.rpc("refund_points", { p_user_id: user.id, p_amount: 25 }); } catch {}
-      endObs(obs, "rate_limited", { status: 429, refunded: 25 });
-      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: obsHeaders(obs) });
     }
 
     // Calculate chart (real astronomy) — pass precise coords if provided
