@@ -9,14 +9,14 @@
 // ============================================
 
 export const RATE_LIMIT_POLICIES = {
-  reading: { limit: 5, windowSeconds: 60 },
-  followup: { limit: 5, windowSeconds: 60 },
-  oracle: { limit: 5, windowSeconds: 60 },
-  chat: { limit: 20, windowSeconds: 60 },
-  daily: { limit: 10, windowSeconds: 3600 },
-  zodiac: { limit: 10, windowSeconds: 3600 },
-  birthchart: { limit: 10, windowSeconds: 3600 },
-  saju: { limit: 10, windowSeconds: 3600 },
+  reading: { limit: 15, windowSeconds: 60 },
+  followup: { limit: 15, windowSeconds: 60 },
+  oracle: { limit: 15, windowSeconds: 60 },
+  chat: { limit: 60, windowSeconds: 60 },
+  daily: { limit: 30, windowSeconds: 3600 },
+  zodiac: { limit: 30, windowSeconds: 3600 },
+  birthchart: { limit: 30, windowSeconds: 3600 },
+  saju: { limit: 30, windowSeconds: 3600 },
 } as const;
 
 export type RateLimitEndpoint = keyof typeof RATE_LIMIT_POLICIES;
