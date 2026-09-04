@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { calculateSaju, REMEDY_MAP } from "@/lib/saju/calculator";
 import { startObs, setObsUser, endObs, obsHeaders } from "@/lib/observability";
-import { checkRateLimitPolicy } from "@/lib/ratelimit";
+import { checkRateLimitPolicy, isMigrationLocked } from "@/lib/ratelimit";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
@@ -18,6 +18,11 @@ export async function POST(request: Request){
     return NextResponse.json({ error:"Unauthorized"}, {status:401, headers: obsHeaders(obs)});
   }
   setObsUser(obs, user.id);
+  // Phase 4: hard block writes during DB migration (fail-closed).
+  if (await isMigrationLocked(supabase)) {
+    endObs(obs, "db_error", { status: 503, reason: "migration_lock" });
+    return NextResponse.json({ error: "ระบบปิดปรับปรุงชั่วคราว กรุณาลองใหม่" }, { status: 503, headers: obsHeaders(obs) });
+  }
   const body = await request.json().catch(()=>({})) as { date?: string; time?: string; place?: string };
   const date=(body.date||"").trim(), time=(body.time||"").trim(), place=(body.place||"").trim();
   if(!date||!time||!place) {

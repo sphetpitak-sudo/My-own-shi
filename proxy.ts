@@ -1,17 +1,36 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Per-instance cache for admin_settings.maintenance_mode — avoids per-request DB roundtrip on AI paths
-let maintenanceCache: { value: { enabled?: boolean } | null; at: number } | null = null;
-const MAINT_TTL_MS = 30_000;
+// Phase 4: per-instance cache for admin_settings.announcement_mode.
+// announcement_mode = graceful page block (API keeps running for in-flight
+// readings). The old maintenance_mode key is retired (dormant in DB).
+// Fail-CLOSED: a read error locks the site; a missing key means OFF
+// (deploy SQL before code so the key always exists).
+let announcementCache: { value: { enabled: boolean; ok: boolean }; at: number } | null = null;
+const ANNOUNCE_TTL_MS = 30_000;
 
-async function getMaintenanceCached(supabase: ReturnType<typeof createServerClient>): Promise<{ enabled?: boolean } | null> {
+async function getAnnouncementCached(
+  supabase: ReturnType<typeof createServerClient>
+): Promise<{ enabled: boolean; ok: boolean }> {
   const now = Date.now();
-  if (maintenanceCache && now - maintenanceCache.at < MAINT_TTL_MS) return maintenanceCache.value;
-  const { data } = await supabase.from("admin_settings").select("value").eq("key", "maintenance_mode").single();
-  const v = (data?.value as { enabled?: boolean } | null) ?? null;
-  maintenanceCache = { value: v, at: now };
-  return v;
+  if (announcementCache && now - announcementCache.at < ANNOUNCE_TTL_MS) {
+    return announcementCache.value;
+  }
+  try {
+    const { data, error } = await supabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "announcement_mode")
+      .single();
+    if (error) throw error;
+    const v = { enabled: (data?.value as { enabled?: boolean } | null)?.enabled ?? false, ok: true };
+    announcementCache = { value: v, at: now };
+    return v;
+  } catch {
+    const v = { enabled: true, ok: false }; // fail-closed
+    announcementCache = { value: v, at: now };
+    return v;
+  }
 }
 
 export async function proxy(request: NextRequest) {
@@ -70,10 +89,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Maintenance mode: block non-admin, non-auth pages (skip for /api to keep AI latency low)
+  // Announcement mode: block non-admin, non-auth pages (skip for /api so
+  // in-flight AI streams drain gracefully). Fail-closed on read errors.
   if (!isAdmin && !isApi) {
-    const maintenance = await getMaintenanceCached(supabase as unknown as ReturnType<typeof createServerClient>);
-    if (maintenance?.enabled && !isRoot) {
+    const announcement = await getAnnouncementCached(supabase as unknown as ReturnType<typeof createServerClient>);
+    if (announcement.enabled && !isRoot) {
       if (user) {
         if (isAdminUser === null) {
           const { data: profile } = await supabase

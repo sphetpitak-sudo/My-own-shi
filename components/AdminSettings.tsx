@@ -16,7 +16,9 @@ interface SettingsData {
   reading_costs: ReadingCosts;
   daily_bonus: { amount: number };
   referral_bonus: { amount: number };
-  maintenance_mode: { enabled: boolean };
+  // Phase 4: maintenance_mode retired (dormant in DB) — two flags instead.
+  announcement_mode: { enabled: boolean };
+  db_migration_lock: { enabled: boolean };
 }
 
 export default function AdminSettings() {
@@ -46,7 +48,8 @@ export default function AdminSettings() {
       reading_costs: (map.reading_costs as ReadingCosts) || { single: 5, three_card: 15, celtic: 50 },
       daily_bonus: (map.daily_bonus as { amount: number }) || { amount: 10 },
       referral_bonus: (map.referral_bonus as { amount: number }) || { amount: 20 },
-      maintenance_mode: (map.maintenance_mode as { enabled: boolean }) || { enabled: false },
+      announcement_mode: (map.announcement_mode as { enabled: boolean }) || { enabled: false },
+      db_migration_lock: (map.db_migration_lock as { enabled: boolean }) || { enabled: false },
     });
     setLoading(false);
   }, [router]);
@@ -65,7 +68,8 @@ export default function AdminSettings() {
       { key: "reading_costs", value: settings.reading_costs },
       { key: "daily_bonus", value: settings.daily_bonus },
       { key: "referral_bonus", value: settings.referral_bonus },
-      { key: "maintenance_mode", value: settings.maintenance_mode },
+      { key: "announcement_mode", value: settings.announcement_mode },
+      { key: "db_migration_lock", value: settings.db_migration_lock },
     ];
 
     let hasError = false;
@@ -182,24 +186,49 @@ export default function AdminSettings() {
           <div className="card p-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="stat-icon" style={{ background: settings.maintenance_mode.enabled ? "var(--red-soft)" : "var(--green-soft)" }}>
-                  <AlertTriangle size={18} style={{ color: settings.maintenance_mode.enabled ? "var(--red)" : "var(--green)" }} />
+                <div className="stat-icon" style={{ background: settings.announcement_mode.enabled ? "var(--red-soft)" : "var(--green-soft)" }}>
+                  <AlertTriangle size={18} style={{ color: settings.announcement_mode.enabled ? "var(--red)" : "var(--green)" }} />
                 </div>
                 <div>
-                  <div className="text-[14px] font-semibold">โหมดปิดปรับปรุง</div>
+                  <div className="text-[14px] font-semibold">โหมดประกาศปิดปรับปรุง</div>
                   <div className="text-[12px] text-muted">
-                    {settings.maintenance_mode.enabled ? "เว็บไซต์อยู่ในโหมดปิดปรับปรุง" : "เว็บไซต์ทำงานปกติ"}
+                    {settings.announcement_mode.enabled ? "บล็อกหน้าเว็บ (AI ที่ทำอยู่ทำต่อจนจบ)" : "เว็บไซต์ทำงานปกติ"}
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => setSettings({
                   ...settings,
-                  maintenance_mode: { enabled: !settings.maintenance_mode.enabled }
+                  announcement_mode: { enabled: !settings.announcement_mode.enabled }
                 })}
-                className={`cb ${settings.maintenance_mode.enabled ? "on" : ""}`}
+                className={`cb ${settings.announcement_mode.enabled ? "on" : ""}`}
               >
-                {settings.maintenance_mode.enabled && <CheckIcon size={14} />}
+                {settings.announcement_mode.enabled && <CheckIcon size={14} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="stat-icon" style={{ background: settings.db_migration_lock.enabled ? "var(--red-soft)" : "var(--green-soft)" }}>
+                  <AlertTriangle size={18} style={{ color: settings.db_migration_lock.enabled ? "var(--red)" : "var(--green)" }} />
+                </div>
+                <div>
+                  <div className="text-[14px] font-semibold">ล็อกช่วง migrate ฐานข้อมูล</div>
+                  <div className="text-[12px] text-muted">
+                    {settings.db_migration_lock.enabled ? "บล็อกทุกการหักแต้ม/เขียนข้อมูล (เปิดเฉพาะตอน migrate)" : "ปิดอยู่ — เปิดเฉพาะตอน migrate DB เท่านั้น"}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSettings({
+                  ...settings,
+                  db_migration_lock: { enabled: !settings.db_migration_lock.enabled }
+                })}
+                className={`cb ${settings.db_migration_lock.enabled ? "on" : ""}`}
+              >
+                {settings.db_migration_lock.enabled && <CheckIcon size={14} />}
               </button>
             </div>
           </div>

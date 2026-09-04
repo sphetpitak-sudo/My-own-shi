@@ -4,7 +4,7 @@ import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import { getOpenAI, AI_MODEL, AI_PARAMS, LIMITS, isValidPositionLabel, createAiStream, armFirstTokenGuard, isBreakerOpen, recordBreakerFailure } from "@/lib/ai";
 import { FOLLOWUP_SYSTEM_PROMPT, buildFollowupUserPrompt } from "@/lib/prompts";
 import { startObs, setObsUser, endObs, logObs, obsHeaders } from "@/lib/observability";
-import { checkRateLimitPolicy } from "@/lib/ratelimit";
+import { checkRateLimitPolicy, isMigrationLocked } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -60,6 +60,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
     }
     setObsUser(obs, user.id);
+
+    // Phase 4: hard block writes during DB migration (fail-closed).
+    if (await isMigrationLocked(supabase)) {
+      endObs(obs, "db_error", { status: 503, reason: "migration_lock" });
+      return NextResponse.json({ error: "ระบบปิดปรับปรุงชั่วคราว กรุณาลองใหม่" }, { status: 503, headers: obsHeaders(obs) });
+    }
 
     if (!readingId || !isUUID(readingId)) {
       endObs(obs, "validation_error", { status: 400, reason: "invalid_reading_id" });

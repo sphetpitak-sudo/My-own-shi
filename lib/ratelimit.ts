@@ -41,6 +41,35 @@ function dbTimeout(): Promise<never> {
   );
 }
 
+// ============================================
+// Phase 4 — db_migration_lock for free-write routes (chat, saju, followup).
+// Paid routes need no app-level check: spend_for_spread/spend_points enforce
+// the lock inside the RPC (single point, covers present + future spenders).
+// Fail-CLOSED: read error or missing value = locked.
+// ============================================
+
+export interface FlagStore {
+  // Loose on purpose: the real SupabaseClient (untyped generics) would
+  // otherwise trigger "excessively deep" inference against a nested shape.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (table: string) => any;
+}
+
+export async function isMigrationLocked(store: FlagStore): Promise<boolean> {
+  try {
+    const res = await store
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "db_migration_lock")
+      .single();
+    if (res?.error) return true;
+    const enabled = (res?.data?.value as { enabled?: boolean } | null)?.enabled;
+    return enabled ?? true; // missing value = locked
+  } catch {
+    return true;
+  }
+}
+
 export async function checkRateLimitPolicy(
   store: RateLimitStore,
   endpoint: RateLimitEndpoint

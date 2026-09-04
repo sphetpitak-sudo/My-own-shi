@@ -4,7 +4,7 @@ import { getOpenAI, AI_MODEL, AI_PARAMS, createAiStream, armFirstTokenGuard, isB
 import { CHAT_SYSTEM_PROMPT, PROMPT_VERSION, buildChatUserPrompt } from "@/lib/prompts";
 import { detectToolsNeeded, executeTool } from "@/lib/chat/tools";
 import { startObs, setObsUser, endObs, logObs, logPromptVersion, obsHeaders } from "@/lib/observability";
-import { checkRateLimitPolicy } from "@/lib/ratelimit";
+import { checkRateLimitPolicy, isMigrationLocked } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -45,6 +45,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
     }
     setObsUser(obs, user.id);
+
+    // Phase 4: hard block writes during DB migration (fail-closed).
+    if (await isMigrationLocked(supabase)) {
+      endObs(obs, "db_error", { status: 503, reason: "migration_lock" });
+      return NextResponse.json({ error: "ระบบปิดปรับปรุงชั่วคราว กรุณาลองใหม่" }, { status: 503, headers: obsHeaders(obs) });
+    }
 
     // Single policy: limit BEFORE work, fail-closed on DB errors.
     const rl = await checkRateLimitPolicy(supabase, "chat");

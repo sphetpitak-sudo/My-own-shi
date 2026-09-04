@@ -152,8 +152,13 @@ INSERT INTO admin_settings (key, value) VALUES
   ('reading_costs', '{"single": 5, "three_card": 15, "celtic": 50, "birthchart": 25, "daily": 5, "zodiac": 5, "oracle_single": 5, "oracle_three": 15, "lucky_number": 5, "moon_phase": 5}'::jsonb),
   ('daily_bonus', '{"amount": 10}'::jsonb),
   ('referral_bonus', '{"amount": 20}'::jsonb),
-  ('maintenance_mode', '{"enabled": false}'::jsonb)
+  ('maintenance_mode', '{"enabled": false}'::jsonb),
+  ('announcement_mode', '{"enabled": false}'::jsonb),
+  ('db_migration_lock', '{"enabled": false}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
+-- Phase 4: maintenance_mode is RETIRED (kept dormant for history).
+-- Use announcement_mode (graceful page block, API keeps running) and
+-- db_migration_lock (hard block on all spends/writes during migrations).
 -- Ensure existing row gets new keys (idempotent update)
 UPDATE admin_settings SET value = value || '{"birthchart": 25, "daily": 5, "zodiac": 5, "oracle_single": 5, "oracle_three": 15, "lucky_number": 5, "moon_phase": 5}'::jsonb WHERE key='reading_costs' AND NOT (value ? 'birthchart');
 
@@ -211,6 +216,11 @@ BEGIN
   IF p_user_id IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
+  -- Phase 4: hard block on all spends during DB migration.
+  -- Missing key = OFF (safe for old DBs before this seed runs).
+  IF COALESCE((SELECT (value->>'enabled')::boolean FROM admin_settings WHERE key = 'db_migration_lock'), false) THEN
+    RAISE EXCEPTION 'Service temporarily unavailable (migration)';
+  END IF;
   IF p_amount <= 0 THEN
     RAISE EXCEPTION 'Invalid amount';
   END IF;
@@ -257,6 +267,10 @@ DECLARE
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+  -- Phase 4: hard block on all spends during DB migration (see spend_points).
+  IF COALESCE((SELECT (value->>'enabled')::boolean FROM admin_settings WHERE key = 'db_migration_lock'), false) THEN
+    RAISE EXCEPTION 'Service temporarily unavailable (migration)';
+  END IF;
   IF p_spread NOT IN ('single','three_card','celtic','single_yesno','oracle_single','oracle_three','daily','zodiac','birthchart','lucky_number','moon_phase') THEN
     RAISE EXCEPTION 'Invalid spread';
   END IF;
