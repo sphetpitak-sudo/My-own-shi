@@ -14,6 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Check secrets
+        run: |
+          test -n "$APP_URL" || { echo "::error::APP_URL secret is missing (repo Settings → Secrets → Actions)"; exit 1; }
+          test -n "$CRON_SECRET" || { echo "::error::CRON_SECRET secret is missing (repo Settings → Secrets → Actions)"; exit 1; }
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
       - name: Sweep expired generating rows
         run: |
           curl -sf -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/sweep-generating"
