@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 import { LangProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/Toast";
+import { SentryInit } from "@/components/SentryInit";
 
 const k2d = K2D({
   subsets: ["latin", "thai"],
@@ -74,6 +75,7 @@ export default function RootLayout({
             <p>กรุณาเปิดใช้งาน JavaScript</p>
           </div>
         </noscript>
+        <SentryInit />
         <ThemeProvider>
           <LangProvider>
             <ToastProvider>
