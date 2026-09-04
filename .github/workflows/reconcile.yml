@@ -1,0 +1,21 @@
+# Phase 2 ledger reconcile — daily 03:00 Bangkok (20:00 UTC).
+# Report-only: alerts on drift, never auto-fixes.
+# Required repo secrets: APP_URL, CRON_SECRET (same as sweep.yml).
+name: reconcile-ledger
+
+on:
+  schedule:
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reconcile ledger
+        run: |
+          curl -sf -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/reconcile-ledger"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

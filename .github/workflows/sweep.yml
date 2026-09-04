@@ -1,0 +1,22 @@
+# Phase 2 sweeper — runs every 5 min via GitHub Actions.
+# (Vercel Hobby allows only daily crons, so Vercel Cron can't do the 2-min
+# sweep. This workflow calls the same Bearer-authenticated endpoint.)
+# Required repo secrets: APP_URL (e.g. https://catarot.love), CRON_SECRET.
+name: sweep-generating
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sweep expired generating rows
+        run: |
+          curl -sf -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/sweep-generating"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
