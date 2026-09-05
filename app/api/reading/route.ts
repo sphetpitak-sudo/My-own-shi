@@ -41,11 +41,12 @@ export async function POST(request: Request) {
       endObs(obs, "validation_error", { status: 400, reason: "invalid_json" });
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: obsHeaders(obs) });
     }
-    const { question, spreadType, cards, topic } = body as {
+    const { question, spreadType, cards, topic, retryAfterError } = body as {
       question?: string;
       spreadType?: string;
       cards?: ReadingCardInput[];
       topic?: string;
+      retryAfterError?: boolean;
     };
     const topicKey = topic ?? "general";
 
@@ -115,6 +116,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: obsHeaders(obs) });
     }
     setObsUser(obs, user.id);
+
+    // Phase 5 idempotent retry: the client re-sends the IDENTICAL payload
+    // with retryAfterError=true after an ambiguous failure (e.g. network
+    // blip after the server already persisted). If a completed reading for
+    // the same user+spread+question+cards exists from the last 10 minutes,
+    // return it instead of spending again. Fresh attempts never send the
+    // flag, so normal behavior is unchanged (no free re-reads by default).
+    if (retryAfterError === true) {
+      const since = new Date(Date.now() - 10 * 60_000).toISOString();
+      const sig = JSON.stringify(cards);
+      try {
+        const { data: candidates } = await supabase
+          .from("readings")
+          .select("id, interpretation, cards")
+          .eq("user_id", user.id)
+          .eq("spread_type", spreadType)
+          .eq("question", trimmedQuestion)
+          .neq("interpretation", "__generating__")
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(5) as unknown as {
+          data: { id: string; interpretation: string; cards: unknown }[] | null;
+        };
+        const hit = (candidates ?? []).find(
+          (c) => typeof c.interpretation === "string" && c.interpretation.trim() !== "" && JSON.stringify(c.cards) === sig
+        );
+        if (hit) {
+          endObs(obs, "ok", { status: 200, readingId: hit.id, deduped: true });
+          return NextResponse.json(
+            { deduped: true, readingId: hit.id, interpretation: hit.interpretation },
+            { headers: obsHeaders(obs) }
+          );
+        }
+      } catch {
+        // Lookup failure must never block a paid retry — fall through.
+      }
+    }
 
     // Single policy: limit BEFORE spend, fail-closed on DB errors.
     const rl = await checkRateLimitPolicy(supabase, "reading");

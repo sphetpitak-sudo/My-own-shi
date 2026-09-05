@@ -273,7 +273,11 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
     }
   };
 
-  const startReading = async () => {
+  // Phase 5 idempotent retry: after an ambiguous failure the server may
+  // already have persisted (and charged). Retries re-send the identical
+  // payload with retryAfterError=true so the server returns the completed
+  // reading instead of spending again (no row, no extra charge).
+  const startReading = async (isRetry = false) => {
     if (startedRef.current && loading) return;
     startedRef.current = true;
     setText("");
@@ -300,10 +304,31 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
           question,
           spreadType,
           topic: topicKey,
+          ...(isRetry ? { retryAfterError: true } : {}),
         }),
         signal: abortController.signal,
       });
       // keep timeout for streaming — do not clear yet
+
+      // Idempotent-retry hit: server returned the already-completed reading
+      // as JSON (no stream, no new spend — do NOT call onPointsSpent).
+      const contentType = res.headers.get("content-type") || "";
+      if (res.ok && contentType.includes("application/json")) {
+        clearClientTimeout();
+        const data = (await res.json().catch(() => ({}))) as {
+          deduped?: boolean;
+          readingId?: string;
+          interpretation?: string;
+        };
+        if (data.deduped && typeof data.interpretation === "string" && data.interpretation) {
+          if (typeof data.readingId === "string") setReadingId(data.readingId);
+          setText(data.interpretation);
+          setDone(true);
+          setLoading(false);
+          return;
+        }
+        // Unknown JSON shape on 200 — fall through to streaming below.
+      }
 
       if (!res.ok) {
         clearClientTimeout();
@@ -442,7 +467,7 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
         </button>
         {done && !error && (
           <button
-            onClick={startReading}
+            onClick={() => startReading()}
             className="reading-journal-retry"
             aria-label="ทำนายอีกครั้ง"
           >
@@ -563,7 +588,7 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
 
       {/* Content */}
       {error ? (
-        <ErrorState error={error} onRetry={startReading} onDone={onDone} hasPartial={!!text.trim()} partialText={text} />
+        <ErrorState error={error} onRetry={() => startReading(true)} onDone={onDone} hasPartial={!!text.trim()} partialText={text} />
       ) : hasSections ? (
         <div className="reading-journal-sections">
           {sections.map((sec, idx) => {
@@ -679,7 +704,7 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
             <button onClick={onDone} className="btn btn-primary px-8 py-3.5 rounded-2xl text-[14px]">
               กลับหน้าหลัก
             </button>
-            <button onClick={startReading} className="btn btn-ghost rounded-2xl text-[14px]">
+            <button onClick={() => startReading()} className="btn btn-ghost rounded-2xl text-[14px]">
               <RefreshCw size={14} /> อ่านอีกครั้ง
             </button>
           </div>

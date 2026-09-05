@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
+import OfflineBanner from "./OfflineBanner";
 import SealoChatFAB from "./chat/SealoChatFAB";
 import { createClient } from "@/lib/supabase/client";
 
@@ -114,6 +115,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
             onMenuClick={() => setSidebarOpen(true)}
           />
 
+          <OfflineBanner />
           <main className="content" style={{ padding: 0 }}>
             {children}
           </main>

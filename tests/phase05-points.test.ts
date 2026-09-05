@@ -57,7 +57,7 @@ function makeSupabase(opts: {
     throw new Error(`unexpected rpc ${fn} ${JSON.stringify(args)}`);
   });
   const builders: ReturnType<typeof qb>[] = [];
-  const from = vi.fn((_table: string) => {
+  const from = vi.fn(() => {
     const b = qb({ data: { id: opts.readingId ?? "read-1" }, error: null });
     builders.push(b);
     return b;
