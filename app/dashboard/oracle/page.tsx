@@ -125,7 +125,7 @@ export default function OraclePage() {
       return;
     }
     if (!charged || charged === 0) {
-      setError(`คะแนนไม่พอ (ต้องการ ${spread.cost})`);
+      setError(`แต้มไม่พอ (ต้องการ ${spread.cost} แต้ม)`);
       return;
     }
     const actualCost = charged as number;
@@ -444,7 +444,7 @@ export default function OraclePage() {
                       <div className="spread-option-bottom">
                         <span>{s.count} ใบ</span>
                         <span style={{ color: insufficient ? "var(--red)" : "var(--text-muted)" }}>
-                          {insufficient ? "คะแนนไม่พอ" : s.nameEn}
+                          {insufficient ? "แต้มไม่พอ" : s.nameEn}
                         </span>
                       </div>
                     </button>

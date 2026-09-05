@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import DashboardShell from "@/components/DashboardShell";
 import { drawCards, type DrawnCard } from "@/lib/cards";
 import TarotCard from "@/components/TarotCard";
+import InsufficientPoints from "@/components/ui/InsufficientPoints";
 import { CircleHelp, Sparkles, ArrowLeft, RefreshCw, Coins, AlertTriangle } from "lucide-react";
 import { stripMarkdownMultiline } from "@/lib/text";
 
@@ -104,7 +105,7 @@ export default function YesNoPage() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           if (data.error === "Not enough points") {
-            setError(`คะแนนไม่พอ (ต้องการ ${data.needed ?? cost})`);
+            setError(`แต้มไม่พอ (ต้องการ ${data.needed ?? cost} แต้ม)`);
           } else if (data.error === "Unauthorized") {
             setError("กรุณาเข้าสู่ระบบใหม่");
           } else if (res.status === 429) {
@@ -172,7 +173,7 @@ export default function YesNoPage() {
           return;
         }
         if (!charged || charged === 0) {
-          setError(`คะแนนไม่พอ (ต้องการ ${cost})`);
+          setError(`แต้มไม่พอ (ต้องการ ${cost} แต้ม)`);
           setSubmitting(false);
           return;
         }
@@ -319,7 +320,8 @@ export default function YesNoPage() {
                 className="mx-4 mt-3 p-3 rounded-xl text-[12.5px] font-medium flex items-center gap-2"
                 style={{ background: "var(--red-soft)", color: "var(--red)" }}
               >
-                <AlertTriangle size={14} /> คะแนนไม่พอ
+                <AlertTriangle size={14} aria-hidden />
+                <InsufficientPoints variant="inline" needed={cost} current={points} className="font-medium" />
               </div>
             )}
           </div>

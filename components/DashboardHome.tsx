@@ -8,6 +8,7 @@ import PointsBalance from "./PointsBalance";
 import FeatureCard from "@/components/ui/FeatureCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import AnnouncementCard from "@/components/ui/AnnouncementCard";
+import InsufficientPoints from "@/components/ui/InsufficientPoints";
 import { SPREADS, type SpreadType } from "@/lib/cards";
 import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/catalog";
 import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, ArrowRight, Heart, Briefcase, GraduationCap, Wallet, Activity, type LucideIcon } from "lucide-react";
@@ -349,7 +350,7 @@ export default function DashboardHome() {
                   <div className="text-[12px] mt-1 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{spread.descriptionTh}</div>
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-[11.5px] font-semibold px-2 py-1 rounded-full" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>{spread.cardCount} ใบ</span>
-                    {insufficient ? <span className="text-[12px] font-bold" style={{ color: "var(--red)" }}>ขาด {cost - (profile?.points ?? 0)}</span> : <span className="inline-flex items-center gap-1 text-[13px] font-extrabold" style={{ color: "var(--gold)" }}><Coins size={12} /> {cost}</span>}
+                    {insufficient ? <InsufficientPoints variant="inline" needed={cost} current={profile?.points ?? 0} className="text-[12px] font-bold" /> : <span className="inline-flex items-center gap-1 text-[13px] font-extrabold" style={{ color: "var(--gold)" }}><Coins size={12} /> {cost}</span>}
                   </div>
                 </div>
               </button>

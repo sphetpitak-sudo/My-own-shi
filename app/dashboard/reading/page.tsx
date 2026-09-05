@@ -8,6 +8,7 @@ import SpreadSelector from "@/components/SpreadSelector";
 import QuestionInput from "@/components/QuestionInput";
 import CardDraw from "@/components/CardDraw";
 import ReadingResult from "@/components/ReadingResult";
+import InsufficientPoints from "@/components/ui/InsufficientPoints";
 import { ArrowLeft, Check, Sparkles, Wand2, HelpCircle, BookOpen, Heart, Briefcase, GraduationCap, Wallet, Activity, Compass } from "lucide-react";
 import { SPREADS, type SpreadType, type DrawnCard } from "@/lib/cards";
 import { useBeforeUnload } from "@/lib/useBeforeUnload";
@@ -398,7 +399,6 @@ function ReadingPageInner() {
 
         {step === "question" && (() => {
           const actualCost = costs[spreadType] ?? spread.cost;
-          const shortage = actualCost - points;
           const insufficient = points < actualCost;
           return (
           <div className="animate-in">
@@ -427,8 +427,8 @@ function ReadingPageInner() {
             </div>
 
             {insufficient && (
-              <div className="mx-4 mb-3 flex items-center gap-2 text-[12.5px] font-semibold rounded-xl px-3 py-2.5" style={{ background: "var(--red-soft)", color: "var(--red)", border: "1px solid rgba(194,65,48,0.14)" }}>
-                ขาดอีก {shortage} แต้ม — <button onClick={() => router.push("/dashboard/daily")} className="underline">รับแต้มฟรี</button> หรือ <button onClick={() => router.push("/dashboard/profile")} className="underline">เติมแต้ม</button>
+              <div className="mx-4 mb-3">
+                <InsufficientPoints needed={actualCost} current={points} showTopUp />
               </div>
             )}
 

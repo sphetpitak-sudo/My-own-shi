@@ -111,7 +111,7 @@ export default function BirthChartPage() {
         if(data.error==="Not enough points"){
           const cur = (typeof data.current === "number" ? data.current : shell.profile?.points ?? 0);
           const need = (typeof data.needed === "number" ? data.needed : 25);
-          setError(`แต้มไม่พอ — ต้องใช้ ${need} แต้ม คุณมี ${cur.toLocaleString()} แต้ม · ไปทำภารกิจประจำวันเพื่อรับแต้มฟรี`);
+          setError(`แต้มไม่พอ (ต้องการ ${need} แต้ม มี ${cur.toLocaleString()} แต้ม)`);
         } else throw new Error(data.error || "คำนวณไม่สำเร็จ");
         return;
       }

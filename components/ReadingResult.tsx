@@ -334,7 +334,7 @@ export default function ReadingResult({ cards, spreadType, topic, question, onDo
         clearClientTimeout();
         const data = await res.json().catch(() => ({}));
         if (data.error === "Not enough points") {
-          setError(`คะแนนไม่พอ (ต้องการ ${data.needed} มี ${data.current})`);
+          setError(`แต้มไม่พอ (ต้องการ ${data.needed} แต้ม มี ${data.current} แต้ม)`);
         } else if (data.error === "Unauthorized") {
           setError("กรุณาเข้าสู่ระบบใหม่");
         } else if (res.status === 429) {

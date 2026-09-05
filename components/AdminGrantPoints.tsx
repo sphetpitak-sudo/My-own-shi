@@ -38,7 +38,7 @@ export default function AdminGrantPoints({ user, onClose, onGrant }: Props) {
 
     if (rpcErr) {
       if (rpcErr.message.includes("Insufficient points")) {
-        setError("คะแนนไม่พอสำหรับการหัก");
+        setError("แต้มของผู้ใช้ไม่พอสำหรับการหัก");
       } else if (rpcErr.message.includes("Unauthorized")) {
         setError("คุณไม่มีสิทธิ์ดำเนินการนี้");
       } else {

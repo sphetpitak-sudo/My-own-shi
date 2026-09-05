@@ -7,7 +7,10 @@ interface BaseProps {
   className?: string;
 }
 
-// Standard: 11.5 / 13 / 14.5 / 18 / 24 — keep hierarchy strict
+// Type scale (single source: --text-* tokens in app/globals.css):
+// xs 11.5 / sm 13 / md 14.5 / lg 18 / xl 24 — keep hierarchy strict.
+// NOTE: legacy code also uses 11 / 12 / 12.5 / 13.5 / 15 / 20 / 22 / 26px
+// in places; prefer the five tokens above for anything new.
 export function LoadingState({ label = "กำลังโหลด...", compact = false, className }: { label?: string; compact?: boolean } & BaseProps) {
   if (compact) {
     return (

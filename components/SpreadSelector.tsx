@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { SPREADS, type SpreadType } from "@/lib/cards";
-import { Coins, Check, AlertTriangle, Sparkles, X } from "lucide-react";
+import { Coins, Check, Sparkles, X } from "lucide-react";
 import Link from "next/link";
+import InsufficientPoints from "./ui/InsufficientPoints";
 
 interface Props {
   onSelect: (spreadId: SpreadType) => void;
@@ -58,7 +59,6 @@ export default function SpreadSelector({
           const disabled = userPoints < cost;
           const active = selectedSpread === key;
           const meta = SPREAD_META[key];
-          const shortage = cost - userPoints;
 
         return (
           <button
@@ -148,10 +148,8 @@ export default function SpreadSelector({
               </span>
             </div>
             {disabled && (
-              <div className="mt-3 flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--red)] bg-[var(--red-soft)] border border-[rgba(194,65,48,0.12)] rounded-lg px-3 py-2">
-                <AlertTriangle size={12} />
-                ขาดอีก {shortage} แต้ม
-                <Link href="/dashboard/daily" className="ml-auto text-[11px] font-bold underline hover:no-underline">รับแต้มฟรี</Link>
+              <div className="mt-3">
+                <InsufficientPoints needed={cost} current={userPoints} />
               </div>
             )}
 
