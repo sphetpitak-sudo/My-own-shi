@@ -34,7 +34,7 @@ export default function Topbar({
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMenuClick}
-          className="btn-icon lg:hidden text-[var(--text-secondary)] hover:text-[var(--text)]"
+          className="btn-icon touch-hit lg:hidden text-[var(--text-secondary)] hover:text-[var(--text)]"
           aria-label="เปิดเมนู"
         >
           <Menu size={20} />
@@ -65,7 +65,7 @@ export default function Topbar({
         <PointsBadge points={points} size="sm" showPopOnChange tone="gold" />
 
         <button
-          className="btn-icon"
+          className="btn-icon touch-hit"
           aria-label="การแจ้งเตือน"
           title="การแจ้งเตือน"
           onClick={() => toast("ฟีเจอร์การแจ้งเตือนเร็ว ๆ นี้", "info")}
@@ -75,7 +75,7 @@ export default function Topbar({
 
         <button
           onClick={toggle}
-          className="btn-icon"
+          className="btn-icon touch-hit"
           aria-label={theme === "light" ? "เปลี่ยนเป็นโหมดมืด" : "เปลี่ยนเป็นโหมดสว่าง"}
           title={theme === "light" ? "โหมดมืด" : "โหมดสว่าง"}
         >

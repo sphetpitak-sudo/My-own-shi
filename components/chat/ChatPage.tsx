@@ -238,7 +238,7 @@ export default function ChatPage() {
                   <div className="text-[13px] font-semibold truncate" style={{ color: convId === c.id ? "var(--primary)" : "var(--text)" }}>{c.title}</div>
                   <div className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>{new Date(c.updated_at).toLocaleDateString("th-TH")}</div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }} className="opacity-0 group-hover:opacity-100 w-6 h-6 grid place-items-center rounded-full hover:bg-red-50 text-[var(--text-muted)] hover:text-red-500"><Trash2 size={12} /></button>
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }} aria-label={`ลบแชท ${c.title}`} className="touch-hit chat-del opacity-0 group-hover:opacity-100 focus-visible:opacity-100 w-6 h-6 grid place-items-center rounded-full hover:bg-red-50 text-[var(--text-muted)] hover:text-red-500"><Trash2 size={12} aria-hidden /></button>
               </div>
             ))}
           </div>
@@ -327,7 +327,7 @@ export default function ChatPage() {
           {!isEmpty && !streaming && (
             <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-none">
               {QUICK_ACTIONS.slice(0, 4).map((a) => (
-                <button key={a.label} onClick={() => send(a.prompt)} className="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border" style={{ background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+                <button key={a.label} onClick={() => send(a.prompt)} className="touch-hit shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border" style={{ background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-secondary)" }}>
                   {a.label}
                 </button>
               ))}
@@ -338,7 +338,11 @@ export default function ChatPage() {
           <div className="p-3 sm:p-4 border-t shrink-0" style={{ background: "var(--bg-card)", borderColor: "var(--border)", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
             <div className="max-w-[720px] mx-auto flex gap-2 items-end">
               <div className="flex-1 relative">
+                <label htmlFor="sealo-chat-input" className="sr-only">
+                  พิมพ์ข้อความคุยกับ Sealo (Enter เพื่อส่ง, Shift+Enter ขึ้นบรรทัดใหม่)
+                </label>
                 <textarea
+                  id="sealo-chat-input"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
@@ -351,10 +355,11 @@ export default function ChatPage() {
                 <button
                   onClick={() => send()}
                   disabled={!input.trim() || streaming}
-                  className="absolute right-1.5 bottom-1.5 w-8 h-8 rounded-full grid place-items-center text-white disabled:opacity-40"
+                  aria-label={streaming ? "Sealo กำลังตอบ กรุณารอ" : "ส่งข้อความ"}
+                  className="touch-hit absolute right-1.5 bottom-1.5 w-8 h-8 rounded-full grid place-items-center text-white disabled:opacity-40"
                   style={{ background: streaming ? "var(--text-muted)" : "var(--primary)" }}
                 >
-                  {streaming ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {streaming ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Send size={16} aria-hidden />}
                 </button>
               </div>
             </div>

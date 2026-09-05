@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ALL_CARDS } from "@/lib/cards";
 import { Sparkles } from "lucide-react";
+import { useDialogFocus } from "./ui/useDialogFocus";
 
 interface Props {
   userId: string;
@@ -101,7 +102,7 @@ export default function CardCollection({ userId }: Props) {
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
         {(["all","major","cups","wands","swords","pentacles"] as const).map(k=>{
           const label = k==="all"?"ทั้งหมด":k==="major"?"เมเจอร์":k==="cups"?"ถ้วย":k==="wands"?"ไม้เท้า":k==="swords"?"ดาบ":"เหรียญ";
-          return <button key={k} onClick={()=>setFilter(k)} className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold whitespace-nowrap border" style={{ background: filter===k? "var(--primary)":"var(--bg-card)", color: filter===k?"white":"var(--text-secondary)", borderColor: filter===k?"var(--primary)":"var(--border)" }}>{label}</button>;
+          return <button key={k} onClick={()=>setFilter(k)} aria-pressed={filter===k} className="touch-hit px-3 py-1.5 rounded-full text-[11.5px] font-semibold whitespace-nowrap border" style={{ background: filter===k? "var(--primary)":"var(--bg-card)", color: filter===k?"white":"var(--text-secondary)", borderColor: filter===k?"var(--primary)":"var(--border)" }}>{label}</button>;
         })}
       </div>
 
@@ -131,10 +132,11 @@ export default function CardCollection({ userId }: Props) {
       </div>
 
       {selected !== null && (()=>{ const card = ALL_CARDS.find(c=>c.id===selected)!; const count = stats.counts.get(card.id)||0; return (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-          <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={()=>setSelected(null)} aria-label="ปิด" />
-          <div className="relative card max-w-[440px] w-full p-6 max-h-[86vh] overflow-auto">
-            <button onClick={()=>setSelected(null)} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" aria-label="ปิด"><span className="text-[18px] leading-none" style={{ color:"var(--text-muted)"}}>×</span></button>
+        <CardDetailModal
+          cardNameTh={card.nameTh}
+          onClose={()=>setSelected(null)}
+        >
+          <button onClick={()=>setSelected(null)} aria-label="ปิดหน้าต่างรายละเอียดไพ่" className="touch-hit absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" style={{ color:"var(--text-muted)"}}><span className="text-[18px] leading-none" aria-hidden>×</span></button>
             <div className="flex gap-5">
               <picture className="block flex-shrink-0">
                 <source srcSet={`/Taro/${card.imageFile.replace(/\.jpg$/i, ".webp")}`} type="image/webp" />
@@ -152,9 +154,36 @@ export default function CardCollection({ userId }: Props) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardDetailModal>
       );})()}
+    </div>
+  );
+}
+
+function CardDetailModal({
+  cardNameTh,
+  onClose,
+  children,
+}: {
+  cardNameTh: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const panelRef = useDialogFocus<HTMLDivElement>(true, { onClose });
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+      <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-label="ปิด" tabIndex={-1} />
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`รายละเอียดไพ่ ${cardNameTh}`}
+        className="relative card max-w-[440px] w-full p-6 max-h-[86vh] overflow-auto"
+        style={{ outline: "none" }}
+      >
+        {children}
+      </div>
     </div>
   );
 }

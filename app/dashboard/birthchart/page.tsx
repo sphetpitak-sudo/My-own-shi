@@ -289,7 +289,7 @@ export default function BirthChartPage() {
             {/* Wheel — real map */}
             <div className="card p-3 sm:p-4 flex justify-center overflow-hidden relative" style={{ background:"radial-gradient(600px 300px at 50% 0%, rgba(167,139,250,0.08), transparent), var(--bg-card)"}}>
               <BirthChartWheel chart={chart} size={360} />
-              <button onClick={handleShare} className="absolute top-3 right-3 w-8 h-8 rounded-full grid place-items-center" style={{background:"rgba(212,175,55,0.14)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.22)"}} aria-label="แชร์"><Share2 size={14}/></button>
+              <button onClick={handleShare} className="touch-hit absolute top-3 right-3 w-8 h-8 rounded-full grid place-items-center" style={{background:"rgba(212,175,55,0.14)", color:"var(--gold)", border:"1px solid rgba(212,175,55,0.22)"}} aria-label="แชร์"><Share2 size={14} aria-hidden /></button>
             </div>
             {/* meta bar */}
             <div className="flex flex-wrap gap-1.5 text-[10.5px]">

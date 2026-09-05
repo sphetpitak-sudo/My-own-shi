@@ -9,6 +9,11 @@ import QuestionInput from "@/components/QuestionInput";
 import CardDraw from "@/components/CardDraw";
 import ReadingResult from "@/components/ReadingResult";
 import InsufficientPoints from "@/components/ui/InsufficientPoints";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import {
+  readingStepEyebrow,
+  getConfirmSummary,
+} from "@/lib/reading-flow";
 import { ArrowLeft, Check, Sparkles, Wand2, HelpCircle, BookOpen, Heart, Briefcase, GraduationCap, Wallet, Activity, Compass } from "lucide-react";
 import { SPREADS, type SpreadType, type DrawnCard } from "@/lib/cards";
 import { useBeforeUnload } from "@/lib/useBeforeUnload";
@@ -84,6 +89,9 @@ function ReadingPageInner() {
   );
   const [question, setQuestion] = useState("");
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
+  // Pre-spend confirmation (Phase C1): spend still happens server-side in
+  // the result step; this dialog only gates advancing to the draw step.
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -192,7 +200,17 @@ function ReadingPageInner() {
   };
 
   const handleQuestionSubmit = () => {
+    // Open the pre-spend confirmation instead of advancing directly.
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmProceed = () => {
+    setConfirmOpen(false);
     setStep("draw");
+  };
+
+  const handleConfirmCancel = () => {
+    setConfirmOpen(false);
   };
 
   const handleDrawComplete = (cards: DrawnCard[]) => {
@@ -262,7 +280,7 @@ function ReadingPageInner() {
         {/* Step content */}
         {step === "spread" && (
           <div className="step-header">
-            <p className="step-eyebrow">ขั้นตอนที่ 1 / 5</p>
+            <p className="step-eyebrow">{readingStepEyebrow("spread")}</p>
             <h1 className="step-title">เลือกรูปแบบการอ่านไพ่</h1>
             <p className="step-sub">
               แต่ละแบบจะเปิดมุมมองที่ลึกและกว้างต่างกัน
@@ -273,7 +291,7 @@ function ReadingPageInner() {
 
         {step === "topic" && (
           <div className="step-header">
-            <p className="step-eyebrow">ขั้นตอนที่ 2 / 5</p>
+            <p className="step-eyebrow">{readingStepEyebrow("topic")}</p>
             <h1 className="step-title">เลือกหัวข้อที่อยากให้ไพ่เน้น</h1>
             <p className="step-sub">
               เลือกหัวข้อที่ตรงกับสิ่งที่อยู่ในใจมากที่สุด
@@ -284,7 +302,7 @@ function ReadingPageInner() {
 
         {step === "question" && (
           <div className="step-header">
-            <p className="step-eyebrow">ขั้นตอนที่ 3 / 5</p>
+            <p className="step-eyebrow">{readingStepEyebrow("question")}</p>
             <h1 className="step-title">ตั้งคำถามกับจักรวาล</h1>
             <p className="step-sub">
               ยิ่งคำถามชัดเจน ยิ่งได้คำตอบที่ตรงใจ
@@ -295,7 +313,7 @@ function ReadingPageInner() {
 
         {step === "draw" && (
           <div className="step-header">
-            <p className="step-eyebrow">ขั้นตอนที่ 4 / 5</p>
+            <p className="step-eyebrow">{readingStepEyebrow("draw")}</p>
             <h1 className="step-title">สับไพ่และเลือกไพ่ของคุณ</h1>
             <p className="step-sub">
               ปล่อยใจให้สงบ แล้วเลือกไพ่ที่ดึงดูดคุณที่สุด
@@ -312,7 +330,7 @@ function ReadingPageInner() {
         {step === "spread" && (
           <SpreadSelector
             onSelect={handleSpreadSelect}
-            selectedSpread={null}
+            selectedSpread={spreadType}
             userPoints={points}
             costs={costs}
           />
@@ -438,13 +456,35 @@ function ReadingPageInner() {
               onSubmit={handleQuestionSubmit}
             />
 
-            <button
-              onClick={() => setStep("spread")}
-              className="btn btn-ghost mt-4 mx-4 text-[13px]"
-            >
-              <ArrowLeft size={14} />
-              เลือก Spread ใหม่
-            </button>
+            <div className="flex gap-2 mt-4 mx-4">
+              <button
+                onClick={() => setStep("topic")}
+                className="btn btn-ghost text-[13px]"
+              >
+                <ArrowLeft size={14} />
+                เลือกหัวข้อ
+              </button>
+              <button
+                onClick={() => setStep("spread")}
+                className="btn btn-ghost text-[13px]"
+              >
+                เลือก Spread ใหม่
+              </button>
+            </div>
+
+            <ConfirmDialog
+              open={confirmOpen}
+              summary={getConfirmSummary({
+                spreadNameTh: spread.nameTh,
+                cardCount: spread.cardCount,
+                cost: actualCost,
+                current: points,
+              })}
+              confirmLabel={`ยืนยัน เปิดไพ่ (${actualCost} แต้ม)`}
+              cancelLabel="กลับไปแก้คำถาม"
+              onConfirm={handleConfirmProceed}
+              onCancel={handleConfirmCancel}
+            />
           </div>
           );
         })()}

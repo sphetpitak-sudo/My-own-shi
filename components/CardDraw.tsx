@@ -7,6 +7,7 @@ import { drawCards, type Spread, type DrawnCard } from "@/lib/cards";
 import { cn } from "@/lib/cn";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { readingStepEyebrow } from "@/lib/reading-flow";
 
 interface Props {
   spread: Spread;
@@ -55,7 +56,7 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
     return (
       <div className="relative">
         <ShuffleAnimation onComplete={handleShuffleComplete} reducedMotion={reducedMotion} />
-        <button onClick={handleShuffleComplete} className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[12px] font-semibold underline" style={{ color: "var(--text-muted)" }}>
+        <button onClick={handleShuffleComplete} className="touch-hit absolute bottom-2 left-1/2 -translate-x-1/2 text-[12px] font-semibold underline px-3 py-2" style={{ color: "var(--text-muted)" }}>
           ข้ามพิธีกรรม →
         </button>
       </div>
@@ -69,7 +70,7 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
       {/* Instruction Header */}
       <div className="text-center space-y-1.5">
         <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">
-          ขั้นตอนที่ 3 / 4
+          {readingStepEyebrow("draw")}
         </p>
         <h3 className="text-[22px] font-extrabold text-[var(--text)] tracking-tight">
           เลือกและเปิดไพ่ของคุณ
@@ -81,13 +82,20 @@ export default function CardDraw({ spread, onComplete, reducedMotion: reducedMot
 
       {/* Progress Bar */}
       <div className="w-full max-w-[280px] flex items-center gap-3">
-        <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
+        <div
+          className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden"
+          role="progressbar"
+          aria-label="ความคืบหน้าการเปิดไพ่"
+          aria-valuemin={0}
+          aria-valuemax={spread.cardCount}
+          aria-valuenow={flippedIndices.size}
+        >
           <div
             className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--gold)] rounded-full transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <div className="text-[12px] font-bold tabular-nums text-[var(--text-muted)] min-w-[38px] text-right">
+        <div className="text-[12px] font-bold tabular-nums text-[var(--text-muted)] min-w-[38px] text-right" aria-live="polite">
           {flippedIndices.size}/{spread.cardCount}
         </div>
       </div>

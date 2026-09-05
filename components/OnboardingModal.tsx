@@ -76,7 +76,7 @@ export default function OnboardingModal({ onComplete }: { onComplete?: () => voi
           <div className="h-full bg-[var(--primary)] transition-all duration-300" style={{ width: `${((step + 1) / 3) * 100}%` }} />
         </div>
 
-        <button onClick={handleSkip} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" aria-label="ข้าม">
+        <button onClick={handleSkip} className="touch-hit absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" aria-label="ข้าม">
           <X size={16} style={{ color: "var(--text-muted)" }} />
         </button>
 

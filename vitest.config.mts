@@ -11,7 +11,9 @@ export default defineConfig({
     },
   },
   test: {
+    // Default env is node; DOM tests opt in per-file via
+    // `// @vitest-environment jsdom` pragma comments.
     environment: "node",
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
   },
 });

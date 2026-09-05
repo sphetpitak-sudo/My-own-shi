@@ -9,6 +9,7 @@ import { SPREADS, ALL_CARDS, type SpreadType } from "@/lib/cards";
 import type { Reading } from "@/lib/types";
 import TarotCard from "./TarotCard";
 import { stripMarkdownMultiline } from "@/lib/text";
+import { ErrorState } from "./ui/State";
 
 interface ReadingHistoryProps {
   userId: string;
@@ -109,6 +110,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState("");
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try { return new Set(JSON.parse(localStorage.getItem("sealo_favorites") || "[]")); } catch { return new Set(); }
@@ -116,32 +118,48 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
 
   const fetchReadings = useCallback(
     async (offset = 0, append = false) => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("readings")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
+      try {
+        const supabase = createClient();
+        const { data, error: fetchError } = await supabase
+          .from("readings")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
 
-      if (data) {
-        setReadings((prev) => {
-          const next = append ? [...prev, ...data] : data;
-          const rParam = searchParams.get("r");
-          if (rParam && next.some((r: { id: string }) => r.id === rParam)) {
-            setExpandedId(rParam);
-            // scroll after render
-            setTimeout(() => document.getElementById(`reading-${rParam}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
-          }
-          return next;
-        });
-        setHasMore(data.length === PAGE_SIZE);
+        if (fetchError) throw fetchError;
+        if (data) {
+          setReadings((prev) => {
+            const next = append ? [...prev, ...data] : data;
+            const rParam = searchParams.get("r");
+            if (rParam && next.some((r: { id: string }) => r.id === rParam)) {
+              setExpandedId(rParam);
+              // scroll after render
+              setTimeout(() => document.getElementById(`reading-${rParam}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+            }
+            return next;
+          });
+          setHasMore(data.length === PAGE_SIZE);
+        }
+        // Successful fetch clears any previous error (e.g. after retry).
+        setError("");
+      } catch {
+        // Stop the shimmer and show an explicit, retryable error instead.
+        if (!append) setReadings([]);
+        setError("โหลดประวัติไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่");
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-      setLoading(false);
-      setLoadingMore(false);
     },
     [userId, searchParams]
   );
+
+  const retryFetch = () => {
+    setError("");
+    setLoading(true);
+    fetchReadings();
+  };
 
   useEffect(() => {
     fetchReadings();
@@ -187,11 +205,21 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div role="status" aria-label="กำลังโหลดประวัติการทำนาย" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {[1, 2, 3].map((i) => (
           <div key={i} className="shimmer" style={{ height: 76, width: "100%", borderRadius: 14 }} />
         ))}
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="โหลดประวัติไม่สำเร็จ"
+        message={error}
+        onRetry={retryFetch}
+      />
     );
   }
 
@@ -248,7 +276,8 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                 <button
                   key={k}
                   onClick={() => setFilter(k)}
-                  className="chip"
+                  aria-pressed={filter === k}
+                  className="chip touch-hit"
                   style={{
                     flexShrink: 0,
                     padding: "6px 12px",
@@ -357,7 +386,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
                 <button
                   onClick={e => { e.stopPropagation(); toggleFavorite(r.id); }}
                   aria-label={favorites.has(r.id) ? "ลบออกจากโปรด" : "เพิ่มโปรด"}
-                  className="w-7 h-7 grid place-items-center rounded-full"
+                  className="touch-hit w-7 h-7 grid place-items-center rounded-full"
                   style={{ background: favorites.has(r.id) ? "var(--gold-soft)" : "var(--bg)", border: `1px solid ${favorites.has(r.id) ? "var(--gold)" : "var(--border)"}`, color: favorites.has(r.id) ? "var(--gold)" : "var(--text-muted)" }}
                 >
                   <Star size={12} fill={favorites.has(r.id) ? "currentColor" : "none"} />

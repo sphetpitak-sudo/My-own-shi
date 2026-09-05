@@ -6,6 +6,7 @@ import { SPREADS, type SpreadType } from "@/lib/cards";
 import { Coins, Check, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import InsufficientPoints from "./ui/InsufficientPoints";
+import { useDialogFocus } from "./ui/useDialogFocus";
 
 interface Props {
   onSelect: (spreadId: SpreadType) => void;
@@ -67,6 +68,7 @@ export default function SpreadSelector({
             disabled={disabled}
             onClick={() => handleSelect(key)}
             aria-label={`${spread.nameTh} - ${spread.cardCount} ใบ ${cost} แต้ม${disabled ? " (แต้มไม่พอ)" : ""}`}
+            aria-pressed={active}
             className={cn(
               "card p-4 text-left relative overflow-hidden flex flex-col group",
               active && "ring-2 ring-[var(--primary)] shadow-md bg-[var(--primary-soft)]",
@@ -187,15 +189,42 @@ export default function SpreadSelector({
       </div>
 
       {/* Celtic preview modal */}
-      {preview === "celtic" && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal>
-          <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPreview(null)} aria-label="ปิด" />
-          <div className="relative card p-6 max-w-[520px] w-full max-h-[85dvh] overflow-auto" style={{ background: "var(--bg-elevated)" }}>
-            <button onClick={() => setPreview(null)} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" style={{ color: "var(--text-muted)" }}><X size={16} /></button>
+      <CelticPreviewModal
+        open={preview === "celtic"}
+        onClose={() => setPreview(null)}
+        onSelect={() => { setPreview(null); onSelect("celtic"); }}
+        cost={costs["celtic"] ?? SPREADS.celtic.cost}
+        userPoints={userPoints}
+      />
+    </>
+  );
+}
+
+function CelticPreviewModal({
+  open,
+  onClose,
+  onSelect,
+  cost,
+  userPoints,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSelect: () => void;
+  cost: number;
+  userPoints: number;
+}) {
+  const panelRef = useDialogFocus<HTMLDivElement>(open, { onClose });
+  if (!open) return null;
+  const disabled = userPoints < cost;
+  return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-label="ปิด" tabIndex={-1} />
+          <div ref={panelRef} tabIndex={-1} className="relative card p-6 max-w-[520px] w-full max-h-[85dvh] overflow-auto" style={{ background: "var(--bg-elevated)", outline: "none" }} role="dialog" aria-modal="true" aria-labelledby="celtic-preview-title">
+            <button onClick={onClose} aria-label="ปิดหน้าต่างตัวอย่าง" className="touch-hit absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" style={{ color: "var(--text-muted)" }}><X size={16} /></button>
             <div className="flex items-center gap-2 mb-2">
               <div className="w-9 h-9 rounded-xl grid place-items-center" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}><Sparkles size={16} /></div>
               <div>
-                <h3 className="text-[18px] font-extrabold" style={{ color: "var(--text)" }}>กางเขนเคลติก — 10 ใบ</h3>
+                <h3 id="celtic-preview-title" className="text-[18px] font-extrabold" style={{ color: "var(--text)" }}>กางเขนเคลติก — 10 ใบ</h3>
                 <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>วิเคราะห์ลึก 10 มิติ • คุ้มเมื่ออยากเห็นภาพรวมครบ</p>
               </div>
             </div>
@@ -221,15 +250,15 @@ export default function SpreadSelector({
               เหมาะสำหรับคำถามที่ต้องการความละเอียดทุกมิติ — อดีต รากฐาน อุปสรรค อนาคตใกล้ ทัศนคติ สิ่งรอบตัว ความหวัง และบทสรุปสุดท้าย เชื่อม 10 ใบเป็นเรื่องเดียว
             </p>
             <div className="flex items-center gap-2 mt-4">
-              <div className="flex items-center gap-1.5 text-[13px] font-extrabold" style={{ color: "var(--gold)" }}><Coins size={14} /> {(costs["celtic"] ?? SPREADS.celtic.cost)} แต้ม</div>
+              <div className="flex items-center gap-1.5 text-[13px] font-extrabold" style={{ color: "var(--gold)" }}><Coins size={14} /> {cost} แต้ม</div>
               <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>คงเหลือ {userPoints.toLocaleString()}</span>
-              {userPoints < (costs["celtic"] ?? SPREADS.celtic.cost) && <span className="text-[11.5px] font-bold ml-auto" style={{ color: "var(--red)" }}>แต้มไม่พอ</span>}
+              {disabled && <span className="text-[11.5px] font-bold ml-auto" style={{ color: "var(--red)" }}>แต้มไม่พอ</span>}
             </div>
             <div className="flex gap-2.5 mt-5">
-              <button onClick={() => setPreview(null)} className="btn btn-ghost flex-1">ไว้ก่อน</button>
+              <button onClick={onClose} className="btn btn-ghost flex-1">ไว้ก่อน</button>
               <button
-                disabled={userPoints < (costs["celtic"] ?? SPREADS.celtic.cost)}
-                onClick={() => { setPreview(null); onSelect("celtic"); }}
+                disabled={disabled}
+                onClick={onSelect}
                 className="btn btn-primary flex-1"
               >
                 ยืนยันเปิด 10 ใบ
@@ -237,7 +266,5 @@ export default function SpreadSelector({
             </div>
           </div>
         </div>
-      )}
-    </>
   );
 }

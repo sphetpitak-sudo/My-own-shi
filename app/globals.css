@@ -981,6 +981,19 @@ body {
 .d5 { animation-delay: 0.25s; }
 
 /* ============ ACCESSIBILITY & UTILITIES ============ */
+/* Invisible hit-area expansion toward ~44px without changing visuals.
+   Note: ancestors with overflow:hidden clip the extended area, so the
+   gain is partial inside scrollable chip rows (still strictly better). */
+.touch-hit { position: relative; }
+.touch-hit::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+/* Hover-only controls are unreachable on touch — keep chat delete visible. */
+@media (pointer: coarse) {
+  .chat-del { opacity: 1; }
+}
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;

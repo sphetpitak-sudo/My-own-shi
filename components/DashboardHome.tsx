@@ -163,14 +163,15 @@ export default function DashboardHome() {
             {greeting.sub}
           </p>
         </div>
-        <div
+        <button
+          type="button"
           className="dash-points-pill cursor-pointer group"
           onClick={() => router.push("/dashboard/profile")}
-          aria-label={`แต้มคงเหลือ ${profile?.points ?? 0}`}
+          aria-label={`แต้มคงเหลือ ${(profile?.points ?? 0).toLocaleString()} แต้ม ไปหน้าโปรไฟล์`}
         >
-          <span className="w-7 h-7 rounded-full grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#f6c944,#d4af37)", color: "#3a2a00" }}><Coins size={13} /></span>
+          <span className="w-7 h-7 rounded-full grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#f6c944,#d4af37)", color: "#3a2a00" }}><Coins size={13} aria-hidden /></span>
           <span className="group-hover:translate-x-0.5 transition-transform">{(profile?.points ?? 0).toLocaleString()} แต้ม</span>
-        </div>
+        </button>
       </header>
 
       {/* Continue reading draft (if exists) */}
@@ -221,7 +222,7 @@ export default function DashboardHome() {
 
       {/* Hero — primary CTA, magical */}
       <div className="dash-section">
-        <div className="hero-card group cursor-pointer relative overflow-hidden" onClick={() => handleSpreadSelect("three_card")} role="button" tabIndex={0} aria-label="เริ่มอ่านไพ่ 3 ใบ">
+        <button type="button" className="hero-card group cursor-pointer relative overflow-hidden w-full text-left" onClick={() => handleSpreadSelect("three_card")} aria-label="เริ่มอ่านไพ่ 3 ใบ">
           <div className="hero-glow" style={{ background: "radial-gradient(ellipse 70% 80% at 20% 20%, rgba(167,139,250,0.22), transparent 60%), radial-gradient(ellipse 60% 60% at 90% 30%, rgba(212,175,55,0.14), transparent 60%), linear-gradient(135deg, rgba(26,16,45,0.96), rgba(18,13,32,0.98))" }} />
           {/* subtle stars */}
           <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: "radial-gradient(1px 1px at 20% 30%, white, transparent), radial-gradient(1px 1px at 40% 70%, white, transparent), radial-gradient(1.2px 1.2px at 80% 20%, white, transparent), radial-gradient(1px 1px at 90% 60%, white, transparent)" }} />
@@ -244,8 +245,8 @@ export default function DashboardHome() {
               </div>
             </div>
           </div>
+          </button>
         </div>
-      </div>
 
       {/* Topics — quick access to topic-specific readings */}
       <div className="dash-section space-y-3">
