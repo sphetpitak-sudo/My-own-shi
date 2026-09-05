@@ -179,7 +179,7 @@ function CardDetailModal({
         role="dialog"
         aria-modal="true"
         aria-label={`รายละเอียดไพ่ ${cardNameTh}`}
-        className="relative card max-w-[440px] w-full p-6 max-h-[86vh] overflow-auto"
+        className="relative card max-w-[440px] w-full p-6 max-h-[86vh] overflow-auto animate-fade"
         style={{ outline: "none" }}
       >
         {children}

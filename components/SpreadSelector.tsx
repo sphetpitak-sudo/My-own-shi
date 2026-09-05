@@ -219,7 +219,7 @@ function CelticPreviewModal({
   return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-label="ปิด" tabIndex={-1} />
-          <div ref={panelRef} tabIndex={-1} className="relative card p-6 max-w-[520px] w-full max-h-[85dvh] overflow-auto" style={{ background: "var(--bg-elevated)", outline: "none" }} role="dialog" aria-modal="true" aria-labelledby="celtic-preview-title">
+          <div ref={panelRef} tabIndex={-1} className="relative card p-6 max-w-[520px] w-full max-h-[85dvh] overflow-auto animate-fade" style={{ background: "var(--bg-elevated)", outline: "none" }} role="dialog" aria-modal="true" aria-labelledby="celtic-preview-title">
             <button onClick={onClose} aria-label="ปิดหน้าต่างตัวอย่าง" className="touch-hit absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-[var(--bg)]" style={{ color: "var(--text-muted)" }}><X size={16} /></button>
             <div className="flex items-center gap-2 mb-2">
               <div className="w-9 h-9 rounded-xl grid place-items-center" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}><Sparkles size={16} /></div>

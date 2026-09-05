@@ -66,7 +66,7 @@ export default function LandingHero() {
 
         {/* Brand eyebrow */}
         <div
-          className="mb-3 animate-in text-[11px] sm:text-[12px] font-extrabold uppercase tracking-[0.28em]"
+          className="mb-3 animate-in text-[11px] sm:text-[12px] font-extrabold uppercase tracking-[0.2em]"
           style={{ animationDelay: "0.06s", color: "var(--gold-light)" }}
         >
           {t.catarot} · {t.hero_brand}
@@ -74,7 +74,7 @@ export default function LandingHero() {
 
         {/* Headline */}
         <h1
-          className="text-[38px] sm:text-[56px] md:text-[62px] font-extrabold text-white mb-4 animate-in leading-[1.08] tracking-tight max-w-3xl"
+          className="text-[38px] sm:text-[56px] md:text-[62px] font-extrabold text-white mb-4 animate-in leading-[1.08] tracking-tight max-w-3xl text-balance"
           style={{
             animationDelay: "0.12s",
             textShadow: "0 0 50px rgba(167, 139, 250, 0.2)",
@@ -85,7 +85,7 @@ export default function LandingHero() {
 
         {/* Subheadline */}
         <p
-          className="text-[15px] sm:text-[17px] mb-8 max-w-lg animate-in leading-relaxed text-white/70 font-normal"
+          className="text-[15px] sm:text-[17px] mb-8 max-w-lg animate-in leading-relaxed text-white/70 font-normal text-pretty"
           style={{ animationDelay: "0.18s" }}
         >
           {t.hero_subheadline}

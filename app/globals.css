@@ -1023,7 +1023,7 @@ body {
 @media (pointer: coarse) {
   .icon-btn-sm { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
   .bottom-nav-item { min-height: 46px; }
-  .btn { min-height: 42px; }
+  .btn { min-height: 44px; }
   .nav-item { min-height: 40px; }
 }
 
@@ -1039,6 +1039,9 @@ body {
 
 /* Responsive: ensure 320px comfort */
 @media (max-width: 360px) {
+  /* 5 step labels (80px each) cannot fit ≤360px viewports — dots +
+     the "ขั้นตอนที่ X / 5" eyebrow still communicate position. */
+  .step-indicator .step-label { display: none; }
   .dashboard-premium { padding-left: 12px; padding-right: 12px; }
   .hero-card { padding: 14px; }
   .card { border-radius: var(--radius); }

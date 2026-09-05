@@ -11,7 +11,7 @@ import AnnouncementCard from "@/components/ui/AnnouncementCard";
 import InsufficientPoints from "@/components/ui/InsufficientPoints";
 import { SPREADS, type SpreadType } from "@/lib/cards";
 import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/catalog";
-import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, ArrowRight, Heart, Briefcase, GraduationCap, Wallet, Activity, type LucideIcon } from "lucide-react";
+import { Coins, Sparkles, Gift, Star, BookOpen, ArrowRight, Heart, Briefcase, GraduationCap, Wallet, Activity, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
 import { draftTopicLabelTh, isReadingStepKey, readingStepLabelTh } from "@/lib/reading-flow";
@@ -24,15 +24,6 @@ interface ProfileLite {
   display_name: string | null;
   points: number;
 }
-
-const CATEGORY_TONE: Record<FeatureCategory, { bg: string; color: string }> = {
-  tarot: { bg: "rgba(167,139,250,0.12)", color: "var(--primary)" },
-  astrology: { bg: "rgba(129,140,248,0.12)", color: "#818cf8" },
-  oracle: { bg: "rgba(244,114,182,0.12)", color: "#f472b6" },
-  quick: { bg: "rgba(251,191,36,0.12)", color: "#fbbf24" },
-  daily: { bg: "rgba(212,175,55,0.12)", color: "var(--gold)" },
-  numerology: { bg: "rgba(20,184,166,0.12)", color: "#14b8a6" },
-};
 
 const TOPIC_ICONS: Record<string, LucideIcon> = {
   love: Heart,
@@ -394,6 +385,7 @@ export default function DashboardHome() {
         <div className="dash-category-pills">
           <button
             onClick={() => setActiveCategory("all")}
+            aria-pressed={activeCategory === "all"}
             className={cn("dash-category-pill", activeCategory === "all" && "active")}
           >
             ทั้งหมด
@@ -407,6 +399,7 @@ export default function DashboardHome() {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
+                aria-pressed={activeCategory === cat}
                 className={cn("dash-category-pill", activeCategory === cat && "active")}
               >
                 <Icon size={14} />
@@ -430,76 +423,10 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Quick Shortcuts (when viewing All) */}
-      {activeCategory === "all" && (
-        <div className="dash-section space-y-3">
-          <SectionHeader
-            title="เครื่องมือด่วน"
-            subtitle="คำถามเฉพาะทางและลางสังหรณ์"
-          />
-          <div className="dash-feature-row">
-            {[
-              {
-                id: "zodiac",
-                icon: Star,
-                title: "ดูดวงตามวันเกิด",
-                sub: "ฟรี · ราศี + 12 ปีนักษัตร",
-                href: "/dashboard/zodiac",
-                cat: "astrology" as FeatureCategory,
-              },
-              {
-                id: "yesno",
-                icon: CircleHelp,
-                title: "ถามใช่หรือไม่",
-                sub: `${costs["single"] ?? 5} แต้ม · คำตอบชัดเจนใน 1 ใบ`,
-                href: "/dashboard/yesno",
-                cat: "quick" as FeatureCategory,
-              },
-              {
-                id: "daily",
-                icon: Gift,
-                title: "ดูดวงรายวัน",
-                sub: "ฟรี · อัปเดตทุกเช้า",
-                href: "/dashboard/daily",
-                cat: "daily" as FeatureCategory,
-              },
-            ].map((tool) => {
-              const Icon = tool.icon;
-              const tone = CATEGORY_TONE[tool.cat];
-              return (
-                <a
-                  key={tool.id}
-                  href={tool.href}
-                  className="fc-root p-3.5 transition-all duration-200 hover:-translate-y-0.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{
-                        background: tone.bg,
-                        color: tone.color,
-                      }}
-                    >
-                      <Icon size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13.5px] font-bold text-[var(--text)]">
-                        {tool.title}
-                      </div>
-                      <div className="text-[11.5px] text-[var(--text-muted)]">
-                        {tool.sub}
-                      </div>
-                    </div>
-                    <div className="text-[16px] text-[var(--text-muted)]">
-                      ›
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* NOTE (Phase E3): the old "Quick Shortcuts" row (zodiac/yesno/daily)
+          was removed — all three already exist in the catalog grid above and
+          in the sidebar, and the row mislabeled zodiac as free (it costs 5).
+          No functionality removed, only the duplicate entry points. */}
 
       {/* Recent Readings (Tarot Journal Preview) */}
       <div className="dash-section space-y-3">

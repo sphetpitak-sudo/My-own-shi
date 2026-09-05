@@ -72,7 +72,7 @@ export default function ConfirmDialog({
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         tabIndex={-1}
-        className="relative card p-6 max-w-[440px] w-full"
+        className="relative card p-6 max-w-[440px] w-full animate-fade"
         style={{ background: "var(--bg-elevated)", outline: "none" }}
       >
         <h3
