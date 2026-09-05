@@ -29,10 +29,10 @@ afterEach(() => {
 });
 
 describe("ShuffleAnimation contract", () => {
-  it("renders 6 decorative cards hidden from assistive tech", () => {
+  it("renders 8 decorative cards hidden from assistive tech", () => {
     const { container } = render(<ShuffleAnimation onComplete={vi.fn()} />);
     const cards = container.querySelectorAll(".sealo-shuffle-card");
-    expect(cards).toHaveLength(6);
+    expect(cards).toHaveLength(8);
     const deck = container.querySelector(".shuffle-deck-wrap");
     expect(deck?.getAttribute("aria-hidden")).toBe("true");
     expect(screen.getByText("กำลังเตรียมไพ่...")).toBeDefined();
@@ -50,12 +50,12 @@ describe("ShuffleAnimation contract", () => {
     b.unmount();
   });
 
-  it("calls onComplete exactly once after the sequence", () => {
+  it("calls onComplete exactly once after the sequence (~2.6s)", () => {
     const onComplete = vi.fn();
     render(<ShuffleAnimation onComplete={onComplete} />);
-    vi.advanceTimersByTime(1500);
+    vi.advanceTimersByTime(2000);
     expect(onComplete).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(500);
+    vi.advanceTimersByTime(700);
     expect(onComplete).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(5000);
     expect(onComplete).toHaveBeenCalledTimes(1);

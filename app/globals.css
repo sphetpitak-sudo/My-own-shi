@@ -866,38 +866,65 @@ body {
 /* will-change only while the shuffle runs (removed with the deck on unmount). */
 .is-shuffling .shuffle-deck-card { will-change: transform; }
 
-/* ============ SEALO SUBTLE SHUFFLE (Apple-level restraint) ============
-   One shared keyframes track driven entirely by per-card CSS variables.
-   Only transform is animated (compositor-friendly). Total per card 1600ms;
-   with the max 225ms stagger the deck finishes at ~1825ms.
-   0-11%   micro lift (~4px)          11-29%  split (±16px, ±3°)
-   29-60%  interleave (short cross)   60-82%  reassemble to rest
-   82-100% settle (1.5px) → rest. First frame == last frame. */
+/* ============ SEALO CINEMATIC SHUFFLE (signature, restrained) ============
+   One shared keyframes track; per-card choreography arrives as full
+   transform strings (--t0..--t7), so every card follows the same rhythm
+   with its own trajectory. Only transform + opacity animate
+   (compositor-friendly). Per-card 2400ms + max 175ms stagger ≈ 2.6s.
+   0% rest = 100% rest (first frame == last frame, pixel-perfect settle).
+   Per-phase easing lives ON the keyframes (applies to the segment ahead):
+   lift ease-out / split + reassemble (0.22,1,0.36,1) /
+   cross (0.16,1,0.3,1) / settle ease-out. No bounce, no elastic.
+   --travel scales X travel on small screens (angles/scales untouched). */
+.shuffle-stage { --travel: 1; }
+@media (max-width: 430px) {
+  .shuffle-stage { --travel: 0.75; }
+}
+@media (max-width: 360px) {
+  .shuffle-stage { --travel: 0.6; }
+}
 @keyframes sealo-shuffle {
   0% {
-    transform: translate3d(var(--rx), var(--ry), 0) rotate(var(--rr));
+    transform: var(--t0);
+    opacity: 1;
+    animation-timing-function: ease-out;
   }
-  11% {
-    transform: translate3d(var(--rx), -4px, 0) rotate(var(--rr));
+  12.5% {
+    transform: var(--t1);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
-  29% {
-    transform: translate3d(var(--sx), -2px, 0) rotate(var(--sr));
+  27% {
+    transform: var(--t2);
+    opacity: 0.94;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
   60% {
-    transform: translate3d(var(--cx), 0px, 0) rotate(var(--cr));
+    transform: var(--t3);
+    opacity: 0.97;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
-  82% {
-    transform: translate3d(var(--rx), var(--ry), 0) rotate(var(--rr));
+  73% {
+    transform: var(--t4);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
-  91% {
-    transform: translate3d(var(--rx), 1.5px, 0) rotate(var(--rr));
+  94% {
+    transform: var(--t5);
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+  97.5% {
+    transform: var(--t6);
+    opacity: 1;
   }
   100% {
-    transform: translate3d(var(--rx), var(--ry), 0) rotate(var(--rr));
+    transform: var(--t7);
+    opacity: 1;
   }
 }
 .sealo-shuffle-card {
-  animation: sealo-shuffle 1600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: sealo-shuffle 2400ms both;
   animation-delay: var(--delay);
   backface-visibility: hidden;
 }
