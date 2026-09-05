@@ -82,8 +82,10 @@ export default function BirthChartWheel({ chart, size=360, interactive=true }: {
 
   return (
     <div className="w-full flex flex-col items-center gap-3" style={{ maxWidth: size }}>
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg viewBox="0 0 400 400" width={size} height={size} className="overflow-visible" style={{ filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.45))" }}>
+      {/* Fluid: fills narrow screens (320px) instead of clipping; all
+          drawing uses viewBox units so desktop rendering is pixel-identical. */}
+      <div className="relative w-full" style={{ maxWidth: size, aspectRatio: "1 / 1" }}>
+        <svg viewBox="0 0 400 400" width="100%" height="100%" className="overflow-visible" style={{ filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.45))" }} role="img" aria-label="แผนที่ดวงดาว">
           <defs>
             <radialGradient id="wheelBg" cx="50%" cy="35%" r="75%">
               <stop offset="0%" stopColor="var(--wheel-bg, #fdfbf7)" />
