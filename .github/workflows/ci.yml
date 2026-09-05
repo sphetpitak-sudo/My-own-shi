@@ -1,0 +1,42 @@
+# Phase 6 — CI gate. Must stay green on every push/PR to main.
+# Dummy env is enough: gates never touch real Supabase/AI (invalid payloads
+# fail validation before any external call; Sentry without DSN is a no-op).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: dummy-publishable-key
+      OPEN_TYPHOON_API_KEY: dummy-key-for-build
+      SENTRY_DSN: ""
+      NEXT_PUBLIC_SENTRY_DSN: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run build
+      - name: Concurrency smoke (built app, invalid payloads)
+        run: |
+          PORT=3100 npm run start &
+          SRV=$!
+          trap "kill $SRV" EXIT
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://localhost:3100/ && break
+            sleep 2
+          done
+          node scripts/load-smoke.mjs http://localhost:3100
