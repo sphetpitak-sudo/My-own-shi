@@ -179,17 +179,23 @@ export default function YesNoPage() {
         }
         const actualCost = charged as number;
 
-        // Save to history so the yes/no reading appears in the history page
-        await supabase.from("readings").insert({
-          user_id: user.id,
-          spread_type: "single",
-          cards: [
-            { cardId: drawn[0]!.card.id, positionLabel: "คำตอบ", reversed: drawn[0]!.reversed },
-          ],
-          question,
-          interpretation: "",
-          points_spent: actualCost,
-        }).catch(() => {});
+        // Save to history so the yes/no reading appears in the history page.
+        // NOTE: PostgREST builders have no `.catch` (was SEALO-2 pattern) —
+        // await the thenable in try/catch; history is best-effort.
+        try {
+          await supabase.from("readings").insert({
+            user_id: user.id,
+            spread_type: "single",
+            cards: [
+              { cardId: drawn[0]!.card.id, positionLabel: "คำตอบ", reversed: drawn[0]!.reversed },
+            ],
+            question,
+            interpretation: "",
+            points_spent: actualCost,
+          });
+        } catch {
+          // History is best-effort; the answer stands regardless.
+        }
 
         setAnswer(next);
         setPoints((p) => Math.max(0, p - actualCost));

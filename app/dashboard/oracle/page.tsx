@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { persistReadingInterpretation } from "@/lib/supabase/persist";
 import DashboardShell from "@/components/DashboardShell";
 import ShuffleAnimation from "@/components/ShuffleAnimation";
 import TarotCard from "@/components/TarotCard";
@@ -296,15 +297,13 @@ export default function OraclePage() {
         return;
       }
 
-      // Persist the AI text into the reading history row
+      // Persist the AI text into the reading history row.
+      // NOTE: PostgREST builders have no `.catch` — always await in try/catch
+      // (was SEALO-2). Only clear the refund guard when the save succeeded.
       if (readingIdRef.current && fullText) {
         const supabase = createClient();
-        await supabase
-          .from("readings")
-          .update({ interpretation: fullText })
-          .eq("id", readingIdRef.current)
-          .catch(() => {});
-        lastCostRef.current = null; // success, do not refund
+        const saved = await persistReadingInterpretation(supabase, readingIdRef.current, fullText);
+        if (saved) lastCostRef.current = null; // success, do not refund
       } else if (!fullText) {
         setError("AI ไม่ตอบสนอง กรุณาลองใหม่ — แต้มคืนแล้ว");
         await attemptRefund();
@@ -316,15 +315,11 @@ export default function OraclePage() {
       // If we already have content, treat as success — don't overwrite with generic error
       if (fullText && fullText.trim().length > 20) {
         console.warn("oracle stream threw after content, ignoring generic error", e);
-        // Persist partial/full content if not yet persisted
+        // Persist partial/full content if not yet persisted (same SEALO-2 rule).
         if (readingIdRef.current) {
           const supabase = createClient();
-          await supabase
-            .from("readings")
-            .update({ interpretation: fullText })
-            .eq("id", readingIdRef.current)
-            .catch(() => {});
-          lastCostRef.current = null;
+          const saved = await persistReadingInterpretation(supabase, readingIdRef.current, fullText);
+          if (saved) lastCostRef.current = null;
         }
         setError("");
       } else {
