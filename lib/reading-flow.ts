@@ -50,6 +50,43 @@ export function readingStepLabelTh(step: ReadingStepKey): string {
   return STEP_LABELS_TH[step];
 }
 
+// --------------------------------------------
+// Draft topic (Phase D2). Stored alongside the draft; legacy drafts that
+// predate this field simply have no topic (undefined) and the UI treats
+// that as "not explicitly chosen" rather than assuming "general".
+// --------------------------------------------
+
+export const DRAFT_TOPICS = [
+  "love",
+  "career",
+  "study",
+  "finance",
+  "health",
+  "general",
+] as const;
+
+export type DraftTopic = (typeof DRAFT_TOPICS)[number];
+
+const TOPIC_LABEL_TH: Record<DraftTopic, string> = {
+  love: "ความรัก",
+  career: "การงาน",
+  study: "การเรียน",
+  finance: "การเงิน",
+  health: "สุขภาพ",
+  general: "ภาพรวม",
+};
+
+export function normalizeDraftTopic(raw: unknown): DraftTopic | undefined {
+  return typeof raw === "string" &&
+    (DRAFT_TOPICS as readonly string[]).includes(raw)
+    ? (raw as DraftTopic)
+    : undefined;
+}
+
+export function draftTopicLabelTh(topic: DraftTopic | undefined): string {
+  return topic ? TOPIC_LABEL_TH[topic] : "ยังไม่เลือกหัวข้อ";
+}
+
 export interface ConfirmSummary {
   spreadNameTh: string;
   cardCount: number;

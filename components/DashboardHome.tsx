@@ -14,6 +14,7 @@ import { CATEGORY_META, FEATURES, type FeatureCategory } from "@/lib/features/ca
 import { Coins, Sparkles, CircleHelp, Gift, Star, BookOpen, ArrowRight, Heart, Briefcase, GraduationCap, Wallet, Activity, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { loadDraft, clearDraft } from "@/lib/useReadingDraft";
+import { draftTopicLabelTh, isReadingStepKey, readingStepLabelTh } from "@/lib/reading-flow";
 import { useShell } from "./DashboardShell";
 import dynamic from "next/dynamic";
 const PushOptInWrapper = dynamic(() => import("./PushOptIn"), { ssr: false });
@@ -198,7 +199,7 @@ export default function DashboardHome() {
                 {draft.question.slice(0, 50)}{draft.question.length > 50 ? "…" : ""}
               </div>
               <div className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
-                {SPREADS[draft.spreadType as SpreadType]?.nameTh ?? draft.spreadType} · ขั้นตอนที่ {draft.step}
+                {SPREADS[draft.spreadType as SpreadType]?.nameTh ?? draft.spreadType} · {draftTopicLabelTh(draft.topic)} · {isReadingStepKey(draft.step) ? readingStepLabelTh(draft.step) : draft.step}
               </div>
             </div>
             <div className="flex gap-2 shrink-0">

@@ -994,6 +994,26 @@ body {
 @media (pointer: coarse) {
   .chat-del { opacity: 1; }
 }
+/* Phase D4: horizontal scroll rows clip the ::after hit expansion above
+   and below (overflow-x:auto forces overflow-y to clip). These classes add
+   10px of vertical breathing room with compensating negative margins so the
+   occupied height is byte-identical to before (unlayered CSS wins over the
+   Tailwind pb-* utilities by cascade order):
+   - .scroll-row-touch: for rows that had pb-1 (4px) → bottom net 10-6=4 ✓
+   - .scroll-row-touch-lg: for rows that had pb-2 (8px) → bottom net 10-2=8 ✓
+   Only the clipping boundary moves; siblings do not shift. */
+.scroll-row-touch {
+  padding-top: 10px;
+  margin-top: -10px;
+  padding-bottom: 10px;
+  margin-bottom: -6px;
+}
+.scroll-row-touch-lg {
+  padding-top: 10px;
+  margin-top: -10px;
+  padding-bottom: 10px;
+  margin-bottom: -2px;
+}
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;

@@ -87,6 +87,11 @@ function ReadingPageInner() {
   const [topic, setTopic] = useState<TopicKey>(
     hasInitialTopic ? (rawInitialTopic as TopicKey) : "general"
   );
+  // D1: distinguish "not explicitly chosen" from "chosen". The internal
+  // default stays "general" (business logic unchanged) but no button shows
+  // an active state until the user actually picks a topic (or arrives with
+  // an explicit ?topic=, or resumes a draft that stored one).
+  const [topicChosen, setTopicChosen] = useState(hasInitialTopic);
   const [question, setQuestion] = useState("");
   const [drawnCards, setDrawnCards] = useState<DrawnCard[] | null>(null);
   // Pre-spend confirmation (Phase C1): spend still happens server-side in
@@ -147,8 +152,10 @@ function ReadingPageInner() {
       clearDraft();
       return;
     }
-    saveDraft({ spreadType, question, drawnCards, step });
-  }, [step, spreadType, question, drawnCards]);
+    // Only persist an explicitly chosen topic — storing the "general"
+    // default would make resume claim the user picked it (see D1).
+    saveDraft({ spreadType, question, drawnCards, step, ...(topicChosen ? { topic } : {}) });
+  }, [step, spreadType, question, drawnCards, topic, topicChosen]);
 
   // Restore draft if user returns without ?spread
   useEffect(() => {
@@ -158,6 +165,12 @@ function ReadingPageInner() {
     if (draft && draft.question && draft.spreadType) {
       setSpreadType(draft.spreadType);
       setQuestion(draft.question);
+      // A stored topic counts as explicitly chosen; legacy drafts without
+      // one resume neutral (never assume "general" was picked).
+      if (draft.topic) {
+        setTopic(draft.topic as TopicKey);
+        setTopicChosen(true);
+      }
       if (draft.drawnCards) setDrawnCards(draft.drawnCards as DrawnCard[]);
       if (draft.step === "draw" || draft.step === "result") {
         // Don't auto-restore to draw/result to avoid duplicate spend; stay at question
@@ -196,6 +209,7 @@ function ReadingPageInner() {
 
   const handleTopicSelect = (t: TopicKey) => {
     setTopic(t);
+    setTopicChosen(true);
     setStep("question");
   };
 
@@ -365,12 +379,13 @@ function ReadingPageInner() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 px-4 mb-4">
               {(Object.keys(TOPICS) as TopicKey[]).map((t) => {
                 const topicData = TOPICS[t];
-                const active = topic === t;
+                const active = topicChosen && topic === t;
                 const Icon = topicData.icon;
                 return (
                   <button
                     key={t}
                     onClick={() => handleTopicSelect(t)}
+                    aria-pressed={active}
                     className={cn(
                       "card p-4 text-left transition-all duration-200",
                       active && "ring-2 ring-[var(--primary)] shadow-md bg-[var(--primary-soft)]",

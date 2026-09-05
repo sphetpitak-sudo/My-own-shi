@@ -99,7 +99,7 @@ export default function CardCollection({ userId }: Props) {
       </div>
 
       {/* Filter — Thai labels, 12px baseline */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scroll-row-touch" style={{ scrollbarWidth: "none" }}>
         {(["all","major","cups","wands","swords","pentacles"] as const).map(k=>{
           const label = k==="all"?"ทั้งหมด":k==="major"?"เมเจอร์":k==="cups"?"ถ้วย":k==="wands"?"ไม้เท้า":k==="swords"?"ดาบ":"เหรียญ";
           return <button key={k} onClick={()=>setFilter(k)} aria-pressed={filter===k} className="touch-hit px-3 py-1.5 rounded-full text-[11.5px] font-semibold whitespace-nowrap border" style={{ background: filter===k? "var(--primary)":"var(--bg-card)", color: filter===k?"white":"var(--text-secondary)", borderColor: filter===k?"var(--primary)":"var(--border)" }}>{label}</button>;

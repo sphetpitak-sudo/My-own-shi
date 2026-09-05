@@ -269,7 +269,7 @@ export default function ReadingHistory({ userId }: ReadingHistoryProps) {
               <Search size={14} />
             </span>
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scroll-row-touch" style={{ scrollbarWidth: "none" }}>
             {["all", "favorites", "single", "three_card", "celtic", "oracle"].map((k) => {
               const isFav = k === "favorites";
               return (

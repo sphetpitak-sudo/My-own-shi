@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Heart, Briefcase, GraduationCap, Wallet, Sprout, X, ArrowRight, ArrowLeft } from "lucide-react";
+import { useDialogFocus } from "./ui/useDialogFocus";
 
 type Interest = "love" | "career" | "study" | "finance" | "growth";
 
@@ -43,6 +44,15 @@ export default function OnboardingModal({ onComplete }: { onComplete?: () => voi
     if (shouldShowOnboarding()) setVisible(true);
   }, []);
 
+  // Focus trap + Escape must hook unconditionally (before the early return).
+  // onClose only hides for the session — never persists (see D3).
+  const panelRef = useDialogFocus<HTMLDivElement>(visible, {
+    onClose: () => {
+      setVisible(false);
+      onComplete?.();
+    },
+  });
+
   if (!visible) return null;
 
   const toggleInterest = (id: Interest) => {
@@ -67,12 +77,27 @@ export default function OnboardingModal({ onComplete }: { onComplete?: () => voi
     onComplete?.();
   };
 
+  // Backdrop / Escape only hides for this session — an accidental tap must
+  // never permanently complete onboarding. Only the explicit ข้าม buttons
+  // (X / "ข้ามไปก่อน") persist via handleSkip.
+  const handleBackdropHide = () => {
+    setVisible(false);
+    onComplete?.();
+  };
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="ยินดีต้อนรับสู่ Sealo">
-      <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleSkip} aria-label="ปิด" />
-      <div className="relative w-full max-w-[480px] rounded-2xl overflow-hidden shadow-2xl animate-in" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+      <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleBackdropHide} aria-label="ปิด" tabIndex={-1} />
+      <div ref={panelRef} tabIndex={-1} className="relative w-full max-w-[480px] rounded-2xl overflow-hidden shadow-2xl animate-in" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", outline: "none" }}>
         {/* Progress */}
-        <div className="h-1 bg-[var(--border-subtle)]">
+        <div
+          className="h-1 bg-[var(--border-subtle)]"
+          role="progressbar"
+          aria-label="ความคืบหน้าการเริ่มต้นใช้งาน"
+          aria-valuemin={1}
+          aria-valuemax={3}
+          aria-valuenow={step + 1}
+        >
           <div className="h-full bg-[var(--primary)] transition-all duration-300" style={{ width: `${((step + 1) / 3) * 100}%` }} />
         </div>
 
@@ -107,10 +132,11 @@ export default function OnboardingModal({ onComplete }: { onComplete?: () => voi
                   const active = selected.includes(item.id);
                   const Icon = item.icon;
                   return (
-                    <button
-                      key={item.id}
-                      onClick={() => toggleInterest(item.id)}
-                      className={`p-4 rounded-xl text-left border-2 transition-all ${active ? "scale-[0.98]" : "hover:scale-[1.01]"}`}
+                      <button
+                        key={item.id}
+                        onClick={() => toggleInterest(item.id)}
+                        aria-pressed={active}
+                        className={`p-4 rounded-xl text-left border-2 transition-all ${active ? "scale-[0.98]" : "hover:scale-[1.01]"}`}
                       style={{
                         background: active ? item.bg : "var(--bg-card)",
                         borderColor: active ? item.color : "var(--border)",
@@ -165,7 +191,7 @@ export default function OnboardingModal({ onComplete }: { onComplete?: () => voi
             </button>
           </div>
 
-          <div className="flex justify-center gap-1.5 mt-5">
+          <div className="flex justify-center gap-1.5 mt-5" aria-hidden="true">
             {[0, 1, 2].map(i => (
               <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i === step ? 24 : 8, background: i === step ? "var(--primary)" : "var(--border)" }} />
             ))}

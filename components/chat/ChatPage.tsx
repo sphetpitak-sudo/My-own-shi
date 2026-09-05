@@ -325,7 +325,7 @@ export default function ChatPage() {
 
           {/* Quick actions when has messages but not streaming */}
           {!isEmpty && !streaming && (
-            <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-none">
+            <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-none scroll-row-touch-lg">
               {QUICK_ACTIONS.slice(0, 4).map((a) => (
                 <button key={a.label} onClick={() => send(a.prompt)} className="touch-hit shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold border" style={{ background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-secondary)" }}>
                   {a.label}

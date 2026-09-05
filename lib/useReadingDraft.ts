@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { DrawnCard, SpreadType } from "@/lib/cards";
+import { normalizeDraftTopic, type DraftTopic } from "@/lib/reading-flow";
 
 export interface ReadingDraft {
   spreadType: SpreadType;
   question: string;
   drawnCards: DrawnCard[] | null;
   step: "spread" | "topic" | "question" | "draw" | "result";
+  /** Absent in drafts written before Phase D — treated as "not chosen". */
+  topic?: DraftTopic;
   updatedAt: number;
 }
 
@@ -54,11 +57,13 @@ export function loadDraft(): ReadingDraft | null {
       return null;
     }
 
+    const topic = normalizeDraftTopic(parsed.topic);
     return {
       spreadType: parsed.spreadType as SpreadType,
       question: typeof parsed.question === "string" ? parsed.question : "",
       drawnCards: Array.isArray(parsed.drawnCards) ? (parsed.drawnCards as DrawnCard[]) : null,
       step: parsed.step as ReadingDraft["step"],
+      ...(topic ? { topic } : {}),
       updatedAt: parsed.updatedAt,
     };
   } catch {
